@@ -20,19 +20,27 @@ const MedicalProfileCulturalPreferencesForm = () => {
 
   // Load saved data on component mount
   useEffect(() => {
-    const savedProfile = JSON.parse(localStorage.getItem('medicalProfile') || '{}');
-    if (savedProfile && savedProfile.cultural) {
-      const culturalData = savedProfile.cultural;
-      
-      setReligion(culturalData.religion || '');
-      setOtherReligion(culturalData.otherReligion || '');
-      setCulturalConsiderations(culturalData.culturalConsiderations || '');
-      setFamilyInvolvement(culturalData.familyInvolvement === 'true' || false);
-      setReligiousLeader(culturalData.religiousLeader === 'true' || false);
-      setLanguagePreferences(culturalData.languagePreferences || 'english');
-      setInterpreterNeeded(culturalData.interpreterNeeded || 'no');
-      setDietaryRestrictions(culturalData.dietaryRestrictions || '');
-      setAdditionalNotes(culturalData.additionalNotes || '');
+    const savedProfile = localStorage.getItem('medicalProfile');
+    
+    if (savedProfile) {
+      try {
+        const profileData = JSON.parse(savedProfile);
+        if (profileData && profileData.cultural) {
+          const culturalData = profileData.cultural;
+          
+          setReligion(culturalData.religion || '');
+          setOtherReligion(culturalData.otherReligion || '');
+          setCulturalConsiderations(culturalData.culturalConsiderations || '');
+          setFamilyInvolvement(culturalData.familyInvolvement === 'true' || false);
+          setReligiousLeader(culturalData.religiousLeader === 'true' || false);
+          setLanguagePreferences(culturalData.languagePreferences || 'english');
+          setInterpreterNeeded(culturalData.interpreterNeeded || 'no');
+          setDietaryRestrictions(culturalData.dietaryRestrictions || '');
+          setAdditionalNotes(culturalData.additionalNotes || '');
+        }
+      } catch (error) {
+        console.error('Error loading cultural preferences data:', error);
+      }
     }
   }, []);
 

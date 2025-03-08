@@ -29,130 +29,142 @@ const MedicalProfileForm = () => {
   const currentSection = section || 'personal';
 
   useEffect(() => {
-    const savedProfile = JSON.parse(localStorage.getItem('medicalProfile') || '{}');
-    if (savedProfile && savedProfile[currentSection]) {
-      setFormData(savedProfile[currentSection]);
-    } else {
+    try {
+      const savedProfile = JSON.parse(localStorage.getItem('medicalProfile') || '{}');
+      
+      if (savedProfile && savedProfile.history && savedProfile.history.hasMentalHealthHistory) {
+        setHasMentalHealthHistory(savedProfile.history.hasMentalHealthHistory);
+      }
+      
+      if (savedProfile && savedProfile[currentSection]) {
+        setFormData(savedProfile[currentSection]);
+      } else {
+        setFormData({});
+      }
+    } catch (error) {
+      console.error('Error loading medical profile data:', error);
       setFormData({});
-    }
-    
-    if (savedProfile && savedProfile.history && savedProfile.history.hasMentalHealthHistory) {
-      setHasMentalHealthHistory(savedProfile.history.hasMentalHealthHistory);
     }
   }, [currentSection]);
 
   const handleSave = () => {
     setIsSaving(true);
     
-    const existingProfile = JSON.parse(localStorage.getItem('medicalProfile') || '{}');
-    const existingSectionData = existingProfile[currentSection] || {};
-    
-    let newFormData: any = {};
-    
-    if (currentSection === 'medications' && (window as any).medicationsFormData) {
-      newFormData = (window as any).medicationsFormData;
-    } else if (currentSection === 'cultural' && (window as any).culturalPreferencesFormData) {
-      newFormData = (window as any).culturalPreferencesFormData;
-    } else if (currentSection === 'preventative' && (window as any).preventativeCareFormData) {
-      newFormData = (window as any).preventativeCareFormData;
-    } else if (currentSection === 'social' && (window as any).socialHistoryFormData) {
-      newFormData = (window as any).socialHistoryFormData;
-    } else if (currentSection === 'functional' && (window as any).functionalStatusFormData) {
-      newFormData = (window as any).functionalStatusFormData;
-    } else if (currentSection === 'reproductive' && (window as any).reproductiveHistoryFormData) {
-      newFormData = (window as any).reproductiveHistoryFormData;
-    } else if (currentSection === 'mental' && (window as any).mentalHealthFormData) {
-      newFormData = (window as any).mentalHealthFormData;
-    } else if (currentSection === 'allergies' && (window as any).allergiesFormData) {
-      newFormData = (window as any).allergiesFormData;
-    } else if (currentSection === 'history' && (window as any).historyFormData) {
-      newFormData = (window as any).historyFormData;
-      newFormData.hasMentalHealthHistory = hasMentalHealthHistory;
-    } else if (currentSection === 'personal' && (window as any).personalFormData) {
-      newFormData = (window as any).personalFormData;
-    } else {
-      const formElements = document.querySelectorAll('input, select, textarea');
+    try {
+      const existingProfile = JSON.parse(localStorage.getItem('medicalProfile') || '{}');
+      const existingSectionData = existingProfile[currentSection] || {};
       
-      formElements.forEach(element => {
-        const input = element as HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement;
-        const id = input.id;
-        if (id && !id.startsWith('react-')) {
-          newFormData[id] = input.value;
-        }
-      });
-    }
-    
-    const changes: {field: string; oldValue: any; newValue: any}[] = [];
-    
-    if (currentSection === 'medications' || 
-        currentSection === 'social' || 
-        currentSection === 'reproductive' || 
-        currentSection === 'mental') {
+      let newFormData: any = {};
       
-      Object.keys(newFormData).forEach(key => {
-        const oldValue = existingSectionData[key];
-        const newValue = newFormData[key];
-        
-        if (JSON.stringify(oldValue) !== JSON.stringify(newValue)) {
-          changes.push({
-            field: key,
-            oldValue: oldValue,
-            newValue: newValue
-          });
-        }
-      });
-    } else {
-      Object.entries(newFormData).forEach(([key, value]) => {
-        if (existingSectionData[key] !== value) {
-          changes.push({
-            field: key,
-            oldValue: existingSectionData[key],
-            newValue: value
-          });
-        }
-      });
-    }
-    
-    const additionalData = currentSection === 'history' ? 
-      { hasMentalHealthHistory } : {};
-    
-    setTimeout(() => {
-      localStorage.setItem('medicalProfile', JSON.stringify({
-        ...existingProfile,
-        [currentSection]: {
-          ...newFormData,
-          completed: true,
-          lastUpdated: new Date().toISOString(),
-          ...additionalData
-        }
-      }));
-      
-      if (changes.length > 0) {
-        logChanges(currentSection, changes);
-      }
-      
-      setIsSaving(false);
-      toast.success('Medical information saved successfully');
-      
-      if (currentSection === 'preventative') {
-        navigate('/dashboard');
-        return;
-      }
-      
-      const sections: SectionType[] = [
-        'personal', 'history', 'medications', 'allergies', 'social',
-        'reproductive', 'mental', 'functional', 'cultural', 'preventative'
-      ];
-      const currentIndex = sections.indexOf(currentSection as SectionType);
-      
-      if (currentSection === 'history' && hasMentalHealthHistory === 'no' && currentIndex < sections.length - 2) {
-        navigate(`/profile/edit/${sections[currentIndex + 2]}`);
-      } else if (currentIndex < sections.length - 1) {
-        navigate(`/profile/edit/${sections[currentIndex + 1]}`);
+      if (currentSection === 'medications' && (window as any).medicationsFormData) {
+        newFormData = (window as any).medicationsFormData;
+      } else if (currentSection === 'cultural' && (window as any).culturalPreferencesFormData) {
+        newFormData = (window as any).culturalPreferencesFormData;
+      } else if (currentSection === 'preventative' && (window as any).preventativeCareFormData) {
+        newFormData = (window as any).preventativeCareFormData;
+      } else if (currentSection === 'social' && (window as any).socialHistoryFormData) {
+        newFormData = (window as any).socialHistoryFormData;
+      } else if (currentSection === 'functional' && (window as any).functionalStatusFormData) {
+        newFormData = (window as any).functionalStatusFormData;
+      } else if (currentSection === 'reproductive' && (window as any).reproductiveHistoryFormData) {
+        newFormData = (window as any).reproductiveHistoryFormData;
+      } else if (currentSection === 'mental' && (window as any).mentalHealthFormData) {
+        newFormData = (window as any).mentalHealthFormData;
+      } else if (currentSection === 'allergies' && (window as any).allergiesFormData) {
+        newFormData = (window as any).allergiesFormData;
+      } else if (currentSection === 'history' && (window as any).historyFormData) {
+        newFormData = (window as any).historyFormData;
+        newFormData.hasMentalHealthHistory = hasMentalHealthHistory;
+      } else if (currentSection === 'personal' && (window as any).personalFormData) {
+        newFormData = (window as any).personalFormData;
       } else {
-        navigate('/dashboard');
+        const formElements = document.querySelectorAll('input, select, textarea');
+        
+        formElements.forEach(element => {
+          const input = element as HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement;
+          const id = input.id;
+          if (id && !id.startsWith('react-')) {
+            newFormData[id] = input.value;
+          }
+        });
       }
-    }, 1000);
+      
+      const changes: {field: string; oldValue: any; newValue: any}[] = [];
+      
+      if (currentSection === 'medications' || 
+          currentSection === 'social' || 
+          currentSection === 'reproductive' || 
+          currentSection === 'mental') {
+        
+        Object.keys(newFormData).forEach(key => {
+          const oldValue = existingSectionData[key];
+          const newValue = newFormData[key];
+          
+          if (JSON.stringify(oldValue) !== JSON.stringify(newValue)) {
+            changes.push({
+              field: key,
+              oldValue: oldValue,
+              newValue: newValue
+            });
+          }
+        });
+      } else {
+        Object.entries(newFormData).forEach(([key, value]) => {
+          if (existingSectionData[key] !== value) {
+            changes.push({
+              field: key,
+              oldValue: existingSectionData[key],
+              newValue: value
+            });
+          }
+        });
+      }
+      
+      const additionalData = currentSection === 'history' ? 
+        { hasMentalHealthHistory } : {};
+      
+      setTimeout(() => {
+        localStorage.setItem('medicalProfile', JSON.stringify({
+          ...existingProfile,
+          [currentSection]: {
+            ...newFormData,
+            completed: true,
+            lastUpdated: new Date().toISOString(),
+            ...additionalData
+          }
+        }));
+        
+        if (changes.length > 0) {
+          logChanges(currentSection, changes);
+        }
+        
+        setIsSaving(false);
+        toast.success('Medical information saved successfully');
+        
+        if (currentSection === 'preventative') {
+          navigate('/dashboard');
+          return;
+        }
+        
+        const sections: SectionType[] = [
+          'personal', 'history', 'medications', 'allergies', 'social',
+          'reproductive', 'mental', 'functional', 'cultural', 'preventative'
+        ];
+        const currentIndex = sections.indexOf(currentSection as SectionType);
+        
+        if (currentSection === 'history' && hasMentalHealthHistory === 'no' && currentIndex < sections.length - 2) {
+          navigate(`/profile/edit/${sections[currentIndex + 2]}`);
+        } else if (currentIndex < sections.length - 1) {
+          navigate(`/profile/edit/${sections[currentIndex + 1]}`);
+        } else {
+          navigate('/dashboard');
+        }
+      }, 1000);
+    } catch (error) {
+      console.error('Error saving medical profile data:', error);
+      setIsSaving(false);
+      toast.error('Error saving medical information');
+    }
   };
 
   const updateMentalHealthHistory = (value: string) => {
