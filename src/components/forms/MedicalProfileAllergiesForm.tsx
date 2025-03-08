@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Plus, Trash2, Calendar } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
 
 const MedicalProfileAllergiesForm = () => {
   // State for allergies
@@ -22,6 +23,9 @@ const MedicalProfileAllergiesForm = () => {
     date: string,
     otherVaccine?: string
   }>>([]);
+  
+  // State for additional notes
+  const [additionalNotes, setAdditionalNotes] = useState('');
   
   // Handler for allergies
   const handleAddAllergy = () => {
@@ -231,10 +235,12 @@ const MedicalProfileAllergiesForm = () => {
         
         <div className="space-y-2">
           <Label htmlFor="allergy-notes">Notes</Label>
-          <Input
+          <Textarea
             id="allergy-notes"
             placeholder="Additional information to share with healthcare providers"
             className="w-full"
+            value={additionalNotes}
+            onChange={(e) => setAdditionalNotes(e.target.value)}
           />
         </div>
       </div>
