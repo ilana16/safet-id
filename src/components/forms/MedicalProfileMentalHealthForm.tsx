@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -19,6 +18,7 @@ const MedicalProfileMentalHealthForm = () => {
     endDate: string;
     outcome: string;
   }>>([]);
+  const [otherMentalHealthCondition, setOtherMentalHealthCondition] = useState('');
 
   // Handlers for treatment history
   const addTreatment = () => {
@@ -281,6 +281,67 @@ const MedicalProfileMentalHealthForm = () => {
             placeholder="If comfortable, briefly describe any significant trauma you have experienced that may affect your health"
           />
         </div>
+      </div>
+      
+      <div>
+        <h3 className="text-lg font-medium mb-4">Mental Health History</h3>
+        <p className="text-sm text-gray-600 mb-4">Select any mental health conditions that apply:</p>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2 mb-4">
+          {[
+            "Depression",
+            "Anxiety",
+            "Bipolar Disorder",
+            "ADHD/ADD",
+            "OCD",
+            "PTSD",
+            "Schizophrenia",
+            "Eating Disorder",
+            "Substance Use Disorder",
+            "Autism Spectrum Disorder"
+          ].map((condition) => (
+            <div key={condition} className="flex items-center space-x-2">
+              <Checkbox 
+                id={`mental-${condition}`} 
+              />
+              <Label 
+                htmlFor={`mental-${condition}`} 
+                className="text-sm cursor-pointer"
+              >
+                {condition}
+              </Label>
+            </div>
+          ))}
+          
+          {/* Other option with text input */}
+          <div className="flex items-center space-x-2">
+            <Checkbox 
+              id="mental-other"
+              checked={otherMentalHealthCondition !== ''}
+              onCheckedChange={(checked) => {
+                if (!checked) setOtherMentalHealthCondition('');
+              }}
+            />
+            <Label 
+              htmlFor="mental-other" 
+              className="text-sm cursor-pointer"
+            >
+              Other
+            </Label>
+          </div>
+        </div>
+        
+        {/* Text input field that appears when "Other" is checked */}
+        {otherMentalHealthCondition !== '' || document.getElementById('mental-other')?.getAttribute('data-state') === 'checked' ? (
+          <div className="mb-4 pl-6">
+            <Input
+              placeholder="Please specify other mental health condition"
+              value={otherMentalHealthCondition}
+              onChange={(e) => setOtherMentalHealthCondition(e.target.value)}
+              className="max-w-md"
+            />
+          </div>
+        ) : null}
       </div>
       
       <div>
