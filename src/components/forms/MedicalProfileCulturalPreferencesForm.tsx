@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -8,6 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 
 const MedicalProfileCulturalPreferencesForm = () => {
+  const [additionalNotes, setAdditionalNotes] = useState('');
+
   return (
     <div className="space-y-6">
       <Card>
@@ -108,12 +110,15 @@ const MedicalProfileCulturalPreferencesForm = () => {
               />
             </div>
             
+            {/* Single Additional Notes field at the end */}
             <div>
-              <Label htmlFor="additionalInfo">Additional Information</Label>
+              <Label htmlFor="additionalNotes">Additional Notes</Label>
               <Textarea 
-                id="additionalInfo" 
-                placeholder="Any other cultural or religious considerations that might impact your healthcare" 
-                rows={3}
+                id="additionalNotes" 
+                placeholder="Any other information you would like to share with your healthcare providers" 
+                rows={4}
+                value={additionalNotes}
+                onChange={(e) => setAdditionalNotes(e.target.value)}
               />
             </div>
           </div>
