@@ -20,6 +20,7 @@ import {
 import { Calendar } from '@/components/ui/calendar';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 
 const MedicalProfileHistoryForm = () => {
   const [conditions, setConditions] = useState<string[]>([]);
@@ -29,7 +30,10 @@ const MedicalProfileHistoryForm = () => {
   const [familyHistory, setFamilyHistory] = useState('');
   
   const [childbirthHistory, setChildbirthHistory] = useState<Array<{year: string, deliveryType: string, complications: string}>>([]);
-  const [mentalHealthHistory, setMentalHealthHistory] = useState<string[]>([]);
+  
+  // Changed from array to string for yes/no selection
+  const [hasMentalHealthHistory, setHasMentalHealthHistory] = useState<string>('no');
+  
   const [physicalDisabilities, setPhysicalDisabilities] = useState('');
   const [previousDiagnoses, setPreviousDiagnoses] = useState<Array<{condition: string, year: string, status: string}>>([]);
   const [bloodType, setBloodType] = useState('');
@@ -112,14 +116,6 @@ const MedicalProfileHistoryForm = () => {
       setConditions(conditions.filter(c => c !== condition));
     } else {
       setConditions([...conditions, condition]);
-    }
-  };
-
-  const toggleMentalHealthCondition = (condition: string) => {
-    if (mentalHealthHistory.includes(condition)) {
-      setMentalHealthHistory(mentalHealthHistory.filter(c => c !== condition));
-    } else {
-      setMentalHealthHistory([...mentalHealthHistory, condition]);
     }
   };
 
@@ -468,57 +464,56 @@ const MedicalProfileHistoryForm = () => {
       
       <div>
         <h3 className="text-lg font-medium mb-4">Mental Health History</h3>
-        <p className="text-sm text-gray-600 mb-4">Select any mental health conditions that apply:</p>
+        <p className="text-sm text-gray-600 mb-4">Do you have a history of mental illness?</p>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2 mb-4">
-          {mentalHealthConditions.map((condition) => (
-            <div key={condition} className="flex items-center space-x-2">
-              <Checkbox 
-                id={`mental-${condition}`} 
-                checked={mentalHealthHistory.includes(condition)}
-                onCheckedChange={() => toggleMentalHealthCondition(condition)}
-              />
-              <Label 
-                htmlFor={`mental-${condition}`} 
-                className="text-sm cursor-pointer"
-              >
-                {condition}
-              </Label>
-            </div>
-          ))}
-        </div>
-        
-        <div className="mt-4">
-          <Label htmlFor="other-mental-condition" className="text-sm">Other condition not listed:</Label>
-          <div className="flex gap-2 mt-1">
-            <Input 
-              id="other-mental-condition" 
-              value={otherMentalHealthCondition}
-              onChange={(e) => setOtherMentalHealthCondition(e.target.value)}
-              placeholder="Enter other mental health condition"
-              className="flex-grow"
-            />
-            <Button 
-              type="button" 
-              onClick={handleAddOtherMentalHealthCondition}
-              disabled={!otherMentalHealthCondition.trim()}
-              size="sm"
-            >
-              <Plus className="h-4 w-4 mr-1" /> Add
-            </Button>
+        <RadioGroup 
+          value={hasMentalHealthHistory} 
+          onValueChange={setHasMentalHealthHistory}
+          className="flex space-x-4 mb-4"
+        >
+          <div className="flex items-center space-x-2">
+            <RadioGroupItem value="yes" id="r-yes" />
+            <Label htmlFor="r-yes">Yes</Label>
           </div>
-          
-          {otherMentalHealthConditions.length > 0 && (
-            <div className="mt-2 space-y-1">
-              <p className="text-sm font-medium text-gray-700">Added conditions:</p>
-              <ul className="text-sm pl-5 list-disc space-y-1">
-                {otherMentalHealthConditions.map((condition, index) => (
-                  <li key={index}>{condition}</li>
-                ))}
-              </ul>
+          <div className="flex items-center space-x-2">
+            <RadioGroupItem value="no" id="r-no" />
+            <Label htmlFor="r-no">No</Label>
+          </div>
+        </RadioGroup>
+        
+        {hasMentalHealthHistory === 'yes' && (
+          <div className="mt-4">
+            <Label htmlFor="other-mental-condition" className="text-sm">Other condition not listed:</Label>
+            <div className="flex gap-2 mt-1">
+              <Input 
+                id="other-mental-condition" 
+                value={otherMentalHealthCondition}
+                onChange={(e) => setOtherMentalHealthCondition(e.target.value)}
+                placeholder="Enter mental health condition"
+                className="flex-grow"
+              />
+              <Button 
+                type="button" 
+                onClick={handleAddOtherMentalHealthCondition}
+                disabled={!otherMentalHealthCondition.trim()}
+                size="sm"
+              >
+                <Plus className="h-4 w-4 mr-1" /> Add
+              </Button>
             </div>
-          )}
-        </div>
+            
+            {otherMentalHealthConditions.length > 0 && (
+              <div className="mt-2 space-y-1">
+                <p className="text-sm font-medium text-gray-700">Added conditions:</p>
+                <ul className="text-sm pl-5 list-disc space-y-1">
+                  {otherMentalHealthConditions.map((condition, index) => (
+                    <li key={index}>{condition}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        )}
       </div>
       
       <div>
