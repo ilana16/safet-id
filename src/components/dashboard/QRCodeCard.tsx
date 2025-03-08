@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { QrCode, Share2, Download, Maximize2, Copy, RefreshCw } from 'lucide-react';
+import { QrCode, Share2, Download, Maximize2, Copy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from '@/lib/toast';
@@ -20,7 +20,6 @@ interface QRCodeCardProps {
 }
 
 const QRCodeCard: React.FC<QRCodeCardProps> = ({ userId, accessCode }) => {
-  const [isGenerating, setIsGenerating] = useState(false);
   const [qrSize, setQrSize] = useState(200);
   
   // Generate QR code URL using the utility
@@ -43,15 +42,6 @@ const QRCodeCard: React.FC<QRCodeCardProps> = ({ userId, accessCode }) => {
     navigator.clipboard.writeText(shareableUrl);
     toast.success('Shareable link copied to clipboard!');
   };
-  
-  const regenerateQRCode = () => {
-    setIsGenerating(true);
-    // Simulate regeneration by adding a timestamp to force a cache miss
-    setTimeout(() => {
-      setIsGenerating(false);
-      toast.success('QR Code regenerated!');
-    }, 800);
-  };
 
   return (
     <Card className="border-gray-200 shadow-sm text-center overflow-hidden">
@@ -70,13 +60,8 @@ const QRCodeCard: React.FC<QRCodeCardProps> = ({ userId, accessCode }) => {
             <img 
               src={qrCodeUrl} 
               alt="Your SafeT-iD QR Code" 
-              className={`w-48 h-48 transition-opacity ${isGenerating ? 'opacity-40' : 'opacity-100'}`}
+              className="w-48 h-48"
             />
-            {isGenerating && (
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="animate-spin h-8 w-8 border-4 border-safet-500 border-t-transparent rounded-full"></div>
-              </div>
-            )}
             
             <Dialog>
               <DialogTrigger asChild>
@@ -146,16 +131,6 @@ const QRCodeCard: React.FC<QRCodeCardProps> = ({ userId, accessCode }) => {
         >
           <Download className="h-4 w-4 mr-1" />
           <span>Download</span>
-        </Button>
-        <Button 
-          size="sm" 
-          variant="outline"
-          onClick={regenerateQRCode}
-          disabled={isGenerating}
-          className="flex items-center space-x-1"
-        >
-          <RefreshCw className={`h-4 w-4 mr-1 ${isGenerating ? 'animate-spin' : ''}`} />
-          <span>Regenerate</span>
         </Button>
       </CardFooter>
     </Card>
