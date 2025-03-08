@@ -9,6 +9,7 @@ import Login from './pages/Login';
 import MedicalProfileForm from './pages/MedicalProfileForm';
 import ViewOnly from './pages/ViewOnly';
 import MedicalRecordView from './pages/MedicalRecordView';
+import FullMedicalRecord from './pages/FullMedicalRecord';
 
 function App() {
   return (
@@ -22,6 +23,7 @@ function App() {
           <Route path="/profile/edit/:section?" element={<MedicalProfileForm />} />
           <Route path="/profile/edit" element={<MedicalProfileForm />} />
           <Route path="/profile/view" element={<MedicalRecordView />} />
+          <Route path="/profile/history" element={<FullMedicalRecord />} />
           <Route path="/view/:userId" element={<ViewOnly />} />
           <Route path="/view/:userId/:accessCode" element={<ViewOnly />} />
           <Route path="*" element={<NotFound />} />

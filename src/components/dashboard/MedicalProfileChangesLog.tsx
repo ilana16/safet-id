@@ -5,7 +5,9 @@ import { getChangeLogs } from '@/utils/changeLog';
 import { format } from 'date-fns';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Badge } from '@/components/ui/badge';
-import { ChevronDown, Clock, Filter } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
+import { ChevronDown, Clock, Filter, History } from 'lucide-react';
 
 interface ChangeLogEntry {
   section: string;
@@ -70,29 +72,40 @@ const MedicalProfileChangesLog = () => {
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-medium">Change History</h3>
           
-          {uniqueSections.length > 0 && (
-            <div className="flex gap-2 overflow-x-auto pb-2 max-w-[60%]">
-              <Badge 
-                clickable
-                variant="outline" 
-                className={!filter ? 'bg-gray-100' : 'hover:bg-gray-100'}
-                onClick={() => setFilter(null)}
-              >
-                All
-              </Badge>
-              {uniqueSections.map(section => (
+          <div className="flex items-center gap-2">
+            {uniqueSections.length > 0 && (
+              <div className="flex gap-2 overflow-x-auto pb-2 max-w-[60%]">
                 <Badge 
-                  key={section}
-                  clickable
                   variant="outline" 
-                  className={`${filter === section ? sectionColors[section] : ''} hover:bg-gray-100 whitespace-nowrap`}
-                  onClick={() => setFilter(section)}
+                  className={!filter ? 'bg-gray-100' : 'hover:bg-gray-100 cursor-pointer'}
+                  onClick={() => setFilter(null)}
                 >
-                  {getSectionDisplayName(section)}
+                  All
                 </Badge>
-              ))}
-            </div>
-          )}
+                {uniqueSections.map(section => (
+                  <Badge 
+                    key={section}
+                    variant="outline" 
+                    className={`${filter === section ? sectionColors[section] : ''} hover:bg-gray-100 whitespace-nowrap cursor-pointer`}
+                    onClick={() => setFilter(section)}
+                  >
+                    {getSectionDisplayName(section)}
+                  </Badge>
+                ))}
+              </div>
+            )}
+            
+            <Link to="/profile/history">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="ml-2 whitespace-nowrap flex items-center gap-1"
+              >
+                <History className="h-4 w-4" />
+                Full History
+              </Button>
+            </Link>
+          </div>
         </div>
         
         {filteredLogs.length === 0 ? (
@@ -106,7 +119,7 @@ const MedicalProfileChangesLog = () => {
           </div>
         ) : (
           <Accordion type="single" collapsible className="w-full">
-            {filteredLogs.map((log, index) => (
+            {filteredLogs.slice(0, 5).map((log, index) => (
               <AccordionItem key={index} value={`item-${index}`}>
                 <AccordionTrigger className="hover:no-underline py-4">
                   <div className="flex flex-col sm:flex-row sm:items-center text-left w-full">
@@ -146,6 +159,16 @@ const MedicalProfileChangesLog = () => {
               </AccordionItem>
             ))}
           </Accordion>
+        )}
+        
+        {filteredLogs.length > 5 && (
+          <div className="mt-4 text-center">
+            <Link to="/profile/history">
+              <Button variant="outline" size="sm">
+                View All Changes
+              </Button>
+            </Link>
+          </div>
         )}
       </CardContent>
     </Card>
