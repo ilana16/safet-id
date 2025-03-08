@@ -2,7 +2,8 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { ShieldCheck, User, LogIn } from 'lucide-react';
+import { User, LogIn } from 'lucide-react';
+import Logo from '@/components/ui/Logo';
 
 const Header = () => {
   const location = useLocation();
@@ -16,7 +17,7 @@ const Header = () => {
             to="/" 
             className="flex items-center space-x-2 transition-transform hover:scale-[1.02] duration-300"
           >
-            <ShieldCheck className="h-8 w-8 text-safet-500" />
+            <Logo size="md" />
             <span className="text-xl font-semibold text-gray-900">SafeT-iD</span>
           </Link>
           

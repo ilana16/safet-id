@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { ShieldCheck } from 'lucide-react';
+import Logo from '@/components/ui/Logo';
 
 const Footer = () => {
   return (
@@ -10,7 +10,7 @@ const Footer = () => {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           <div className="col-span-1 md:col-span-1">
             <Link to="/" className="flex items-center space-x-2">
-              <ShieldCheck className="h-6 w-6 text-safet-500" />
+              <Logo size="sm" />
               <span className="text-lg font-semibold text-gray-900">SafeT-iD</span>
             </Link>
             <p className="mt-4 text-sm text-gray-600">
