@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Plus, Trash2, Clock, X } from 'lucide-react';
+import { Plus, Trash2, Clock, X, Pill, PillBottle, Leaf } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
@@ -29,20 +29,28 @@ interface Medication {
   doseTimes: DoseTime[];
 }
 
-interface SimpleMedication {
+// Updated OTC and supplement types to match the detailed format
+interface DetailedSimpleMedication {
   name: string;
+  brandName: string;
+  totalDosage: string;
+  unitOfMeasure: string;
+  medicationForm: string;
+  withFood: string;
+  frequency: string;
   reason: string;
+  doseTimes: DoseTime[];
 }
 
 const MedicalProfileMedicationsForm = () => {
   // State for prescription medications
   const [medications, setMedications] = useState<Medication[]>([]);
   
-  // State for over-the-counter medications
-  const [otcMedications, setOtcMedications] = useState<SimpleMedication[]>([]);
+  // State for over-the-counter medications (updated to detailed format)
+  const [otcMedications, setOtcMedications] = useState<DetailedSimpleMedication[]>([]);
   
-  // State for supplements
-  const [supplements, setSupplements] = useState<SimpleMedication[]>([]);
+  // State for supplements (updated to detailed format)
+  const [supplements, setSupplements] = useState<DetailedSimpleMedication[]>([]);
   
   // State for medication allergies
   const [medicationAllergies, setMedicationAllergies] = useState<string[]>([]);
@@ -75,7 +83,7 @@ const MedicalProfileMedicationsForm = () => {
     setMedications(medications.filter((_, i) => i !== index));
   };
   
-  // Dose time handlers
+  // Dose time handlers for prescriptions
   const handleAddDoseTime = (medicationIndex: number) => {
     const updatedMedications = [...medications];
     updatedMedications[medicationIndex].doseTimes.push({ time: '', quantity: '1' });
@@ -94,12 +102,22 @@ const MedicalProfileMedicationsForm = () => {
     setMedications(updatedMedications);
   };
   
-  // Handler for OTC medications
+  // Handler for OTC medications (updated for detailed format)
   const handleAddOtcMedication = () => {
-    setOtcMedications([...otcMedications, { name: '', reason: '' }]);
+    setOtcMedications([...otcMedications, { 
+      name: '', 
+      brandName: '',
+      totalDosage: '',
+      unitOfMeasure: '',
+      medicationForm: '',
+      withFood: 'no_preference',
+      frequency: 'as_needed',
+      reason: '',
+      doseTimes: [{ time: '', quantity: '1' }]
+    }]);
   };
   
-  const handleUpdateOtcMedication = (index: number, field: keyof SimpleMedication, value: string) => {
+  const handleUpdateOtcMedication = (index: number, field: keyof DetailedSimpleMedication, value: string) => {
     const updatedOtcMedications = [...otcMedications];
     updatedOtcMedications[index][field] = value;
     setOtcMedications(updatedOtcMedications);
@@ -109,12 +127,41 @@ const MedicalProfileMedicationsForm = () => {
     setOtcMedications(otcMedications.filter((_, i) => i !== index));
   };
   
-  // Handler for supplements
-  const handleAddSupplement = () => {
-    setSupplements([...supplements, { name: '', reason: '' }]);
+  // Dose time handlers for OTC medications
+  const handleAddOtcDoseTime = (medicationIndex: number) => {
+    const updatedOtcMedications = [...otcMedications];
+    updatedOtcMedications[medicationIndex].doseTimes.push({ time: '', quantity: '1' });
+    setOtcMedications(updatedOtcMedications);
   };
   
-  const handleUpdateSupplement = (index: number, field: keyof SimpleMedication, value: string) => {
+  const handleUpdateOtcDoseTime = (medicationIndex: number, doseTimeIndex: number, field: keyof DoseTime, value: string) => {
+    const updatedOtcMedications = [...otcMedications];
+    updatedOtcMedications[medicationIndex].doseTimes[doseTimeIndex][field] = value;
+    setOtcMedications(updatedOtcMedications);
+  };
+  
+  const handleRemoveOtcDoseTime = (medicationIndex: number, doseTimeIndex: number) => {
+    const updatedOtcMedications = [...otcMedications];
+    updatedOtcMedications[medicationIndex].doseTimes = updatedOtcMedications[medicationIndex].doseTimes.filter((_, i) => i !== doseTimeIndex);
+    setOtcMedications(updatedOtcMedications);
+  };
+  
+  // Handler for supplements (updated for detailed format)
+  const handleAddSupplement = () => {
+    setSupplements([...supplements, { 
+      name: '', 
+      brandName: '',
+      totalDosage: '',
+      unitOfMeasure: '',
+      medicationForm: '',
+      withFood: 'no_preference',
+      frequency: 'daily',
+      reason: '',
+      doseTimes: [{ time: '', quantity: '1' }]
+    }]);
+  };
+  
+  const handleUpdateSupplement = (index: number, field: keyof DetailedSimpleMedication, value: string) => {
     const updatedSupplements = [...supplements];
     updatedSupplements[index][field] = value;
     setSupplements(updatedSupplements);
@@ -122,6 +169,25 @@ const MedicalProfileMedicationsForm = () => {
   
   const handleRemoveSupplement = (index: number) => {
     setSupplements(supplements.filter((_, i) => i !== index));
+  };
+  
+  // Dose time handlers for supplements
+  const handleAddSupplementDoseTime = (medicationIndex: number) => {
+    const updatedSupplements = [...supplements];
+    updatedSupplements[medicationIndex].doseTimes.push({ time: '', quantity: '1' });
+    setSupplements(updatedSupplements);
+  };
+  
+  const handleUpdateSupplementDoseTime = (medicationIndex: number, doseTimeIndex: number, field: keyof DoseTime, value: string) => {
+    const updatedSupplements = [...supplements];
+    updatedSupplements[medicationIndex].doseTimes[doseTimeIndex][field] = value;
+    setSupplements(updatedSupplements);
+  };
+  
+  const handleRemoveSupplementDoseTime = (medicationIndex: number, doseTimeIndex: number) => {
+    const updatedSupplements = [...supplements];
+    updatedSupplements[medicationIndex].doseTimes = updatedSupplements[medicationIndex].doseTimes.filter((_, i) => i !== doseTimeIndex);
+    setSupplements(updatedSupplements);
   };
   
   // Handler for medication allergies
@@ -156,14 +222,31 @@ const MedicalProfileMedicationsForm = () => {
     { value: "prescription", label: "Prescription" },
     { value: "over_the_counter", label: "Over-the-counter" }
   ];
+  
+  const frequencyOptions = [
+    { value: "daily", label: "Daily" },
+    { value: "twice_daily", label: "Twice daily" },
+    { value: "weekly", label: "Weekly" },
+    { value: "monthly", label: "Monthly" },
+    { value: "as_needed", label: "As needed" }
+  ];
 
   return (
     <div className="space-y-8">
       <Tabs defaultValue="prescription" className="w-full">
         <TabsList className="grid w-full grid-cols-3 mb-4">
-          <TabsTrigger value="prescription">Prescription Medications</TabsTrigger>
-          <TabsTrigger value="otc">OTC Medications</TabsTrigger>
-          <TabsTrigger value="supplements">Supplements & Vitamins</TabsTrigger>
+          <TabsTrigger value="prescription">
+            <Pill className="h-4 w-4 mr-2" />
+            Prescription Medications
+          </TabsTrigger>
+          <TabsTrigger value="otc">
+            <PillBottle className="h-4 w-4 mr-2" />
+            OTC Medications
+          </TabsTrigger>
+          <TabsTrigger value="supplements">
+            <Leaf className="h-4 w-4 mr-2" />
+            Supplements & Vitamins
+          </TabsTrigger>
         </TabsList>
         
         <TabsContent value="prescription" className="space-y-6">
@@ -404,29 +487,189 @@ const MedicalProfileMedicationsForm = () => {
             {otcMedications.length === 0 ? (
               <p className="text-sm text-gray-600 mb-2">No over-the-counter medications added yet.</p>
             ) : (
-              <div className="space-y-3">
+              <div className="space-y-4">
                 {otcMedications.map((medication, index) => (
-                  <div key={index} className="flex items-start gap-2">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2 flex-grow">
-                      <Input
-                        value={medication.name}
-                        onChange={(e) => handleUpdateOtcMedication(index, 'name', e.target.value)}
-                        placeholder="Medication name (e.g. Ibuprofen)"
-                      />
-                      <Input
-                        value={medication.reason}
-                        onChange={(e) => handleUpdateOtcMedication(index, 'reason', e.target.value)}
-                        placeholder="Reason for taking"
-                      />
-                    </div>
+                  <div key={index} className="p-4 border border-gray-200 rounded-md bg-gray-50 relative">
                     <Button
                       variant="outline"
-                      size="icon"
+                      size="sm"
                       onClick={() => handleRemoveOtcMedication(index)}
-                      className="flex-shrink-0"
+                      className="absolute top-3 right-3"
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                      <div className="space-y-2">
+                        <Label htmlFor={`otc-name-${index}`}>Medication Name*</Label>
+                        <Input
+                          id={`otc-name-${index}`}
+                          value={medication.name}
+                          onChange={(e) => handleUpdateOtcMedication(index, 'name', e.target.value)}
+                          placeholder="Medication name (e.g. Ibuprofen)"
+                        />
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor={`otc-brand-${index}`}>Brand Name</Label>
+                        <Input
+                          id={`otc-brand-${index}`}
+                          value={medication.brandName}
+                          onChange={(e) => handleUpdateOtcMedication(index, 'brandName', e.target.value)}
+                          placeholder="Brand name (e.g. Advil)"
+                        />
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor={`otc-total-dosage-${index}`}>Total Dosage at Time</Label>
+                        <Input
+                          id={`otc-total-dosage-${index}`}
+                          value={medication.totalDosage}
+                          onChange={(e) => handleUpdateOtcMedication(index, 'totalDosage', e.target.value)}
+                          placeholder="Total dosage"
+                        />
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor={`otc-unit-${index}`}>Unit of Measure</Label>
+                        <Select 
+                          value={medication.unitOfMeasure}
+                          onValueChange={(value) => handleUpdateOtcMedication(index, 'unitOfMeasure', value)}
+                        >
+                          <SelectTrigger id={`otc-unit-${index}`}>
+                            <SelectValue placeholder="Select unit" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {unitOptions.map((option) => (
+                              <SelectItem key={option} value={option}>{option}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor={`otc-form-${index}`}>Medication Form</Label>
+                        <Select 
+                          value={medication.medicationForm}
+                          onValueChange={(value) => handleUpdateOtcMedication(index, 'medicationForm', value)}
+                        >
+                          <SelectTrigger id={`otc-form-${index}`}>
+                            <SelectValue placeholder="Select form" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {medicationFormOptions.map((option) => (
+                              <SelectItem key={option} value={option}>{option}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor={`otc-food-${index}`}>With or Without Food</Label>
+                        <Select 
+                          value={medication.withFood}
+                          onValueChange={(value) => handleUpdateOtcMedication(index, 'withFood', value)}
+                        >
+                          <SelectTrigger id={`otc-food-${index}`}>
+                            <SelectValue placeholder="Select preference" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {withFoodOptions.map((option) => (
+                              <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor={`otc-frequency-${index}`}>Frequency</Label>
+                        <Select 
+                          value={medication.frequency}
+                          onValueChange={(value) => handleUpdateOtcMedication(index, 'frequency', value)}
+                        >
+                          <SelectTrigger id={`otc-frequency-${index}`}>
+                            <SelectValue placeholder="Select frequency" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {frequencyOptions.map((option) => (
+                              <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2 mb-4">
+                      <Label htmlFor={`otc-reason-${index}`}>Reason for Taking</Label>
+                      <Textarea
+                        id={`otc-reason-${index}`}
+                        value={medication.reason}
+                        onChange={(e) => handleUpdateOtcMedication(index, 'reason', e.target.value)}
+                        placeholder="What condition or symptoms it's used for"
+                      />
+                    </div>
+                    
+                    <div className="space-y-3 mb-4">
+                      <div className="flex items-center justify-between">
+                        <Label className="font-medium">Times of Day for Doses</Label>
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={() => handleAddOtcDoseTime(index)}
+                          className="h-8"
+                        >
+                          <Clock className="h-3.5 w-3.5 mr-1" /> Add Time
+                        </Button>
+                      </div>
+                      
+                      {medication.doseTimes.length === 0 ? (
+                        <p className="text-sm text-gray-600">No dose times added yet.</p>
+                      ) : (
+                        <div className="space-y-2">
+                          {medication.doseTimes.map((doseTime, doseIndex) => (
+                            <div key={doseIndex} className="flex items-center gap-2 bg-white p-2 rounded-md border border-gray-100">
+                              <div className="flex-grow grid grid-cols-2 gap-2">
+                                <div>
+                                  <Label htmlFor={`otc-dose-time-${index}-${doseIndex}`} className="sr-only">Time of Day</Label>
+                                  <Input
+                                    id={`otc-dose-time-${index}-${doseIndex}`}
+                                    type="time"
+                                    value={doseTime.time}
+                                    onChange={(e) => handleUpdateOtcDoseTime(index, doseIndex, 'time', e.target.value)}
+                                    className="h-9"
+                                  />
+                                </div>
+                                <div>
+                                  <Label htmlFor={`otc-dose-quantity-${index}-${doseIndex}`} className="sr-only">Quantity</Label>
+                                  <div className="flex items-center gap-2">
+                                    <Input
+                                      id={`otc-dose-quantity-${index}-${doseIndex}`}
+                                      type="number"
+                                      min="0"
+                                      step="0.5"
+                                      value={doseTime.quantity}
+                                      onChange={(e) => handleUpdateOtcDoseTime(index, doseIndex, 'quantity', e.target.value)}
+                                      className="h-9"
+                                      placeholder="Dose quantity"
+                                    />
+                                    <span className="text-sm whitespace-nowrap">{medication.medicationForm || 'dose'}{Number(doseTime.quantity) !== 1 ? 's' : ''}</span>
+                                  </div>
+                                </div>
+                              </div>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleRemoveOtcDoseTime(index, doseIndex)}
+                                disabled={medication.doseTimes.length <= 1}
+                                className="h-9 w-9"
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -451,29 +694,189 @@ const MedicalProfileMedicationsForm = () => {
             {supplements.length === 0 ? (
               <p className="text-sm text-gray-600 mb-2">No supplements added yet.</p>
             ) : (
-              <div className="space-y-3">
+              <div className="space-y-4">
                 {supplements.map((supplement, index) => (
-                  <div key={index} className="flex items-start gap-2">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2 flex-grow">
-                      <Input
-                        value={supplement.name}
-                        onChange={(e) => handleUpdateSupplement(index, 'name', e.target.value)}
-                        placeholder="Supplement name"
-                      />
-                      <Input
-                        value={supplement.reason}
-                        onChange={(e) => handleUpdateSupplement(index, 'reason', e.target.value)}
-                        placeholder="Reason for taking"
-                      />
-                    </div>
+                  <div key={index} className="p-4 border border-gray-200 rounded-md bg-gray-50 relative">
                     <Button
                       variant="outline"
-                      size="icon"
+                      size="sm"
                       onClick={() => handleRemoveSupplement(index)}
-                      className="flex-shrink-0"
+                      className="absolute top-3 right-3"
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                      <div className="space-y-2">
+                        <Label htmlFor={`supp-name-${index}`}>Supplement Name*</Label>
+                        <Input
+                          id={`supp-name-${index}`}
+                          value={supplement.name}
+                          onChange={(e) => handleUpdateSupplement(index, 'name', e.target.value)}
+                          placeholder="Supplement name (e.g. Vitamin D)"
+                        />
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor={`supp-brand-${index}`}>Brand Name</Label>
+                        <Input
+                          id={`supp-brand-${index}`}
+                          value={supplement.brandName}
+                          onChange={(e) => handleUpdateSupplement(index, 'brandName', e.target.value)}
+                          placeholder="Brand name"
+                        />
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor={`supp-total-dosage-${index}`}>Dosage Amount</Label>
+                        <Input
+                          id={`supp-total-dosage-${index}`}
+                          value={supplement.totalDosage}
+                          onChange={(e) => handleUpdateSupplement(index, 'totalDosage', e.target.value)}
+                          placeholder="Dosage amount"
+                        />
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor={`supp-unit-${index}`}>Unit of Measure</Label>
+                        <Select 
+                          value={supplement.unitOfMeasure}
+                          onValueChange={(value) => handleUpdateSupplement(index, 'unitOfMeasure', value)}
+                        >
+                          <SelectTrigger id={`supp-unit-${index}`}>
+                            <SelectValue placeholder="Select unit" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {unitOptions.map((option) => (
+                              <SelectItem key={option} value={option}>{option}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor={`supp-form-${index}`}>Form</Label>
+                        <Select 
+                          value={supplement.medicationForm}
+                          onValueChange={(value) => handleUpdateSupplement(index, 'medicationForm', value)}
+                        >
+                          <SelectTrigger id={`supp-form-${index}`}>
+                            <SelectValue placeholder="Select form" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {medicationFormOptions.map((option) => (
+                              <SelectItem key={option} value={option}>{option}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor={`supp-food-${index}`}>With or Without Food</Label>
+                        <Select 
+                          value={supplement.withFood}
+                          onValueChange={(value) => handleUpdateSupplement(index, 'withFood', value)}
+                        >
+                          <SelectTrigger id={`supp-food-${index}`}>
+                            <SelectValue placeholder="Select preference" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {withFoodOptions.map((option) => (
+                              <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor={`supp-frequency-${index}`}>Frequency</Label>
+                        <Select 
+                          value={supplement.frequency}
+                          onValueChange={(value) => handleUpdateSupplement(index, 'frequency', value)}
+                        >
+                          <SelectTrigger id={`supp-frequency-${index}`}>
+                            <SelectValue placeholder="Select frequency" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {frequencyOptions.map((option) => (
+                              <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2 mb-4">
+                      <Label htmlFor={`supp-reason-${index}`}>Reason for Taking</Label>
+                      <Textarea
+                        id={`supp-reason-${index}`}
+                        value={supplement.reason}
+                        onChange={(e) => handleUpdateSupplement(index, 'reason', e.target.value)}
+                        placeholder="Why you take this supplement"
+                      />
+                    </div>
+                    
+                    <div className="space-y-3 mb-4">
+                      <div className="flex items-center justify-between">
+                        <Label className="font-medium">Times of Day for Doses</Label>
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={() => handleAddSupplementDoseTime(index)}
+                          className="h-8"
+                        >
+                          <Clock className="h-3.5 w-3.5 mr-1" /> Add Time
+                        </Button>
+                      </div>
+                      
+                      {supplement.doseTimes.length === 0 ? (
+                        <p className="text-sm text-gray-600">No dose times added yet.</p>
+                      ) : (
+                        <div className="space-y-2">
+                          {supplement.doseTimes.map((doseTime, doseIndex) => (
+                            <div key={doseIndex} className="flex items-center gap-2 bg-white p-2 rounded-md border border-gray-100">
+                              <div className="flex-grow grid grid-cols-2 gap-2">
+                                <div>
+                                  <Label htmlFor={`supp-dose-time-${index}-${doseIndex}`} className="sr-only">Time of Day</Label>
+                                  <Input
+                                    id={`supp-dose-time-${index}-${doseIndex}`}
+                                    type="time"
+                                    value={doseTime.time}
+                                    onChange={(e) => handleUpdateSupplementDoseTime(index, doseIndex, 'time', e.target.value)}
+                                    className="h-9"
+                                  />
+                                </div>
+                                <div>
+                                  <Label htmlFor={`supp-dose-quantity-${index}-${doseIndex}`} className="sr-only">Quantity</Label>
+                                  <div className="flex items-center gap-2">
+                                    <Input
+                                      id={`supp-dose-quantity-${index}-${doseIndex}`}
+                                      type="number"
+                                      min="0"
+                                      step="0.5"
+                                      value={doseTime.quantity}
+                                      onChange={(e) => handleUpdateSupplementDoseTime(index, doseIndex, 'quantity', e.target.value)}
+                                      className="h-9"
+                                      placeholder="Dose quantity"
+                                    />
+                                    <span className="text-sm whitespace-nowrap">{supplement.medicationForm || 'dose'}{Number(doseTime.quantity) !== 1 ? 's' : ''}</span>
+                                  </div>
+                                </div>
+                              </div>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleRemoveSupplementDoseTime(index, doseIndex)}
+                                disabled={supplement.doseTimes.length <= 1}
+                                className="h-9 w-9"
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
