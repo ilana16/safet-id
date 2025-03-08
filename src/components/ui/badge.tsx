@@ -1,8 +1,8 @@
 
-import * as React from "react"
-import { cva, type VariantProps } from "class-variance-authority"
+import * as React from "react";
+import { cva, type VariantProps } from "class-variance-authority";
 
-import { cn } from "@/lib/utils"
+import { cn } from "@/lib/utils";
 
 const badgeVariants = cva(
   "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
@@ -22,14 +22,14 @@ const badgeVariants = cva(
       variant: "default",
     },
   }
-)
+);
 
 export interface BadgeProps
   extends VariantProps<typeof badgeVariants> {
   className?: string;
   children?: React.ReactNode;
   clickable?: boolean;
-  onClick?: React.MouseEventHandler;
+  onClick?: React.MouseEventHandler<HTMLButtonElement | HTMLDivElement>;
 }
 
 function Badge({ 
@@ -50,7 +50,7 @@ function Badge({
     return (
       <button 
         className={classes} 
-        onClick={onClick} 
+        onClick={onClick as React.MouseEventHandler<HTMLButtonElement>}
         type="button"
       >
         {children}
@@ -59,10 +59,14 @@ function Badge({
   }
 
   return (
-    <div className={classes} onClick={onClick} {...props}>
+    <div 
+      className={classes} 
+      onClick={onClick as React.MouseEventHandler<HTMLDivElement>} 
+      {...props as React.HTMLAttributes<HTMLDivElement>}
+    >
       {children}
     </div>
   );
 }
 
-export { Badge, badgeVariants }
+export { Badge, badgeVariants };
