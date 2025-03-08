@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -22,7 +22,11 @@ import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 
-const MedicalProfileHistoryForm = () => {
+interface MedicalProfileHistoryFormProps {
+  onMentalHealthHistoryChange?: (value: string) => void;
+}
+
+const MedicalProfileHistoryForm = ({ onMentalHealthHistoryChange }: MedicalProfileHistoryFormProps) => {
   const [conditions, setConditions] = useState<string[]>([]);
   const [newCondition, setNewCondition] = useState('');
   const [surgeries, setSurgeries] = useState<Array<{procedure: string, year: string, hospital?: string}>>([]);
@@ -41,6 +45,30 @@ const MedicalProfileHistoryForm = () => {
   
   const [otherMentalHealthCondition, setOtherMentalHealthCondition] = useState('');
   const [otherMentalHealthConditions, setOtherMentalHealthConditions] = useState<string[]>([]);
+
+  // Check localStorage for saved values on component mount
+  useEffect(() => {
+    const savedProfile = JSON.parse(localStorage.getItem('medicalProfile') || '{}');
+    if (savedProfile && savedProfile.history && savedProfile.history.hasMentalHealthHistory) {
+      const savedValue = savedProfile.history.hasMentalHealthHistory;
+      setHasMentalHealthHistory(savedValue);
+      
+      // Notify parent component of the loaded value
+      if (onMentalHealthHistoryChange) {
+        onMentalHealthHistoryChange(savedValue);
+      }
+    }
+  }, [onMentalHealthHistoryChange]);
+
+  // Handle changes to the mental health history selection
+  const handleMentalHealthHistoryChange = (value: string) => {
+    setHasMentalHealthHistory(value);
+    
+    // Notify parent component of the change
+    if (onMentalHealthHistoryChange) {
+      onMentalHealthHistoryChange(value);
+    }
+  };
 
   const commonConditions = [
     "Hypertension (High Blood Pressure)",
@@ -468,7 +496,7 @@ const MedicalProfileHistoryForm = () => {
         
         <RadioGroup 
           value={hasMentalHealthHistory} 
-          onValueChange={setHasMentalHealthHistory}
+          onValueChange={handleMentalHealthHistoryChange}
           className="flex space-x-4 mb-4"
         >
           <div className="flex items-center space-x-2">

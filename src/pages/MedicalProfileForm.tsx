@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import PageLayout from '@/components/layout/PageLayout';
 import { toast } from '@/lib/toast';
@@ -23,12 +24,25 @@ const MedicalProfileForm = () => {
   const navigate = useNavigate();
   const { section } = useParams<{ section: SectionType }>();
   const [isSaving, setIsSaving] = useState(false);
+  const [hasMentalHealthHistory, setHasMentalHealthHistory] = useState('no');
   
   // Get the current section or default to personal
   const currentSection = section || 'personal';
 
+  // Check localStorage for mental health history setting
+  useEffect(() => {
+    const savedProfile = JSON.parse(localStorage.getItem('medicalProfile') || '{}');
+    if (savedProfile && savedProfile.history && savedProfile.history.hasMentalHealthHistory) {
+      setHasMentalHealthHistory(savedProfile.history.hasMentalHealthHistory);
+    }
+  }, []);
+
   const handleSave = () => {
     setIsSaving(true);
+    
+    // Save the mental health history value if we're on the history section
+    const additionalData = currentSection === 'history' ? 
+      { hasMentalHealthHistory } : {};
     
     // Simulate API call
     setTimeout(() => {
@@ -38,7 +52,8 @@ const MedicalProfileForm = () => {
         ...existingProfile,
         [currentSection]: {
           completed: true,
-          lastUpdated: new Date().toISOString()
+          lastUpdated: new Date().toISOString(),
+          ...additionalData
         }
       }));
       
@@ -52,12 +67,20 @@ const MedicalProfileForm = () => {
       ];
       const currentIndex = sections.indexOf(currentSection as SectionType);
       
-      if (currentIndex < sections.length - 1) {
+      // Skip mental health section if user selected "no" for mental health history
+      if (currentSection === 'history' && hasMentalHealthHistory === 'no' && currentIndex < sections.length - 2) {
+        navigate(`/profile/edit/${sections[currentIndex + 2]}`);
+      } else if (currentIndex < sections.length - 1) {
         navigate(`/profile/edit/${sections[currentIndex + 1]}`);
       } else {
         navigate('/dashboard');
       }
     }, 1000);
+  };
+
+  // Function to update mental health history state from child component
+  const updateMentalHealthHistory = (value: string) => {
+    setHasMentalHealthHistory(value);
   };
 
   // Render the appropriate form based on section parameter
@@ -66,7 +89,7 @@ const MedicalProfileForm = () => {
       case 'personal':
         return <MedicalProfilePersonalForm />;
       case 'history':
-        return <MedicalProfileHistoryForm />;
+        return <MedicalProfileHistoryForm onMentalHealthHistoryChange={updateMentalHealthHistory} />;
       case 'medications':
         return <MedicalProfileMedicationsForm />;
       case 'allergies':
@@ -76,7 +99,14 @@ const MedicalProfileForm = () => {
       case 'reproductive':
         return <MedicalProfileReproductiveHistoryForm />;
       case 'mental':
-        return <MedicalProfileMentalHealthForm />;
+        // Only render mental health form if user has mental health history
+        return hasMentalHealthHistory === 'yes' ? (
+          <MedicalProfileMentalHealthForm />
+        ) : (
+          <div className="p-6 text-center">
+            <p className="text-gray-500">This section is not applicable based on your medical history.</p>
+          </div>
+        );
       case 'functional':
         return <MedicalProfileFunctionalStatusForm />;
       case 'cultural':
@@ -150,7 +180,11 @@ const MedicalProfileForm = () => {
                     'reproductive', 'mental', 'functional', 'cultural', 'preventative'
                   ];
                   const currentIndex = sections.indexOf(currentSection as SectionType);
-                  if (currentIndex > 0) {
+                  
+                  // Skip mental health section when navigating backward if user selected "no"
+                  if (currentSection === 'functional' && hasMentalHealthHistory === 'no' && currentIndex > 1) {
+                    navigate(`/profile/edit/${sections[currentIndex - 2]}`);
+                  } else if (currentIndex > 0) {
                     navigate(`/profile/edit/${sections[currentIndex - 1]}`);
                   }
                 }}
