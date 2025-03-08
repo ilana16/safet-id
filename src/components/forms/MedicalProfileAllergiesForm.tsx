@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -52,7 +51,7 @@ const MedicalProfileAllergiesForm = () => {
   };
   
   // Common severity options
-  const severityOptions = ["Mild", "Moderate", "Severe", "Life-threatening"];
+  const severityOptions = ["Mild", "Moderate", "Severe", "Life-threatening", "Other"];
   
   // Common vaccine options
   const commonVaccines = [

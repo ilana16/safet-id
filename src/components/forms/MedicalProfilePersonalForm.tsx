@@ -90,6 +90,7 @@ const MedicalProfilePersonalForm = () => {
                 <SelectItem value="o+">O+</SelectItem>
                 <SelectItem value="o-">O-</SelectItem>
                 <SelectItem value="unknown">Unknown</SelectItem>
+                <SelectItem value="other">Other</SelectItem>
               </SelectContent>
             </Select>
           </div>

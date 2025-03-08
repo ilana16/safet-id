@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -29,7 +28,6 @@ const MedicalProfileHistoryForm = () => {
   const [hospitalization, setHospitalization] = useState<Array<{reason: string, year: string, duration?: string}>>([]);
   const [familyHistory, setFamilyHistory] = useState('');
   
-  // New state variables for additional medical history information
   const [childbirthHistory, setChildbirthHistory] = useState<Array<{year: string, deliveryType: string, complications: string}>>([]);
   const [mentalHealthHistory, setMentalHealthHistory] = useState<string[]>([]);
   const [physicalDisabilities, setPhysicalDisabilities] = useState('');
@@ -37,7 +35,6 @@ const MedicalProfileHistoryForm = () => {
   const [bloodType, setBloodType] = useState('');
   const [lastPhysicalDate, setLastPhysicalDate] = useState<Date | undefined>(undefined);
   
-  // Common medical conditions for checkbox selection
   const commonConditions = [
     "Hypertension (High Blood Pressure)",
     "Diabetes",
@@ -53,7 +50,6 @@ const MedicalProfileHistoryForm = () => {
     "Liver Disease",
   ];
 
-  // Common mental health conditions
   const mentalHealthConditions = [
     "Depression",
     "Anxiety",
@@ -67,16 +63,12 @@ const MedicalProfileHistoryForm = () => {
     "Autism Spectrum Disorder"
   ];
 
-  // Blood type options
-  const bloodTypeOptions = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-", "Unknown"];
+  const bloodTypeOptions = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-", "Unknown", "Other"];
 
-  // Delivery type options
   const deliveryTypeOptions = ["Vaginal", "C-Section", "VBAC", "Other"];
 
-  // Condition status options
-  const conditionStatusOptions = ["Active", "Managed", "Resolved", "In Remission"];
+  const conditionStatusOptions = ["Active", "Managed", "Resolved", "In Remission", "Other"];
 
-  // Handler for adding conditions
   const handleAddCondition = () => {
     if (newCondition.trim() !== '') {
       setConditions([...conditions, newCondition.trim()]);
@@ -84,7 +76,6 @@ const MedicalProfileHistoryForm = () => {
     }
   };
 
-  // Handlers for surgeries
   const handleAddSurgery = () => {
     setSurgeries([...surgeries, { procedure: '', year: '', hospital: '' }]);
   };
@@ -99,7 +90,6 @@ const MedicalProfileHistoryForm = () => {
     setSurgeries(surgeries.filter((_, i) => i !== index));
   };
 
-  // Handlers for hospitalizations
   const handleAddHospitalization = () => {
     setHospitalization([...hospitalization, { reason: '', year: '', duration: '' }]);
   };
@@ -114,7 +104,6 @@ const MedicalProfileHistoryForm = () => {
     setHospitalization(hospitalization.filter((_, i) => i !== index));
   };
 
-  // Toggle medical condition selection
   const toggleCondition = (condition: string) => {
     if (conditions.includes(condition)) {
       setConditions(conditions.filter(c => c !== condition));
@@ -123,7 +112,6 @@ const MedicalProfileHistoryForm = () => {
     }
   };
 
-  // Toggle mental health condition selection
   const toggleMentalHealthCondition = (condition: string) => {
     if (mentalHealthHistory.includes(condition)) {
       setMentalHealthHistory(mentalHealthHistory.filter(c => c !== condition));
@@ -132,7 +120,6 @@ const MedicalProfileHistoryForm = () => {
     }
   };
 
-  // Handlers for childbirth history
   const handleAddChildbirth = () => {
     setChildbirthHistory([...childbirthHistory, { year: '', deliveryType: '', complications: '' }]);
   };
@@ -147,7 +134,6 @@ const MedicalProfileHistoryForm = () => {
     setChildbirthHistory(childbirthHistory.filter((_, i) => i !== index));
   };
 
-  // Handlers for previous diagnoses
   const handleAddDiagnosis = () => {
     setPreviousDiagnoses([...previousDiagnoses, { condition: '', year: '', status: '' }]);
   };
@@ -164,7 +150,6 @@ const MedicalProfileHistoryForm = () => {
 
   return (
     <div className="space-y-8">
-      {/* Current Medical Conditions Section */}
       <div>
         <h3 className="text-lg font-medium mb-4">Medical Conditions</h3>
         <p className="text-sm text-gray-600 mb-4">Select any conditions that apply:</p>
@@ -220,7 +205,6 @@ const MedicalProfileHistoryForm = () => {
         </div>
       </div>
       
-      {/* Previous Diagnoses */}
       <div>
         <h3 className="text-lg font-medium mb-4">Previous Diagnoses</h3>
         <p className="text-sm text-gray-600 mb-4">List any significant past diagnoses and their current status.</p>
@@ -270,14 +254,6 @@ const MedicalProfileHistoryForm = () => {
                     </Select>
                   </div>
                 </div>
-                <Button 
-                  variant="outline" 
-                  size="icon" 
-                  onClick={() => handleRemoveDiagnosis(index)}
-                  className="absolute top-3 right-3"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
               </div>
             ))}
           </div>
@@ -293,7 +269,6 @@ const MedicalProfileHistoryForm = () => {
         </Button>
       </div>
       
-      {/* Surgical History */}
       <div>
         <h3 className="text-lg font-medium mb-4">Surgical History</h3>
         
@@ -335,14 +310,6 @@ const MedicalProfileHistoryForm = () => {
                     />
                   </div>
                 </div>
-                <Button 
-                  variant="outline" 
-                  size="icon" 
-                  onClick={() => handleRemoveSurgery(index)}
-                  className="absolute top-3 right-3"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
               </div>
             ))}
           </div>
@@ -358,7 +325,6 @@ const MedicalProfileHistoryForm = () => {
         </Button>
       </div>
       
-      {/* Hospitalization History */}
       <div>
         <h3 className="text-lg font-medium mb-4">Hospitalization History</h3>
         
@@ -400,14 +366,6 @@ const MedicalProfileHistoryForm = () => {
                     />
                   </div>
                 </div>
-                <Button 
-                  variant="outline" 
-                  size="icon" 
-                  onClick={() => handleRemoveHospitalization(index)}
-                  className="absolute top-3 right-3"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
               </div>
             ))}
           </div>
@@ -423,7 +381,6 @@ const MedicalProfileHistoryForm = () => {
         </Button>
       </div>
       
-      {/* Childbirth History (if applicable) */}
       <div>
         <h3 className="text-lg font-medium mb-2">Childbirth History</h3>
         <p className="text-sm text-gray-600 mb-4">If applicable, provide information about any pregnancies and childbirths.</p>
@@ -484,14 +441,6 @@ const MedicalProfileHistoryForm = () => {
                       />
                     </div>
                   </div>
-                  <Button 
-                    variant="outline" 
-                    size="icon" 
-                    onClick={() => handleRemoveChildbirth(index)}
-                    className="absolute top-3 right-3"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
                 </div>
               ))}
             </div>
@@ -507,7 +456,6 @@ const MedicalProfileHistoryForm = () => {
         )}
       </div>
       
-      {/* Mental Health History */}
       <div>
         <h3 className="text-lg font-medium mb-4">Mental Health History</h3>
         <p className="text-sm text-gray-600 mb-4">Select any mental health conditions that apply:</p>
@@ -531,7 +479,6 @@ const MedicalProfileHistoryForm = () => {
         </div>
       </div>
       
-      {/* Blood Type */}
       <div>
         <h3 className="text-lg font-medium mb-4">Blood Type</h3>
         <div className="w-full md:w-1/3">
@@ -551,7 +498,6 @@ const MedicalProfileHistoryForm = () => {
         </div>
       </div>
       
-      {/* Last Physical Exam */}
       <div>
         <h3 className="text-lg font-medium mb-4">Last Physical Examination</h3>
         <div className="w-full md:w-1/3">
@@ -582,7 +528,6 @@ const MedicalProfileHistoryForm = () => {
         </div>
       </div>
       
-      {/* Physical Disabilities or Limitations */}
       <div>
         <h3 className="text-lg font-medium mb-4">Physical Disabilities or Limitations</h3>
         <p className="text-sm text-gray-600 mb-2">Please describe any physical disabilities or limitations.</p>
@@ -594,7 +539,6 @@ const MedicalProfileHistoryForm = () => {
         />
       </div>
       
-      {/* Family Medical History */}
       <div>
         <h3 className="text-lg font-medium mb-4">Family Medical History</h3>
         <p className="text-sm text-gray-600 mb-2">

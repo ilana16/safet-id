@@ -18,7 +18,7 @@ export interface ProxyUser {
   name: string;
   email: string;
   relationship: string;
-  accessLevel: 'full' | 'limited' | 'emergency';
+  accessLevel: 'full' | 'limited' | 'emergency' | 'other';
   dateAdded: string;
 }
 
@@ -156,6 +156,7 @@ const ProxyAccessModal: React.FC<ProxyAccessModalProps> = ({ isOpen, onClose, on
                 <SelectItem value="full">Full Access</SelectItem>
                 <SelectItem value="limited">Limited Access</SelectItem>
                 <SelectItem value="emergency">Emergency Only</SelectItem>
+                <SelectItem value="other">Other</SelectItem>
               </SelectContent>
             </Select>
             <p className="text-xs text-gray-500">
@@ -163,7 +164,9 @@ const ProxyAccessModal: React.FC<ProxyAccessModalProps> = ({ isOpen, onClose, on
                 ? 'Can view and manage all your medical information'
                 : proxyData.accessLevel === 'limited'
                   ? 'Can view only specific sections of your medical information'
-                  : 'Can only access information during emergencies'}
+                  : proxyData.accessLevel === 'emergency'
+                    ? 'Can only access information during emergencies'
+                    : 'Custom access level'}
             </p>
           </div>
           
