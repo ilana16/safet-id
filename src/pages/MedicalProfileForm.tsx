@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import PageLayout from '@/components/layout/PageLayout';
@@ -8,9 +9,16 @@ import MedicalProfilePersonalForm from '@/components/forms/MedicalProfilePersona
 import MedicalProfileHistoryForm from '@/components/forms/MedicalProfileHistoryForm';
 import MedicalProfileMedicationsForm from '@/components/forms/MedicalProfileMedicationsForm';
 import MedicalProfileAllergiesForm from '@/components/forms/MedicalProfileAllergiesForm';
+import MedicalProfileSocialHistoryForm from '@/components/forms/MedicalProfileSocialHistoryForm';
+import MedicalProfileReproductiveHistoryForm from '@/components/forms/MedicalProfileReproductiveHistoryForm';
+import MedicalProfileMentalHealthForm from '@/components/forms/MedicalProfileMentalHealthForm';
+import MedicalProfileFunctionalStatusForm from '@/components/forms/MedicalProfileFunctionalStatusForm';
+import MedicalProfileCulturalPreferencesForm from '@/components/forms/MedicalProfileCulturalPreferencesForm';
+import MedicalProfilePreventativeCareForm from '@/components/forms/MedicalProfilePreventativeCareForm';
 
 // Define the valid section types
-type SectionType = 'personal' | 'history' | 'medications' | 'allergies';
+type SectionType = 'personal' | 'history' | 'medications' | 'allergies' | 'social' | 
+                   'reproductive' | 'mental' | 'functional' | 'cultural' | 'preventative';
 
 const MedicalProfileForm = () => {
   const navigate = useNavigate();
@@ -39,7 +47,10 @@ const MedicalProfileForm = () => {
       toast.success('Medical information saved successfully');
       
       // Navigate to the next section if available, otherwise go to dashboard
-      const sections: SectionType[] = ['personal', 'history', 'medications', 'allergies'];
+      const sections: SectionType[] = [
+        'personal', 'history', 'medications', 'allergies', 'social',
+        'reproductive', 'mental', 'functional', 'cultural', 'preventative'
+      ];
       const currentIndex = sections.indexOf(currentSection as SectionType);
       
       if (currentIndex < sections.length - 1) {
@@ -61,6 +72,18 @@ const MedicalProfileForm = () => {
         return <MedicalProfileMedicationsForm />;
       case 'allergies':
         return <MedicalProfileAllergiesForm />;
+      case 'social':
+        return <MedicalProfileSocialHistoryForm />;
+      case 'reproductive':
+        return <MedicalProfileReproductiveHistoryForm />;
+      case 'mental':
+        return <MedicalProfileMentalHealthForm />;
+      case 'functional':
+        return <MedicalProfileFunctionalStatusForm />;
+      case 'cultural':
+        return <MedicalProfileCulturalPreferencesForm />;
+      case 'preventative':
+        return <MedicalProfilePreventativeCareForm />;
       default:
         return <MedicalProfilePersonalForm />;
     }
@@ -74,9 +97,21 @@ const MedicalProfileForm = () => {
       case 'history':
         return 'Medical History';
       case 'medications':
-        return 'Medications';
+        return 'Medications & Supplements';
       case 'allergies':
         return 'Allergies & Immunizations';
+      case 'social':
+        return 'Social History';
+      case 'reproductive':
+        return 'Reproductive History';
+      case 'mental':
+        return 'Mental Health';
+      case 'functional':
+        return 'Functional Status';
+      case 'cultural':
+        return 'Cultural & Religious Preferences';
+      case 'preventative':
+        return 'Preventative Care';
       default:
         return 'Personal Information';
     }
@@ -111,7 +146,10 @@ const MedicalProfileForm = () => {
               <Button 
                 variant="outline"
                 onClick={() => {
-                  const sections: SectionType[] = ['personal', 'history', 'medications', 'allergies'];
+                  const sections: SectionType[] = [
+                    'personal', 'history', 'medications', 'allergies', 'social',
+                    'reproductive', 'mental', 'functional', 'cultural', 'preventative'
+                  ];
                   const currentIndex = sections.indexOf(currentSection as SectionType);
                   if (currentIndex > 0) {
                     navigate(`/profile/edit/${sections[currentIndex - 1]}`);
@@ -126,7 +164,7 @@ const MedicalProfileForm = () => {
               className="bg-safet-500 hover:bg-safet-600"
               disabled={isSaving}
             >
-              {isSaving ? 'Saving...' : currentSection === 'allergies' ? 'Complete Profile' : 'Save & Continue'}
+              {isSaving ? 'Saving...' : currentSection === 'preventative' ? 'Complete Profile' : 'Save & Continue'}
               {!isSaving && <Save className="ml-2 h-4 w-4" />}
             </Button>
           </div>

@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
 import { PlusCircle, Trash2, ImagePlus, X } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
 
 const MedicalProfilePersonalForm = () => {
   const [hasEmergencyContact, setHasEmergencyContact] = useState(false);
@@ -55,6 +56,11 @@ const MedicalProfilePersonalForm = () => {
         <h3 className="text-lg font-medium mb-4">Basic Information</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
+            <Label htmlFor="fullName">Full Name</Label>
+            <Input id="fullName" placeholder="Your full legal name" />
+          </div>
+          
+          <div className="space-y-2">
             <Label htmlFor="dob">Date of Birth</Label>
             <Input id="dob" type="date" />
           </div>
@@ -68,8 +74,25 @@ const MedicalProfilePersonalForm = () => {
               <SelectContent>
                 <SelectItem value="male">Male</SelectItem>
                 <SelectItem value="female">Female</SelectItem>
+                <SelectItem value="non-binary">Non-binary</SelectItem>
+                <SelectItem value="transgender">Transgender</SelectItem>
                 <SelectItem value="other">Other</SelectItem>
                 <SelectItem value="prefer-not-to-say">Prefer not to say</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="preferredPronoun">Preferred Pronouns (Optional)</Label>
+            <Select>
+              <SelectTrigger id="preferredPronoun">
+                <SelectValue placeholder="Select pronouns" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="he/him">He/Him</SelectItem>
+                <SelectItem value="she/her">She/Her</SelectItem>
+                <SelectItem value="they/them">They/Them</SelectItem>
+                <SelectItem value="other">Other</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -121,8 +144,33 @@ const MedicalProfilePersonalForm = () => {
           </div>
           
           <div className="space-y-2">
-            <Label htmlFor="address">Address</Label>
-            <Input id="address" placeholder="Your current address" />
+            <Label htmlFor="email">Email Address</Label>
+            <Input id="email" type="email" placeholder="Your email address" />
+          </div>
+          
+          <div className="space-y-2 md:col-span-2">
+            <Label htmlFor="address">Street Address</Label>
+            <Input id="address" placeholder="Street address" />
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="city">City</Label>
+            <Input id="city" placeholder="City" />
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="state">State/Province</Label>
+            <Input id="state" placeholder="State/Province" />
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="postalCode">Postal/ZIP Code</Label>
+            <Input id="postalCode" placeholder="Postal/ZIP Code" />
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="country">Country</Label>
+            <Input id="country" placeholder="Country" defaultValue="United States" />
           </div>
         </div>
       </div>
@@ -228,6 +276,39 @@ const MedicalProfilePersonalForm = () => {
         {hasInsurance && (
           <div className="border-l-2 border-safet-100 pl-4 ml-1 space-y-4">
             <h4 className="text-md font-medium">Insurance Information</h4>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="insuranceProvider">Insurance Provider</Label>
+                <Input id="insuranceProvider" placeholder="Provider name" />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="insuranceType">Insurance Type</Label>
+                <Select>
+                  <SelectTrigger id="insuranceType">
+                    <SelectValue placeholder="Select type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="private">Private</SelectItem>
+                    <SelectItem value="medicare">Medicare</SelectItem>
+                    <SelectItem value="medicaid">Medicaid</SelectItem>
+                    <SelectItem value="tricare">Tricare</SelectItem>
+                    <SelectItem value="other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="policyNumber">Policy Number</Label>
+                <Input id="policyNumber" placeholder="Insurance policy number" />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="groupNumber">Group Number (if applicable)</Label>
+                <Input id="groupNumber" placeholder="Insurance group number" />
+              </div>
+            </div>
             
             <div className="space-y-2">
               <Label htmlFor="insuranceUpload">Upload Insurance Card Images</Label>
