@@ -73,7 +73,7 @@ const Dashboard = () => {
           {/* Left Column - User Info & QR Code */}
           <div className="lg:col-span-1 space-y-6">
             <UserProfileCard user={user} completionPercentage={completionPercentage} />
-            <QRCodeCard qrCodeUrl={qrCodeUrl} />
+            <QRCodeCard userId={user.id} accessCode={user.accessCode} />
           </div>
           
           {/* Right Column - Main Dashboard Content */}

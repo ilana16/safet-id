@@ -18,6 +18,7 @@ function App() {
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/profile/edit/:section?" element={<MedicalProfileForm />} />
           <Route path="/profile/edit" element={<MedicalProfileForm />} />
+          <Route path="/view/:userId" element={<ViewOnly />} />
           <Route path="/view/:userId/:accessCode" element={<ViewOnly />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
