@@ -59,7 +59,7 @@ const UserProfileCard: React.FC<UserProfileCardProps> = ({ user, completionPerce
           </div>
           
           <div>
-            <p className="text-sm font-medium text-gray-500 mb-3">Your Access Code</p>
+            <p className="text-sm font-medium text-gray-500 mb-3">Your Access Code <span className="text-xs text-gray-400">(cannot be changed)</span></p>
             <div className="bg-gray-50 rounded-lg p-4 border border-gray-200 flex justify-between items-center">
               <div className="font-mono text-xl font-semibold tracking-widest text-gray-900">
                 {user.accessCode}
@@ -69,6 +69,8 @@ const UserProfileCard: React.FC<UserProfileCardProps> = ({ user, completionPerce
                 variant="ghost" 
                 onClick={copyAccessCode}
                 className="hover:bg-gray-200"
+                aria-label="Copy access code"
+                title="Copy to clipboard"
               >
                 <ClipboardCheck className="h-4 w-4" />
               </Button>
