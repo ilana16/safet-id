@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -11,13 +12,15 @@ const MedicalProfileAllergiesForm = () => {
   const [allergies, setAllergies] = useState<Array<{
     allergen: string,
     reaction: string,
-    severity: string
+    severity: string,
+    otherSeverity?: string
   }>>([]);
   
   // State for immunizations
   const [immunizations, setImmunizations] = useState<Array<{
     vaccine: string,
-    date: string
+    date: string,
+    otherVaccine?: string
   }>>([]);
   
   // Handler for allergies
@@ -124,6 +127,14 @@ const MedicalProfileAllergiesForm = () => {
                     ))}
                   </SelectContent>
                 </Select>
+                {allergy.severity === "Other" && (
+                  <Input
+                    className="mt-2"
+                    placeholder="Specify severity"
+                    value={allergy.otherSeverity || ''}
+                    onChange={(e) => handleUpdateAllergy(index, 'otherSeverity', e.target.value)}
+                  />
+                )}
               </div>
             </div>
             
@@ -170,6 +181,14 @@ const MedicalProfileAllergiesForm = () => {
                     ))}
                   </SelectContent>
                 </Select>
+                {immunization.vaccine === "Other" && (
+                  <Input
+                    className="mt-2"
+                    placeholder="Specify vaccine name"
+                    value={immunization.otherVaccine || ''}
+                    onChange={(e) => handleUpdateImmunization(index, 'otherVaccine', e.target.value)}
+                  />
+                )}
               </div>
               
               <div className="space-y-2">
