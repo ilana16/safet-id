@@ -4,11 +4,11 @@
  * Uses QRCode.API to generate the QR code
  */
 export const generateQRCodeUrl = (userId: string, accessCode: string, size = 200): string => {
-  // The URL that the QR code will point to - includes access code for direct access
-  const viewOnlyUrl = `${window.location.origin}/view/${userId}/${accessCode}`;
+  // The URL that the QR code will point to - now points to the full medical record view
+  const viewUrl = `${window.location.origin}/profile/view`;
   
   // Generate QR code using QRCode.API
-  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(viewOnlyUrl)}`;
+  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(viewUrl)}`;
   
   return qrUrl;
 };
