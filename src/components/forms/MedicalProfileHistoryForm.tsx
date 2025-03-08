@@ -4,13 +4,38 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
-import { Plus, Trash2 } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from '@/components/ui/select';
+import { Plus, Trash2, CalendarIcon } from 'lucide-react';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { format } from 'date-fns';
+import { cn } from '@/lib/utils';
 
 const MedicalProfileHistoryForm = () => {
   const [conditions, setConditions] = useState<string[]>([]);
   const [newCondition, setNewCondition] = useState('');
-  const [surgeries, setSurgeries] = useState<Array<{procedure: string, year: string}>>([]);
-  const [hospitalization, setHospitalization] = useState<Array<{reason: string, year: string}>>([]);
+  const [surgeries, setSurgeries] = useState<Array<{procedure: string, year: string, hospital?: string}>>([]);
+  const [hospitalization, setHospitalization] = useState<Array<{reason: string, year: string, duration?: string}>>([]);
+  const [familyHistory, setFamilyHistory] = useState('');
+  
+  // New state variables for additional medical history information
+  const [childbirthHistory, setChildbirthHistory] = useState<Array<{year: string, deliveryType: string, complications: string}>>([]);
+  const [mentalHealthHistory, setMentalHealthHistory] = useState<string[]>([]);
+  const [physicalDisabilities, setPhysicalDisabilities] = useState('');
+  const [previousDiagnoses, setPreviousDiagnoses] = useState<Array<{condition: string, year: string, status: string}>>([]);
+  const [bloodType, setBloodType] = useState('');
+  const [lastPhysicalDate, setLastPhysicalDate] = useState<Date | undefined>(undefined);
   
   // Common medical conditions for checkbox selection
   const commonConditions = [
@@ -28,6 +53,30 @@ const MedicalProfileHistoryForm = () => {
     "Liver Disease",
   ];
 
+  // Common mental health conditions
+  const mentalHealthConditions = [
+    "Depression",
+    "Anxiety",
+    "Bipolar Disorder",
+    "ADHD/ADD",
+    "OCD",
+    "PTSD",
+    "Schizophrenia",
+    "Eating Disorder",
+    "Substance Use Disorder",
+    "Autism Spectrum Disorder"
+  ];
+
+  // Blood type options
+  const bloodTypeOptions = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-", "Unknown"];
+
+  // Delivery type options
+  const deliveryTypeOptions = ["Vaginal", "C-Section", "VBAC", "Other"];
+
+  // Condition status options
+  const conditionStatusOptions = ["Active", "Managed", "Resolved", "In Remission"];
+
+  // Handler for adding conditions
   const handleAddCondition = () => {
     if (newCondition.trim() !== '') {
       setConditions([...conditions, newCondition.trim()]);
@@ -35,11 +84,12 @@ const MedicalProfileHistoryForm = () => {
     }
   };
 
+  // Handlers for surgeries
   const handleAddSurgery = () => {
-    setSurgeries([...surgeries, { procedure: '', year: '' }]);
+    setSurgeries([...surgeries, { procedure: '', year: '', hospital: '' }]);
   };
 
-  const handleUpdateSurgery = (index: number, field: 'procedure' | 'year', value: string) => {
+  const handleUpdateSurgery = (index: number, field: keyof (typeof surgeries)[0], value: string) => {
     const updatedSurgeries = [...surgeries];
     updatedSurgeries[index][field] = value;
     setSurgeries(updatedSurgeries);
@@ -49,11 +99,12 @@ const MedicalProfileHistoryForm = () => {
     setSurgeries(surgeries.filter((_, i) => i !== index));
   };
 
+  // Handlers for hospitalizations
   const handleAddHospitalization = () => {
-    setHospitalization([...hospitalization, { reason: '', year: '' }]);
+    setHospitalization([...hospitalization, { reason: '', year: '', duration: '' }]);
   };
 
-  const handleUpdateHospitalization = (index: number, field: 'reason' | 'year', value: string) => {
+  const handleUpdateHospitalization = (index: number, field: keyof (typeof hospitalization)[0], value: string) => {
     const updatedHospitalizations = [...hospitalization];
     updatedHospitalizations[index][field] = value;
     setHospitalization(updatedHospitalizations);
@@ -63,6 +114,7 @@ const MedicalProfileHistoryForm = () => {
     setHospitalization(hospitalization.filter((_, i) => i !== index));
   };
 
+  // Toggle medical condition selection
   const toggleCondition = (condition: string) => {
     if (conditions.includes(condition)) {
       setConditions(conditions.filter(c => c !== condition));
@@ -71,8 +123,48 @@ const MedicalProfileHistoryForm = () => {
     }
   };
 
+  // Toggle mental health condition selection
+  const toggleMentalHealthCondition = (condition: string) => {
+    if (mentalHealthHistory.includes(condition)) {
+      setMentalHealthHistory(mentalHealthHistory.filter(c => c !== condition));
+    } else {
+      setMentalHealthHistory([...mentalHealthHistory, condition]);
+    }
+  };
+
+  // Handlers for childbirth history
+  const handleAddChildbirth = () => {
+    setChildbirthHistory([...childbirthHistory, { year: '', deliveryType: '', complications: '' }]);
+  };
+
+  const handleUpdateChildbirth = (index: number, field: keyof (typeof childbirthHistory)[0], value: string) => {
+    const updatedChildbirthHistory = [...childbirthHistory];
+    updatedChildbirthHistory[index][field] = value;
+    setChildbirthHistory(updatedChildbirthHistory);
+  };
+
+  const handleRemoveChildbirth = (index: number) => {
+    setChildbirthHistory(childbirthHistory.filter((_, i) => i !== index));
+  };
+
+  // Handlers for previous diagnoses
+  const handleAddDiagnosis = () => {
+    setPreviousDiagnoses([...previousDiagnoses, { condition: '', year: '', status: '' }]);
+  };
+
+  const handleUpdateDiagnosis = (index: number, field: keyof (typeof previousDiagnoses)[0], value: string) => {
+    const updatedDiagnoses = [...previousDiagnoses];
+    updatedDiagnoses[index][field] = value;
+    setPreviousDiagnoses(updatedDiagnoses);
+  };
+
+  const handleRemoveDiagnosis = (index: number) => {
+    setPreviousDiagnoses(previousDiagnoses.filter((_, i) => i !== index));
+  };
+
   return (
     <div className="space-y-8">
+      {/* Current Medical Conditions Section */}
       <div>
         <h3 className="text-lg font-medium mb-4">Medical Conditions</h3>
         <p className="text-sm text-gray-600 mb-4">Select any conditions that apply:</p>
@@ -128,6 +220,80 @@ const MedicalProfileHistoryForm = () => {
         </div>
       </div>
       
+      {/* Previous Diagnoses */}
+      <div>
+        <h3 className="text-lg font-medium mb-4">Previous Diagnoses</h3>
+        <p className="text-sm text-gray-600 mb-4">List any significant past diagnoses and their current status.</p>
+        
+        {previousDiagnoses.length === 0 ? (
+          <p className="text-sm text-gray-600 mb-2">No diagnoses added yet.</p>
+        ) : (
+          <div className="space-y-3 mb-4">
+            {previousDiagnoses.map((diagnosis, index) => (
+              <div key={index} className="p-3 border border-gray-200 rounded-md bg-gray-50 relative">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                  <div className="space-y-1">
+                    <Label htmlFor={`diagnosis-${index}`}>Condition</Label>
+                    <Input
+                      id={`diagnosis-${index}`}
+                      value={diagnosis.condition}
+                      onChange={(e) => handleUpdateDiagnosis(index, 'condition', e.target.value)}
+                      placeholder="Medical condition"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor={`diagnosis-year-${index}`}>Year Diagnosed</Label>
+                    <Input
+                      id={`diagnosis-year-${index}`}
+                      value={diagnosis.year}
+                      onChange={(e) => handleUpdateDiagnosis(index, 'year', e.target.value)}
+                      placeholder="Year (e.g., 2020)"
+                      type="number"
+                      min="1900"
+                      max={new Date().getFullYear()}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor={`diagnosis-status-${index}`}>Current Status</Label>
+                    <Select
+                      value={diagnosis.status}
+                      onValueChange={(value) => handleUpdateDiagnosis(index, 'status', value)}
+                    >
+                      <SelectTrigger id={`diagnosis-status-${index}`}>
+                        <SelectValue placeholder="Select status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {conditionStatusOptions.map((option) => (
+                          <SelectItem key={option} value={option}>{option}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <Button 
+                  variant="outline" 
+                  size="icon" 
+                  onClick={() => handleRemoveDiagnosis(index)}
+                  className="absolute top-3 right-3"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            ))}
+          </div>
+        )}
+        
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={handleAddDiagnosis}
+          className="mt-2"
+        >
+          <Plus className="h-4 w-4 mr-1" /> Add Diagnosis
+        </Button>
+      </div>
+      
+      {/* Surgical History */}
       <div>
         <h3 className="text-lg font-medium mb-4">Surgical History</h3>
         
@@ -136,27 +302,44 @@ const MedicalProfileHistoryForm = () => {
         ) : (
           <div className="space-y-3 mb-4">
             {surgeries.map((surgery, index) => (
-              <div key={index} className="flex items-start gap-2">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-2 flex-grow">
-                  <Input
-                    value={surgery.procedure}
-                    onChange={(e) => handleUpdateSurgery(index, 'procedure', e.target.value)}
-                    placeholder="Procedure name"
-                  />
-                  <Input
-                    value={surgery.year}
-                    onChange={(e) => handleUpdateSurgery(index, 'year', e.target.value)}
-                    placeholder="Year (e.g., 2020)"
-                    type="number"
-                    min="1900"
-                    max={new Date().getFullYear()}
-                  />
+              <div key={index} className="p-3 border border-gray-200 rounded-md bg-gray-50 relative">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                  <div className="space-y-1">
+                    <Label htmlFor={`surgery-${index}`}>Procedure</Label>
+                    <Input
+                      id={`surgery-${index}`}
+                      value={surgery.procedure}
+                      onChange={(e) => handleUpdateSurgery(index, 'procedure', e.target.value)}
+                      placeholder="Procedure name"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor={`surgery-year-${index}`}>Year</Label>
+                    <Input
+                      id={`surgery-year-${index}`}
+                      value={surgery.year}
+                      onChange={(e) => handleUpdateSurgery(index, 'year', e.target.value)}
+                      placeholder="Year (e.g., 2020)"
+                      type="number"
+                      min="1900"
+                      max={new Date().getFullYear()}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor={`surgery-hospital-${index}`}>Hospital</Label>
+                    <Input
+                      id={`surgery-hospital-${index}`}
+                      value={surgery.hospital}
+                      onChange={(e) => handleUpdateSurgery(index, 'hospital', e.target.value)}
+                      placeholder="Hospital name (optional)"
+                    />
+                  </div>
                 </div>
                 <Button 
                   variant="outline" 
                   size="icon" 
                   onClick={() => handleRemoveSurgery(index)}
-                  className="flex-shrink-0"
+                  className="absolute top-3 right-3"
                 >
                   <Trash2 className="h-4 w-4" />
                 </Button>
@@ -175,6 +358,7 @@ const MedicalProfileHistoryForm = () => {
         </Button>
       </div>
       
+      {/* Hospitalization History */}
       <div>
         <h3 className="text-lg font-medium mb-4">Hospitalization History</h3>
         
@@ -183,27 +367,44 @@ const MedicalProfileHistoryForm = () => {
         ) : (
           <div className="space-y-3 mb-4">
             {hospitalization.map((hospital, index) => (
-              <div key={index} className="flex items-start gap-2">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-2 flex-grow">
-                  <Input
-                    value={hospital.reason}
-                    onChange={(e) => handleUpdateHospitalization(index, 'reason', e.target.value)}
-                    placeholder="Reason for hospitalization"
-                  />
-                  <Input
-                    value={hospital.year}
-                    onChange={(e) => handleUpdateHospitalization(index, 'year', e.target.value)}
-                    placeholder="Year (e.g., 2020)"
-                    type="number" 
-                    min="1900"
-                    max={new Date().getFullYear()}
-                  />
+              <div key={index} className="p-3 border border-gray-200 rounded-md bg-gray-50 relative">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                  <div className="space-y-1">
+                    <Label htmlFor={`hospital-${index}`}>Reason</Label>
+                    <Input
+                      id={`hospital-${index}`}
+                      value={hospital.reason}
+                      onChange={(e) => handleUpdateHospitalization(index, 'reason', e.target.value)}
+                      placeholder="Reason for hospitalization"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor={`hospital-year-${index}`}>Year</Label>
+                    <Input
+                      id={`hospital-year-${index}`}
+                      value={hospital.year}
+                      onChange={(e) => handleUpdateHospitalization(index, 'year', e.target.value)}
+                      placeholder="Year (e.g., 2020)"
+                      type="number" 
+                      min="1900"
+                      max={new Date().getFullYear()}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor={`hospital-duration-${index}`}>Duration</Label>
+                    <Input
+                      id={`hospital-duration-${index}`}
+                      value={hospital.duration}
+                      onChange={(e) => handleUpdateHospitalization(index, 'duration', e.target.value)}
+                      placeholder="Length of stay (e.g., 3 days)"
+                    />
+                  </div>
                 </div>
                 <Button 
                   variant="outline" 
                   size="icon" 
                   onClick={() => handleRemoveHospitalization(index)}
-                  className="flex-shrink-0"
+                  className="absolute top-3 right-3"
                 >
                   <Trash2 className="h-4 w-4" />
                 </Button>
@@ -222,20 +423,190 @@ const MedicalProfileHistoryForm = () => {
         </Button>
       </div>
       
+      {/* Childbirth History (if applicable) */}
+      <div>
+        <h3 className="text-lg font-medium mb-2">Childbirth History</h3>
+        <p className="text-sm text-gray-600 mb-4">If applicable, provide information about any pregnancies and childbirths.</p>
+        
+        {childbirthHistory.length === 0 ? (
+          <div className="flex mb-4 space-x-2 items-center">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handleAddChildbirth}
+              className="mt-2"
+            >
+              <Plus className="h-4 w-4 mr-1" /> Add Childbirth
+            </Button>
+            <span className="text-sm text-gray-500">(Skip if not applicable)</span>
+          </div>
+        ) : (
+          <>
+            <div className="space-y-3 mb-4">
+              {childbirthHistory.map((birth, index) => (
+                <div key={index} className="p-3 border border-gray-200 rounded-md bg-gray-50 relative">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                    <div className="space-y-1">
+                      <Label htmlFor={`birth-year-${index}`}>Year</Label>
+                      <Input
+                        id={`birth-year-${index}`}
+                        value={birth.year}
+                        onChange={(e) => handleUpdateChildbirth(index, 'year', e.target.value)}
+                        placeholder="Year (e.g., 2020)"
+                        type="number"
+                        min="1900"
+                        max={new Date().getFullYear()}
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label htmlFor={`birth-type-${index}`}>Delivery Type</Label>
+                      <Select
+                        value={birth.deliveryType}
+                        onValueChange={(value) => handleUpdateChildbirth(index, 'deliveryType', value)}
+                      >
+                        <SelectTrigger id={`birth-type-${index}`}>
+                          <SelectValue placeholder="Select type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {deliveryTypeOptions.map((option) => (
+                            <SelectItem key={option} value={option}>{option}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1">
+                      <Label htmlFor={`birth-complications-${index}`}>Complications</Label>
+                      <Input
+                        id={`birth-complications-${index}`}
+                        value={birth.complications}
+                        onChange={(e) => handleUpdateChildbirth(index, 'complications', e.target.value)}
+                        placeholder="Any complications (or 'None')"
+                      />
+                    </div>
+                  </div>
+                  <Button 
+                    variant="outline" 
+                    size="icon" 
+                    onClick={() => handleRemoveChildbirth(index)}
+                    className="absolute top-3 right-3"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handleAddChildbirth}
+              className="mt-2"
+            >
+              <Plus className="h-4 w-4 mr-1" /> Add Another
+            </Button>
+          </>
+        )}
+      </div>
+      
+      {/* Mental Health History */}
+      <div>
+        <h3 className="text-lg font-medium mb-4">Mental Health History</h3>
+        <p className="text-sm text-gray-600 mb-4">Select any mental health conditions that apply:</p>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2 mb-4">
+          {mentalHealthConditions.map((condition) => (
+            <div key={condition} className="flex items-center space-x-2">
+              <Checkbox 
+                id={`mental-${condition}`} 
+                checked={mentalHealthHistory.includes(condition)}
+                onCheckedChange={() => toggleMentalHealthCondition(condition)}
+              />
+              <Label 
+                htmlFor={`mental-${condition}`} 
+                className="text-sm cursor-pointer"
+              >
+                {condition}
+              </Label>
+            </div>
+          ))}
+        </div>
+      </div>
+      
+      {/* Blood Type */}
+      <div>
+        <h3 className="text-lg font-medium mb-4">Blood Type</h3>
+        <div className="w-full md:w-1/3">
+          <Select
+            value={bloodType}
+            onValueChange={setBloodType}
+          >
+            <SelectTrigger id="blood-type">
+              <SelectValue placeholder="Select your blood type" />
+            </SelectTrigger>
+            <SelectContent>
+              {bloodTypeOptions.map((option) => (
+                <SelectItem key={option} value={option}>{option}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+      
+      {/* Last Physical Exam */}
+      <div>
+        <h3 className="text-lg font-medium mb-4">Last Physical Examination</h3>
+        <div className="w-full md:w-1/3">
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant={"outline"}
+                className={cn(
+                  "w-full justify-start text-left font-normal",
+                  !lastPhysicalDate && "text-muted-foreground"
+                )}
+              >
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {lastPhysicalDate ? format(lastPhysicalDate, "PPP") : <span>Select date</span>}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="single"
+                selected={lastPhysicalDate}
+                onSelect={setLastPhysicalDate}
+                initialFocus
+                disabled={(date) => date > new Date()}
+                className={cn("p-3 pointer-events-auto")}
+              />
+            </PopoverContent>
+          </Popover>
+        </div>
+      </div>
+      
+      {/* Physical Disabilities or Limitations */}
+      <div>
+        <h3 className="text-lg font-medium mb-4">Physical Disabilities or Limitations</h3>
+        <p className="text-sm text-gray-600 mb-2">Please describe any physical disabilities or limitations.</p>
+        <Textarea
+          placeholder="Enter any physical disabilities or limitations that may be relevant to your care"
+          value={physicalDisabilities}
+          onChange={(e) => setPhysicalDisabilities(e.target.value)}
+          className="min-h-[100px]"
+        />
+      </div>
+      
+      {/* Family Medical History */}
       <div>
         <h3 className="text-lg font-medium mb-4">Family Medical History</h3>
-        <p className="text-sm text-gray-600 mb-4">Please provide information about significant medical conditions in your immediate family (parents, siblings, children).</p>
-        
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="familyHistory">Family Health History</Label>
-            <Input 
-              id="familyHistory" 
-              placeholder="e.g., Mother: Diabetes, Father: Heart Disease" 
-              className="w-full"
-            />
-          </div>
-        </div>
+        <p className="text-sm text-gray-600 mb-2">
+          Please provide information about significant medical conditions in your immediate family (parents, siblings, children).
+        </p>
+        <Textarea 
+          id="familyHistory"
+          value={familyHistory}
+          onChange={(e) => setFamilyHistory(e.target.value)}
+          placeholder="e.g., Mother: Diabetes, Father: Heart Disease" 
+          className="min-h-[100px]"
+        />
       </div>
     </div>
   );
