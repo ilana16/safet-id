@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -9,10 +9,82 @@ import { PlusCircle, Trash2, ImagePlus, X } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 
 const MedicalProfilePersonalForm = () => {
+  // Form state
+  const [formData, setFormData] = useState({
+    fullName: '',
+    dob: '',
+    gender: '',
+    preferredPronoun: '',
+    bloodType: '',
+    height: '',
+    weight: '',
+    primaryLanguage: '',
+    phone: '',
+    email: '',
+    address: '',
+    city: '',
+    state: '',
+    postalCode: '',
+    country: 'United States'
+  });
+  
   const [hasEmergencyContact, setHasEmergencyContact] = useState(false);
   const [hasInsurance, setHasInsurance] = useState(false);
   const [emergencyContacts, setEmergencyContacts] = useState([{ id: 1, name: '', relationship: '', phone: '', email: '' }]);
   const [insuranceImages, setInsuranceImages] = useState<string[]>([]);
+  const [insuranceData, setInsuranceData] = useState({
+    provider: '',
+    type: '',
+    policyNumber: '',
+    groupNumber: ''
+  });
+
+  // Load saved data on component mount
+  useEffect(() => {
+    const savedProfile = JSON.parse(localStorage.getItem('medicalProfile') || '{}');
+    
+    if (savedProfile && savedProfile.personal) {
+      // Load basic form data
+      if (savedProfile.personal.formData) {
+        setFormData(savedProfile.personal.formData);
+      }
+      
+      // Load emergency contacts
+      if (savedProfile.personal.hasEmergencyContact !== undefined) {
+        setHasEmergencyContact(savedProfile.personal.hasEmergencyContact);
+      }
+      if (savedProfile.personal.emergencyContacts && savedProfile.personal.emergencyContacts.length > 0) {
+        setEmergencyContacts(savedProfile.personal.emergencyContacts);
+      }
+      
+      // Load insurance data
+      if (savedProfile.personal.hasInsurance !== undefined) {
+        setHasInsurance(savedProfile.personal.hasInsurance);
+      }
+      if (savedProfile.personal.insuranceData) {
+        setInsuranceData(savedProfile.personal.insuranceData);
+      }
+      if (savedProfile.personal.insuranceImages) {
+        setInsuranceImages(savedProfile.personal.insuranceImages);
+      }
+    }
+  }, []);
+
+  // Handle form field changes
+  const handleInputChange = (field: string, value: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  // Handle insurance field changes
+  const handleInsuranceChange = (field: string, value: string) => {
+    setInsuranceData((prev) => ({
+      ...prev,
+      [field]: value
+    }));
+  };
 
   const addEmergencyContact = () => {
     const newId = emergencyContacts.length > 0 
@@ -57,17 +129,27 @@ const MedicalProfilePersonalForm = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label htmlFor="fullName">Full Name</Label>
-            <Input id="fullName" placeholder="Your full legal name" />
+            <Input 
+              id="fullName" 
+              placeholder="Your full legal name" 
+              value={formData.fullName}
+              onChange={(e) => handleInputChange('fullName', e.target.value)}
+            />
           </div>
           
           <div className="space-y-2">
             <Label htmlFor="dob">Date of Birth</Label>
-            <Input id="dob" type="date" />
+            <Input 
+              id="dob" 
+              type="date" 
+              value={formData.dob}
+              onChange={(e) => handleInputChange('dob', e.target.value)}
+            />
           </div>
           
           <div className="space-y-2">
             <Label htmlFor="gender">Gender</Label>
-            <Select>
+            <Select value={formData.gender} onValueChange={(value) => handleInputChange('gender', value)}>
               <SelectTrigger id="gender">
                 <SelectValue placeholder="Select gender" />
               </SelectTrigger>
@@ -84,7 +166,7 @@ const MedicalProfilePersonalForm = () => {
           
           <div className="space-y-2">
             <Label htmlFor="preferredPronoun">Preferred Pronouns (Optional)</Label>
-            <Select>
+            <Select value={formData.preferredPronoun} onValueChange={(value) => handleInputChange('preferredPronoun', value)}>
               <SelectTrigger id="preferredPronoun">
                 <SelectValue placeholder="Select pronouns" />
               </SelectTrigger>
@@ -99,7 +181,7 @@ const MedicalProfilePersonalForm = () => {
           
           <div className="space-y-2">
             <Label htmlFor="bloodType">Blood Type</Label>
-            <Select>
+            <Select value={formData.bloodType} onValueChange={(value) => handleInputChange('bloodType', value)}>
               <SelectTrigger id="bloodType">
                 <SelectValue placeholder="Select blood type" />
               </SelectTrigger>
@@ -120,17 +202,34 @@ const MedicalProfilePersonalForm = () => {
           
           <div className="space-y-2">
             <Label htmlFor="height">Height (cm)</Label>
-            <Input id="height" type="number" placeholder="Height in centimeters" />
+            <Input 
+              id="height" 
+              type="number" 
+              placeholder="Height in centimeters" 
+              value={formData.height}
+              onChange={(e) => handleInputChange('height', e.target.value)}
+            />
           </div>
           
           <div className="space-y-2">
             <Label htmlFor="weight">Weight (kg)</Label>
-            <Input id="weight" type="number" placeholder="Weight in kilograms" />
+            <Input 
+              id="weight" 
+              type="number" 
+              placeholder="Weight in kilograms" 
+              value={formData.weight}
+              onChange={(e) => handleInputChange('weight', e.target.value)}
+            />
           </div>
           
           <div className="space-y-2">
             <Label htmlFor="primaryLanguage">Primary Language</Label>
-            <Input id="primaryLanguage" placeholder="e.g., English" />
+            <Input 
+              id="primaryLanguage" 
+              placeholder="e.g., English" 
+              value={formData.primaryLanguage}
+              onChange={(e) => handleInputChange('primaryLanguage', e.target.value)}
+            />
           </div>
         </div>
       </div>
@@ -140,44 +239,85 @@ const MedicalProfilePersonalForm = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label htmlFor="phone">Phone Number</Label>
-            <Input id="phone" type="tel" placeholder="Your phone number" />
+            <Input 
+              id="phone" 
+              type="tel" 
+              placeholder="Your phone number" 
+              value={formData.phone}
+              onChange={(e) => handleInputChange('phone', e.target.value)}
+            />
           </div>
           
           <div className="space-y-2">
             <Label htmlFor="email">Email Address</Label>
-            <Input id="email" type="email" placeholder="Your email address" />
+            <Input 
+              id="email" 
+              type="email" 
+              placeholder="Your email address" 
+              value={formData.email}
+              onChange={(e) => handleInputChange('email', e.target.value)}
+            />
           </div>
           
           <div className="space-y-2 md:col-span-2">
             <Label htmlFor="address">Street Address</Label>
-            <Input id="address" placeholder="Street address" />
+            <Input 
+              id="address" 
+              placeholder="Street address" 
+              value={formData.address}
+              onChange={(e) => handleInputChange('address', e.target.value)}
+            />
           </div>
           
           <div className="space-y-2">
             <Label htmlFor="city">City</Label>
-            <Input id="city" placeholder="City" />
+            <Input 
+              id="city" 
+              placeholder="City" 
+              value={formData.city}
+              onChange={(e) => handleInputChange('city', e.target.value)}
+            />
           </div>
           
           <div className="space-y-2">
             <Label htmlFor="state">State/Province</Label>
-            <Input id="state" placeholder="State/Province" />
+            <Input 
+              id="state" 
+              placeholder="State/Province" 
+              value={formData.state}
+              onChange={(e) => handleInputChange('state', e.target.value)}
+            />
           </div>
           
           <div className="space-y-2">
             <Label htmlFor="postalCode">Postal/ZIP Code</Label>
-            <Input id="postalCode" placeholder="Postal/ZIP Code" />
+            <Input 
+              id="postalCode" 
+              placeholder="Postal/ZIP Code" 
+              value={formData.postalCode}
+              onChange={(e) => handleInputChange('postalCode', e.target.value)}
+            />
           </div>
           
           <div className="space-y-2">
             <Label htmlFor="country">Country</Label>
-            <Input id="country" placeholder="Country" defaultValue="United States" />
+            <Input 
+              id="country" 
+              placeholder="Country" 
+              value={formData.country}
+              onChange={(e) => handleInputChange('country', e.target.value)}
+            />
           </div>
         </div>
       </div>
       
       <div>
         <div className="flex items-center space-x-2 mb-4">
-          <Checkbox id="hasEmergencyContact" checked={hasEmergencyContact} onCheckedChange={(checked) => setHasEmergencyContact(checked as boolean)} />
+          <Checkbox 
+            id="hasEmergencyContact" 
+            checked={hasEmergencyContact} 
+            onCheckedChange={(checked) => setHasEmergencyContact(checked as boolean)} 
+          />
           <Label htmlFor="hasEmergencyContact" className="text-sm font-medium cursor-pointer">
             I want to add emergency contact information
           </Label>
@@ -267,7 +407,11 @@ const MedicalProfilePersonalForm = () => {
       
       <div>
         <div className="flex items-center space-x-2 mb-4">
-          <Checkbox id="hasInsurance" checked={hasInsurance} onCheckedChange={(checked) => setHasInsurance(checked as boolean)} />
+          <Checkbox 
+            id="hasInsurance" 
+            checked={hasInsurance} 
+            onCheckedChange={(checked) => setHasInsurance(checked as boolean)} 
+          />
           <Label htmlFor="hasInsurance" className="text-sm font-medium cursor-pointer">
             I want to add insurance information
           </Label>
@@ -280,12 +424,17 @@ const MedicalProfilePersonalForm = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="insuranceProvider">Insurance Provider</Label>
-                <Input id="insuranceProvider" placeholder="Provider name" />
+                <Input 
+                  id="insuranceProvider" 
+                  placeholder="Provider name" 
+                  value={insuranceData.provider}
+                  onChange={(e) => handleInsuranceChange('provider', e.target.value)}
+                />
               </div>
               
               <div className="space-y-2">
                 <Label htmlFor="insuranceType">Insurance Type</Label>
-                <Select>
+                <Select value={insuranceData.type} onValueChange={(value) => handleInsuranceChange('type', value)}>
                   <SelectTrigger id="insuranceType">
                     <SelectValue placeholder="Select type" />
                   </SelectTrigger>
@@ -301,12 +450,22 @@ const MedicalProfilePersonalForm = () => {
               
               <div className="space-y-2">
                 <Label htmlFor="policyNumber">Policy Number</Label>
-                <Input id="policyNumber" placeholder="Insurance policy number" />
+                <Input 
+                  id="policyNumber" 
+                  placeholder="Insurance policy number" 
+                  value={insuranceData.policyNumber}
+                  onChange={(e) => handleInsuranceChange('policyNumber', e.target.value)}
+                />
               </div>
               
               <div className="space-y-2">
                 <Label htmlFor="groupNumber">Group Number (if applicable)</Label>
-                <Input id="groupNumber" placeholder="Insurance group number" />
+                <Input 
+                  id="groupNumber" 
+                  placeholder="Insurance group number" 
+                  value={insuranceData.groupNumber}
+                  onChange={(e) => handleInsuranceChange('groupNumber', e.target.value)}
+                />
               </div>
             </div>
             

@@ -1,8 +1,8 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { ClipboardCheck, Filter, ArrowUpDown, FileText, Clock } from 'lucide-react';
+import { ClipboardCheck, Filter, ArrowUpDown, FileText, Clock, History } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { 
   Tooltip,
@@ -11,6 +11,9 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import MedicalProfileChangesLog from './MedicalProfileChangesLog';
+import { getChangeLogs } from '@/utils/changeLog';
 
 interface MedicalProfileTabProps {
   completionPercentage: number;
@@ -18,6 +21,14 @@ interface MedicalProfileTabProps {
 
 const MedicalProfileTab: React.FC<MedicalProfileTabProps> = ({ completionPercentage }) => {
   const [filter, setFilter] = useState<'all' | 'incomplete' | 'complete'>('all');
+  const [activeTab, setActiveTab] = useState<'sections' | 'logs'>('sections');
+  const [hasChangeLogs, setHasChangeLogs] = useState(false);
+  
+  // Check if there are any change logs
+  useEffect(() => {
+    const logs = getChangeLogs();
+    setHasChangeLogs(logs.length > 0);
+  }, []);
   
   // Mock data for last updated timestamps
   const lastUpdated = {
@@ -140,122 +151,45 @@ const MedicalProfileTab: React.FC<MedicalProfileTabProps> = ({ completionPercent
         </div>
       ) : (
         <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Progress 
-                value={completionPercentage} 
-                max={100} 
-                className="w-32 h-2 bg-gray-100" 
-                aria-label={`Profile ${completionPercentage}% complete`}
-              />
-              <span className="text-sm font-medium text-gray-700">{completionPercentage}%</span>
-            </div>
-            <div className="flex gap-2">
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => setFilter(filter === 'incomplete' ? 'all' : 'incomplete')}
-                      aria-pressed={filter === 'incomplete'}
-                      className={filter === 'incomplete' ? 'bg-safet-50 border-safet-200 text-safet-700' : ''}
-                    >
-                      <Filter className="h-4 w-4 mr-1" />
-                      Incomplete
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom">
-                    <p>Show incomplete sections</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => setFilter(filter === 'complete' ? 'all' : 'complete')}
-                      aria-pressed={filter === 'complete'}
-                      className={filter === 'complete' ? 'bg-safet-50 border-safet-200 text-safet-700' : ''}
-                    >
-                      <ArrowUpDown className="h-4 w-4 mr-1" />
-                      Complete
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom">
-                    <p>Show completed sections</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            </div>
-          </div>
+          {hasChangeLogs && (
+            <Tabs 
+              defaultValue="sections" 
+              className="w-full" 
+              value={activeTab} 
+              onValueChange={(value) => setActiveTab(value as 'sections' | 'logs')}
+            >
+              <TabsList className="mb-4">
+                <TabsTrigger value="sections" className="flex items-center">
+                  <ClipboardCheck className="h-4 w-4 mr-2" /> Information Sections
+                </TabsTrigger>
+                <TabsTrigger value="logs" className="flex items-center">
+                  <History className="h-4 w-4 mr-2" /> Change History
+                </TabsTrigger>
+              </TabsList>
+              <TabsContent value="sections">
+                <SectionsTab 
+                  completionPercentage={completionPercentage} 
+                  filter={filter} 
+                  setFilter={setFilter} 
+                  filteredSections={filteredSections} 
+                  getRelativeTime={getRelativeTime} 
+                />
+              </TabsContent>
+              <TabsContent value="logs">
+                <MedicalProfileChangesLog />
+              </TabsContent>
+            </Tabs>
+          )}
           
-          {/* Preview of medical information sections */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4" role="list" aria-label="Medical information sections">
-            {filteredSections.length > 0 ? (
-              filteredSections.map((section) => (
-                <div 
-                  key={section.id}
-                  className="bg-gray-50 rounded-lg p-4 border border-gray-200 hover:border-safet-200 transition-colors"
-                  role="listitem"
-                >
-                  <div className="flex justify-between items-start mb-2">
-                    <h3 className="text-sm font-medium text-gray-900">{section.title}</h3>
-                    <Badge 
-                      variant="outline" 
-                      className={section.status === 100 ? 
-                        'bg-green-50 text-green-700 border-green-200' : 
-                        'bg-amber-50 text-amber-700 border-amber-200'
-                      }
-                    >
-                      {section.status === 100 ? 'Complete' : `${section.status}%`}
-                    </Badge>
-                  </div>
-                  <p className="text-xs text-gray-600 mb-3">{section.description}</p>
-                  
-                  <div className="flex items-center text-xs text-gray-500 mb-3">
-                    <Clock className="h-3 w-3 mr-1" />
-                    Last updated: {getRelativeTime(section.lastUpdated)}
-                  </div>
-                  
-                  {section.status < 100 && (
-                    <div className="w-full bg-gray-200 h-1 rounded mb-3">
-                      <div 
-                        className="bg-safet-500 h-1 rounded"
-                        style={{ width: `${section.status}%` }}
-                        aria-hidden="true"
-                      />
-                    </div>
-                  )}
-                  
-                  <div className="flex justify-end">
-                    <Link to={section.link}>
-                      <Button 
-                        size="sm" 
-                        variant="ghost" 
-                        className="text-xs hover:bg-safet-50 hover:text-safet-700"
-                      >
-                        {section.status === 0 ? 'Add Information' : 'View & Edit'}
-                      </Button>
-                    </Link>
-                  </div>
-                </div>
-              ))
-            ) : (
-              <div className="col-span-2 text-center py-6 bg-gray-50 rounded-lg border border-gray-200">
-                <p className="text-gray-500">No sections match your filter.</p>
-                <Button 
-                  variant="link" 
-                  onClick={() => setFilter('all')}
-                  className="text-safet-600 mt-2"
-                >
-                  Show all sections
-                </Button>
-              </div>
-            )}
-          </div>
+          {!hasChangeLogs && (
+            <SectionsTab 
+              completionPercentage={completionPercentage} 
+              filter={filter} 
+              setFilter={setFilter} 
+              filteredSections={filteredSections} 
+              getRelativeTime={getRelativeTime} 
+            />
+          )}
           
           <div className="text-center pt-3 flex justify-center gap-4">
             <Link to="/profile/view">
@@ -271,6 +205,136 @@ const MedicalProfileTab: React.FC<MedicalProfileTabProps> = ({ completionPercent
         </div>
       )}
     </div>
+  );
+};
+
+// Extracted sections tab into a separate component for clarity
+const SectionsTab: React.FC<{
+  completionPercentage: number;
+  filter: 'all' | 'incomplete' | 'complete';
+  setFilter: (filter: 'all' | 'incomplete' | 'complete') => void;
+  filteredSections: any[];
+  getRelativeTime: (dateString: string) => string;
+}> = ({ completionPercentage, filter, setFilter, filteredSections, getRelativeTime }) => {
+  return (
+    <>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Progress 
+            value={completionPercentage} 
+            max={100} 
+            className="w-32 h-2 bg-gray-100" 
+            aria-label={`Profile ${completionPercentage}% complete`}
+          />
+          <span className="text-sm font-medium text-gray-700">{completionPercentage}%</span>
+        </div>
+        <div className="flex gap-2">
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => setFilter(filter === 'incomplete' ? 'all' : 'incomplete')}
+                  aria-pressed={filter === 'incomplete'}
+                  className={filter === 'incomplete' ? 'bg-safet-50 border-safet-200 text-safet-700' : ''}
+                >
+                  <Filter className="h-4 w-4 mr-1" />
+                  Incomplete
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">
+                <p>Show incomplete sections</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => setFilter(filter === 'complete' ? 'all' : 'complete')}
+                  aria-pressed={filter === 'complete'}
+                  className={filter === 'complete' ? 'bg-safet-50 border-safet-200 text-safet-700' : ''}
+                >
+                  <ArrowUpDown className="h-4 w-4 mr-1" />
+                  Complete
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">
+                <p>Show completed sections</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
+      </div>
+      
+      {/* Preview of medical information sections */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4" role="list" aria-label="Medical information sections">
+        {filteredSections.length > 0 ? (
+          filteredSections.map((section) => (
+            <div 
+              key={section.id}
+              className="bg-gray-50 rounded-lg p-4 border border-gray-200 hover:border-safet-200 transition-colors"
+              role="listitem"
+            >
+              <div className="flex justify-between items-start mb-2">
+                <h3 className="text-sm font-medium text-gray-900">{section.title}</h3>
+                <Badge 
+                  variant="outline" 
+                  className={section.status === 100 ? 
+                    'bg-green-50 text-green-700 border-green-200' : 
+                    'bg-amber-50 text-amber-700 border-amber-200'
+                  }
+                >
+                  {section.status === 100 ? 'Complete' : `${section.status}%`}
+                </Badge>
+              </div>
+              <p className="text-xs text-gray-600 mb-3">{section.description}</p>
+              
+              <div className="flex items-center text-xs text-gray-500 mb-3">
+                <Clock className="h-3 w-3 mr-1" />
+                Last updated: {getRelativeTime(section.lastUpdated)}
+              </div>
+              
+              {section.status < 100 && (
+                <div className="w-full bg-gray-200 h-1 rounded mb-3">
+                  <div 
+                    className="bg-safet-500 h-1 rounded"
+                    style={{ width: `${section.status}%` }}
+                    aria-hidden="true"
+                  />
+                </div>
+              )}
+              
+              <div className="flex justify-end">
+                <Link to={section.link}>
+                  <Button 
+                    size="sm" 
+                    variant="ghost" 
+                    className="text-xs hover:bg-safet-50 hover:text-safet-700"
+                  >
+                    {section.status === 0 ? 'Add Information' : 'View & Edit'}
+                  </Button>
+                </Link>
+              </div>
+            </div>
+          ))
+        ) : (
+          <div className="col-span-2 text-center py-6 bg-gray-50 rounded-lg border border-gray-200">
+            <p className="text-gray-500">No sections match your filter.</p>
+            <Button 
+              variant="link" 
+              onClick={() => setFilter('all')}
+              className="text-safet-600 mt-2"
+            >
+              Show all sections
+            </Button>
+          </div>
+        )}
+      </div>
+    </>
   );
 };
 

@@ -15,6 +15,7 @@ import MedicalProfileMentalHealthForm from '@/components/forms/MedicalProfileMen
 import MedicalProfileFunctionalStatusForm from '@/components/forms/MedicalProfileFunctionalStatusForm';
 import MedicalProfileCulturalPreferencesForm from '@/components/forms/MedicalProfileCulturalPreferencesForm';
 import MedicalProfilePreventativeCareForm from '@/components/forms/MedicalProfilePreventativeCareForm';
+import { logChanges } from '@/utils/changeLog';
 
 // Define the valid section types
 type SectionType = 'personal' | 'history' | 'medications' | 'allergies' | 'social' | 
@@ -25,37 +26,81 @@ const MedicalProfileForm = () => {
   const { section } = useParams<{ section: SectionType }>();
   const [isSaving, setIsSaving] = useState(false);
   const [hasMentalHealthHistory, setHasMentalHealthHistory] = useState('no');
+  const [formData, setFormData] = useState<any>({});
   
   // Get the current section or default to personal
   const currentSection = section || 'personal';
 
-  // Check localStorage for mental health history setting
+  // Load previous data when section changes
   useEffect(() => {
     const savedProfile = JSON.parse(localStorage.getItem('medicalProfile') || '{}');
+    if (savedProfile && savedProfile[currentSection]) {
+      setFormData(savedProfile[currentSection]);
+    } else {
+      setFormData({});
+    }
+    
+    // Check for mental health history setting
     if (savedProfile && savedProfile.history && savedProfile.history.hasMentalHealthHistory) {
       setHasMentalHealthHistory(savedProfile.history.hasMentalHealthHistory);
     }
-  }, []);
+  }, [currentSection]);
 
   const handleSave = () => {
     setIsSaving(true);
     
-    // Save the mental health history value if we're on the history section
+    // Get form data from the form components
+    // This would ideally be done through a ref or form submission
+    const formElements = document.querySelectorAll('input, select, textarea');
+    const newFormData: Record<string, any> = {};
+    
+    formElements.forEach(element => {
+      const input = element as HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement;
+      const id = input.id;
+      if (id && !id.startsWith('react-')) {
+        newFormData[id] = input.value;
+      }
+    });
+    
+    // Get existing data for this section
+    const existingProfile = JSON.parse(localStorage.getItem('medicalProfile') || '{}');
+    const existingSectionData = existingProfile[currentSection] || {};
+    
+    // Track changes for logging
+    const changes: {field: string; oldValue: any; newValue: any}[] = [];
+    
+    // For each field in the new data, check if it's different from existing
+    Object.entries(newFormData).forEach(([key, value]) => {
+      if (existingSectionData[key] !== value) {
+        changes.push({
+          field: key,
+          oldValue: existingSectionData[key],
+          newValue: value
+        });
+      }
+    });
+    
+    // Additional data for history section
     const additionalData = currentSection === 'history' ? 
       { hasMentalHealthHistory } : {};
     
     // Simulate API call
     setTimeout(() => {
       // Update localStorage for demo purposes - in a real app this would hit an API
-      const existingProfile = JSON.parse(localStorage.getItem('medicalProfile') || '{}');
       localStorage.setItem('medicalProfile', JSON.stringify({
         ...existingProfile,
         [currentSection]: {
+          ...newFormData,
           completed: true,
           lastUpdated: new Date().toISOString(),
           ...additionalData
         }
       }));
+      
+      // Log changes if there are any
+      if (changes.length > 0) {
+        logChanges(currentSection, changes);
+      }
       
       setIsSaving(false);
       toast.success('Medical information saved successfully');
