@@ -25,20 +25,44 @@ const badgeVariants = cva(
 )
 
 export interface BadgeProps
-  extends React.HTMLAttributes<HTMLDivElement>,
-    VariantProps<typeof badgeVariants> {
+  extends VariantProps<typeof badgeVariants> {
+  className?: string;
+  children?: React.ReactNode;
   clickable?: boolean;
+  onClick?: React.MouseEventHandler;
 }
 
-function Badge({ className, variant, clickable = false, ...props }: BadgeProps) {
-  const Comp = clickable ? "button" : "div";
+function Badge({ 
+  className, 
+  variant, 
+  clickable = false, 
+  children,
+  onClick,
+  ...props 
+}: BadgeProps) {
+  const classes = cn(
+    badgeVariants({ variant }), 
+    clickable && "cursor-pointer hover:opacity-80", 
+    className
+  );
+
+  if (clickable) {
+    return (
+      <button 
+        className={classes} 
+        onClick={onClick} 
+        type="button"
+      >
+        {children}
+      </button>
+    );
+  }
+
   return (
-    <Comp className={cn(
-      badgeVariants({ variant }), 
-      clickable && "cursor-pointer hover:opacity-80", 
-      className
-    )} {...props} />
-  )
+    <div className={classes} onClick={onClick} {...props}>
+      {children}
+    </div>
+  );
 }
 
 export { Badge, badgeVariants }
