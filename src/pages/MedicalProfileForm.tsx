@@ -38,7 +38,16 @@ const MedicalProfileForm = () => {
       
       setIsSaving(false);
       toast.success('Medical information saved successfully');
-      navigate('/dashboard');
+      
+      // Navigate to the next section if available, otherwise go to dashboard
+      const sections: SectionType[] = ['personal', 'history', 'medications', 'allergies'];
+      const currentIndex = sections.indexOf(currentSection as SectionType);
+      
+      if (currentIndex < sections.length - 1) {
+        navigate(`/profile/edit/${sections[currentIndex + 1]}`);
+      } else {
+        navigate('/dashboard');
+      }
     }, 1000);
   };
 
@@ -98,13 +107,27 @@ const MedicalProfileForm = () => {
         <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
           {renderForm()}
           
-          <div className="mt-8 flex justify-end">
+          <div className="mt-8 flex justify-end gap-3">
+            {currentSection !== 'personal' && (
+              <Button 
+                variant="outline"
+                onClick={() => {
+                  const sections: SectionType[] = ['personal', 'history', 'medications', 'allergies'];
+                  const currentIndex = sections.indexOf(currentSection as SectionType);
+                  if (currentIndex > 0) {
+                    navigate(`/profile/edit/${sections[currentIndex - 1]}`);
+                  }
+                }}
+              >
+                Previous
+              </Button>
+            )}
             <Button 
               onClick={handleSave} 
               className="bg-safet-500 hover:bg-safet-600"
               disabled={isSaving}
             >
-              {isSaving ? 'Saving...' : 'Save Information'}
+              {isSaving ? 'Saving...' : currentSection === 'allergies' ? 'Complete Profile' : 'Save & Continue'}
               {!isSaving && <Save className="ml-2 h-4 w-4" />}
             </Button>
           </div>
