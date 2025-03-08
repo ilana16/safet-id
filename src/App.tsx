@@ -10,6 +10,7 @@ import MedicalProfileForm from './pages/MedicalProfileForm';
 import ViewOnly from './pages/ViewOnly';
 import MedicalRecordView from './pages/MedicalRecordView';
 import FullMedicalRecord from './pages/FullMedicalRecord';
+import ProxyRegister from './pages/ProxyRegister';
 
 function App() {
   return (
@@ -26,6 +27,7 @@ function App() {
           <Route path="/profile/history" element={<FullMedicalRecord />} />
           <Route path="/view/:userId" element={<ViewOnly />} />
           <Route path="/view/:userId/:accessCode" element={<ViewOnly />} />
+          <Route path="/proxy/register/:token" element={<ProxyRegister />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </Router>

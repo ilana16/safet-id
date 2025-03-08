@@ -1,6 +1,5 @@
-
 import React, { useState, useEffect } from 'react';
-import { Users, PlusCircle, Shield, Download, Search, ChevronUp, ChevronDown, Filter } from 'lucide-react';
+import { Users, PlusCircle, Shield, Download, Search, ChevronUp, ChevronDown, Filter, Mail } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { 
@@ -24,6 +23,7 @@ const ProxyAccessTab: React.FC = () => {
   // Filter states
   const [searchTerm, setSearchTerm] = useState('');
   const [filterAccess, setFilterAccess] = useState<string>('all');
+  const [filterStatus, setFilterStatus] = useState<string>('all');
   const [sortField, setSortField] = useState<string>('dateAdded');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   
@@ -40,6 +40,25 @@ const ProxyAccessTab: React.FC = () => {
     isOpen: false,
     proxy: null as ProxyUser | null
   });
+
+  // Load from localStorage on mount
+  useEffect(() => {
+    const savedProxies = localStorage.getItem('proxies');
+    if (savedProxies) {
+      try {
+        setProxies(JSON.parse(savedProxies));
+      } catch (error) {
+        console.error("Error loading proxies from localStorage:", error);
+      }
+    }
+  }, []);
+
+  // Save to localStorage when proxies change
+  useEffect(() => {
+    if (proxies.length > 0) {
+      localStorage.setItem('proxies', JSON.stringify(proxies));
+    }
+  }, [proxies]);
 
   const handleAddProxy = (proxy: ProxyUser) => {
     setProxies(prev => [...prev, proxy]);
@@ -73,6 +92,28 @@ const ProxyAccessTab: React.FC = () => {
     toast.success('Proxy access level updated');
   };
   
+  const handleResendInvite = (id: string) => {
+    const proxy = proxies.find(p => p.id === id);
+    if (!proxy) return;
+    
+    // In a real app, this would send another email
+    toast.success(`Invitation resent to ${proxy.name}`);
+    
+    // Update the proxy with a new invite token and reset expiry
+    setProxies(prev => 
+      prev.map(p => 
+        p.id === id 
+          ? { 
+              ...p, 
+              inviteToken: `invite_${Math.random().toString(36).substring(2, 15)}_${Date.now()}`,
+              // Keep it as pending since we're resending
+              inviteStatus: 'pending' 
+            } 
+          : p
+      )
+    );
+  };
+  
   const handleViewDetails = (proxy: ProxyUser) => {
     setDetailDialog({
       isOpen: true,
@@ -96,6 +137,11 @@ const ProxyAccessTab: React.FC = () => {
         : proxy.accessLevel === 'limited' 
           ? 'Limited Access' 
           : 'Emergency Only',
+      Status: proxy.inviteStatus === 'pending'
+        ? 'Invitation Pending'
+        : proxy.inviteStatus === 'accepted'
+          ? 'Active'
+          : 'Expired',
       dateAdded: proxy.dateAdded, // This will be formatted by the export function
     }));
     
@@ -121,7 +167,12 @@ const ProxyAccessTab: React.FC = () => {
         filterAccess === 'all' || 
         proxy.accessLevel === filterAccess;
         
-      return matchesSearch && matchesAccessLevel;
+      // Apply status filter
+      const matchesStatus =
+        filterStatus === 'all' ||
+        proxy.inviteStatus === filterStatus;
+        
+      return matchesSearch && matchesAccessLevel && matchesStatus;
     })
     .sort((a, b) => {
       // Sort by selected field
@@ -147,6 +198,11 @@ const ProxyAccessTab: React.FC = () => {
     return acc;
   }, {} as Record<string, number>);
 
+  const statusSummary = proxies.reduce((acc, proxy) => {
+    acc[proxy.inviteStatus] = (acc[proxy.inviteStatus] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
+
   return (
     <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
       <div className="flex items-center justify-between mb-6">
@@ -166,6 +222,8 @@ const ProxyAccessTab: React.FC = () => {
                 {accessSummary.full ? ` ${accessSummary.full} with full access.` : ''}
                 {accessSummary.limited ? ` ${accessSummary.limited} with limited access.` : ''}
                 {accessSummary.emergency ? ` ${accessSummary.emergency} with emergency only access.` : ''}
+                {statusSummary.pending ? ` ${statusSummary.pending} with pending invitations.` : ''}
+                {statusSummary.accepted ? ` ${statusSummary.accepted} with accepted invitations.` : ''}
               </>
             )}
           </div>
@@ -213,12 +271,12 @@ const ProxyAccessTab: React.FC = () => {
               />
             </div>
             
-            <div className="flex space-x-3">
+            <div className="flex flex-wrap gap-3">
               <Select value={filterAccess} onValueChange={setFilterAccess}>
-                <SelectTrigger className="w-[180px]" aria-label="Filter by access level">
+                <SelectTrigger className="w-36 sm:w-40" aria-label="Filter by access level">
                   <div className="flex items-center">
-                    <Filter className="mr-2 h-4 w-4" aria-hidden="true" />
-                    <SelectValue placeholder="Filter Access" />
+                    <Shield className="mr-2 h-4 w-4" aria-hidden="true" />
+                    <SelectValue placeholder="Access Level" />
                   </div>
                 </SelectTrigger>
                 <SelectContent>
@@ -229,8 +287,23 @@ const ProxyAccessTab: React.FC = () => {
                 </SelectContent>
               </Select>
               
+              <Select value={filterStatus} onValueChange={setFilterStatus}>
+                <SelectTrigger className="w-32 sm:w-36" aria-label="Filter by status">
+                  <div className="flex items-center">
+                    <Mail className="mr-2 h-4 w-4" aria-hidden="true" />
+                    <SelectValue placeholder="Status" />
+                  </div>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Statuses</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="accepted">Active</SelectItem>
+                  <SelectItem value="expired">Expired</SelectItem>
+                </SelectContent>
+              </Select>
+              
               <Select value={sortField} onValueChange={setSortField}>
-                <SelectTrigger className="w-[150px]" aria-label="Sort by field">
+                <SelectTrigger className="w-28 sm:w-32" aria-label="Sort by field">
                   <SelectValue placeholder="Sort By" />
                 </SelectTrigger>
                 <SelectContent>
@@ -284,6 +357,7 @@ const ProxyAccessTab: React.FC = () => {
                 proxy={proxy} 
                 onRemove={handleInitiateRemove}
                 onUpdateAccess={handleUpdateAccess}
+                onResendInvite={handleResendInvite}
                 onViewDetails={handleViewDetails}
               />
             ))}
