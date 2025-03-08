@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -22,6 +22,64 @@ const MedicalProfileSocialHistoryForm = () => {
   const [smokingStatus, setSmokingStatus] = useState('never');
   const [alcoholStatus, setAlcoholStatus] = useState('none');
   const [substanceStatus, setSubstanceStatus] = useState('none');
+  const [currentOccupation, setCurrentOccupation] = useState('');
+  const [currentWorkplace, setCurrentWorkplace] = useState('');
+  const [physicalActivity, setPhysicalActivity] = useState('');
+  const [dietType, setDietType] = useState('');
+  const [sleepPatterns, setSleepPatterns] = useState('');
+  const [quitDate, setQuitDate] = useState('');
+  const [smokingYears, setSmokingYears] = useState('');
+  const [tobaccoType, setTobaccoType] = useState('');
+  const [amountPerDay, setAmountPerDay] = useState('');
+  const [startDate, setStartDate] = useState('');
+  const [quitAttempts, setQuitAttempts] = useState('');
+  const [alcoholDetails, setAlcoholDetails] = useState('');
+  const [substanceDetails, setSubstanceDetails] = useState('');
+  const [recoveryDetails, setRecoveryDetails] = useState('');
+  const [environmentalExposures, setEnvironmentalExposures] = useState('');
+  const [sexuallyActive, setSexuallyActive] = useState('');
+  const [contraceptionMethod, setContraceptionMethod] = useState('');
+  const [stiHistory, setStiHistory] = useState('');
+
+  // Load saved data on component mount
+  useEffect(() => {
+    const savedProfile = JSON.parse(localStorage.getItem('medicalProfile') || '{}');
+    if (savedProfile && savedProfile.social) {
+      const socialData = savedProfile.social;
+      
+      setHasOccupationalHistory(socialData.hasOccupationalHistory === 'true' || false);
+      
+      if (socialData.occupationalHistory) {
+        try {
+          setOccupationalHistory(JSON.parse(socialData.occupationalHistory));
+        } catch (e) {
+          console.error("Error parsing occupational history:", e);
+        }
+      }
+      
+      setSmokingStatus(socialData.smokingStatus || 'never');
+      setAlcoholStatus(socialData.alcoholStatus || 'none');
+      setSubstanceStatus(socialData.substanceStatus || 'none');
+      setCurrentOccupation(socialData.currentOccupation || '');
+      setCurrentWorkplace(socialData.currentWorkplace || '');
+      setPhysicalActivity(socialData.physicalActivity || '');
+      setDietType(socialData.dietType || '');
+      setSleepPatterns(socialData.sleepPatterns || '');
+      setQuitDate(socialData.quitDate || '');
+      setSmokingYears(socialData.smokingYears || '');
+      setTobaccoType(socialData.tobaccoType || '');
+      setAmountPerDay(socialData.amountPerDay || '');
+      setStartDate(socialData.startDate || '');
+      setQuitAttempts(socialData.quitAttempts || '');
+      setAlcoholDetails(socialData.alcoholDetails || '');
+      setSubstanceDetails(socialData.substanceDetails || '');
+      setRecoveryDetails(socialData.recoveryDetails || '');
+      setEnvironmentalExposures(socialData.environmentalExposures || '');
+      setSexuallyActive(socialData.sexuallyActive || '');
+      setContraceptionMethod(socialData.contraceptionMethod || '');
+      setStiHistory(socialData.stiHistory || '');
+    }
+  }, []);
 
   // Handlers for occupational history
   const addOccupation = () => {
@@ -48,6 +106,67 @@ const MedicalProfileSocialHistoryForm = () => {
     ));
   };
 
+  // Make form data available to the parent component for saving
+  useEffect(() => {
+    const formData = {
+      hasOccupationalHistory: hasOccupationalHistory.toString(),
+      occupationalHistory: JSON.stringify(occupationalHistory),
+      smokingStatus,
+      alcoholStatus,
+      substanceStatus,
+      currentOccupation,
+      currentWorkplace,
+      physicalActivity,
+      dietType,
+      sleepPatterns,
+      quitDate,
+      smokingYears,
+      tobaccoType,
+      amountPerDay,
+      startDate,
+      quitAttempts,
+      alcoholDetails,
+      substanceDetails,
+      recoveryDetails,
+      environmentalExposures,
+      sexuallyActive,
+      contraceptionMethod,
+      stiHistory
+    };
+    
+    // Store form data for parent component to access
+    (window as any).socialHistoryFormData = formData;
+    
+    return () => {
+      // Clean up when component unmounts
+      delete (window as any).socialHistoryFormData;
+    };
+  }, [
+    hasOccupationalHistory, 
+    occupationalHistory, 
+    smokingStatus, 
+    alcoholStatus, 
+    substanceStatus,
+    currentOccupation,
+    currentWorkplace,
+    physicalActivity,
+    dietType,
+    sleepPatterns,
+    quitDate,
+    smokingYears,
+    tobaccoType,
+    amountPerDay,
+    startDate,
+    quitAttempts,
+    alcoholDetails,
+    substanceDetails, 
+    recoveryDetails,
+    environmentalExposures,
+    sexuallyActive,
+    contraceptionMethod,
+    stiHistory
+  ]);
+
   return (
     <div className="space-y-8">
       <div>
@@ -56,12 +175,22 @@ const MedicalProfileSocialHistoryForm = () => {
         <div className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="currentOccupation">Current Occupation</Label>
-            <Input id="currentOccupation" placeholder="e.g., Software Engineer, Teacher, Nurse" />
+            <Input 
+              id="currentOccupation" 
+              placeholder="e.g., Software Engineer, Teacher, Nurse" 
+              value={currentOccupation}
+              onChange={(e) => setCurrentOccupation(e.target.value)}
+            />
           </div>
           
           <div className="space-y-2">
             <Label htmlFor="currentWorkplace">Current Workplace</Label>
-            <Input id="currentWorkplace" placeholder="Company or organization name" />
+            <Input 
+              id="currentWorkplace" 
+              placeholder="Company or organization name" 
+              value={currentWorkplace}
+              onChange={(e) => setCurrentWorkplace(e.target.value)}
+            />
           </div>
           
           <div className="flex items-center space-x-2 mt-4">
@@ -166,7 +295,7 @@ const MedicalProfileSocialHistoryForm = () => {
         <div className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="physicalActivity">Physical Activity Level</Label>
-            <Select onValueChange={(value) => console.log(value)}>
+            <Select value={physicalActivity} onValueChange={setPhysicalActivity}>
               <SelectTrigger id="physicalActivity">
                 <SelectValue placeholder="Select activity level" />
               </SelectTrigger>
@@ -182,12 +311,22 @@ const MedicalProfileSocialHistoryForm = () => {
           
           <div className="space-y-2">
             <Label htmlFor="dietType">Diet Description</Label>
-            <Textarea id="dietType" placeholder="Describe your typical diet, any dietary restrictions or preferences" />
+            <Textarea 
+              id="dietType" 
+              placeholder="Describe your typical diet, any dietary restrictions or preferences" 
+              value={dietType}
+              onChange={(e) => setDietType(e.target.value)}
+            />
           </div>
           
           <div className="space-y-2">
             <Label htmlFor="sleepPatterns">Sleep Patterns</Label>
-            <Textarea id="sleepPatterns" placeholder="Describe your typical sleep schedule and any sleep issues" />
+            <Textarea 
+              id="sleepPatterns" 
+              placeholder="Describe your typical sleep schedule and any sleep issues" 
+              value={sleepPatterns}
+              onChange={(e) => setSleepPatterns(e.target.value)}
+            />
           </div>
         </div>
       </div>
@@ -219,11 +358,22 @@ const MedicalProfileSocialHistoryForm = () => {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div className="space-y-2">
                       <Label htmlFor="quitDate">Quit Date</Label>
-                      <Input id="quitDate" type="date" />
+                      <Input 
+                        id="quitDate" 
+                        type="date" 
+                        value={quitDate}
+                        onChange={(e) => setQuitDate(e.target.value)}
+                      />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="smokingYears">Years of Use</Label>
-                      <Input id="smokingYears" type="number" min="0" />
+                      <Input 
+                        id="smokingYears" 
+                        type="number" 
+                        min="0" 
+                        value={smokingYears}
+                        onChange={(e) => setSmokingYears(e.target.value)}
+                      />
                     </div>
                   </div>
                 </>
@@ -234,15 +384,30 @@ const MedicalProfileSocialHistoryForm = () => {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div className="space-y-2">
                       <Label htmlFor="tobaccoType">Type of Tobacco/Product</Label>
-                      <Input id="tobaccoType" placeholder="e.g., Cigarettes, Pipe, Vape, Chewing tobacco" />
+                      <Input 
+                        id="tobaccoType" 
+                        placeholder="e.g., Cigarettes, Pipe, Vape, Chewing tobacco" 
+                        value={tobaccoType}
+                        onChange={(e) => setTobaccoType(e.target.value)}
+                      />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="amountPerDay">Amount Per Day</Label>
-                      <Input id="amountPerDay" placeholder="e.g., 1 pack, 10 cigarettes" />
+                      <Input 
+                        id="amountPerDay" 
+                        placeholder="e.g., 1 pack, 10 cigarettes" 
+                        value={amountPerDay}
+                        onChange={(e) => setAmountPerDay(e.target.value)}
+                      />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="startDate">Start Date/Year</Label>
-                      <Input id="startDate" type="month" />
+                      <Input 
+                        id="startDate" 
+                        type="month" 
+                        value={startDate}
+                        onChange={(e) => setStartDate(e.target.value)}
+                      />
                     </div>
                   </div>
                 </>
@@ -250,7 +415,12 @@ const MedicalProfileSocialHistoryForm = () => {
               
               <div className="space-y-2">
                 <Label htmlFor="quitAttempts">Quit Attempts</Label>
-                <Textarea id="quitAttempts" placeholder="Describe any past quit attempts and methods used" />
+                <Textarea 
+                  id="quitAttempts" 
+                  placeholder="Describe any past quit attempts and methods used" 
+                  value={quitAttempts}
+                  onChange={(e) => setQuitAttempts(e.target.value)}
+                />
               </div>
             </div>
           )}
@@ -282,6 +452,8 @@ const MedicalProfileSocialHistoryForm = () => {
                     ? "Describe your previous alcohol use and when you stopped" 
                     : "Describe your typical alcohol consumption (type, frequency, amount)"
                   } 
+                  value={alcoholDetails}
+                  onChange={(e) => setAlcoholDetails(e.target.value)}
                 />
               </div>
             </div>
@@ -309,6 +481,8 @@ const MedicalProfileSocialHistoryForm = () => {
                 <Textarea 
                   id="substanceDetails" 
                   placeholder="Describe substances used, frequency, and duration. This information is confidential and helps ensure your safety during medical treatment." 
+                  value={substanceDetails}
+                  onChange={(e) => setSubstanceDetails(e.target.value)}
                 />
               </div>
               
@@ -318,6 +492,8 @@ const MedicalProfileSocialHistoryForm = () => {
                   <Textarea 
                     id="recoveryDetails" 
                     placeholder="Describe when you stopped and any treatment programs or support groups" 
+                    value={recoveryDetails}
+                    onChange={(e) => setRecoveryDetails(e.target.value)}
                   />
                 </div>
               )}
@@ -333,6 +509,8 @@ const MedicalProfileSocialHistoryForm = () => {
           <Textarea 
             id="environmentalExposures" 
             placeholder="Describe any significant environmental exposures (e.g., asbestos, lead, chemicals, radiation, etc.)" 
+            value={environmentalExposures}
+            onChange={(e) => setEnvironmentalExposures(e.target.value)}
           />
         </div>
       </div>
@@ -344,7 +522,7 @@ const MedicalProfileSocialHistoryForm = () => {
         <div className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="sexuallyActive">Are you currently sexually active?</Label>
-            <Select>
+            <Select value={sexuallyActive} onValueChange={setSexuallyActive}>
               <SelectTrigger id="sexuallyActive">
                 <SelectValue placeholder="Select" />
               </SelectTrigger>
@@ -358,12 +536,22 @@ const MedicalProfileSocialHistoryForm = () => {
           
           <div className="space-y-2">
             <Label htmlFor="contraceptionMethod">Contraception Method (if applicable)</Label>
-            <Input id="contraceptionMethod" placeholder="e.g., Condoms, Birth control pills, IUD" />
+            <Input 
+              id="contraceptionMethod" 
+              placeholder="e.g., Condoms, Birth control pills, IUD" 
+              value={contraceptionMethod}
+              onChange={(e) => setContraceptionMethod(e.target.value)}
+            />
           </div>
           
           <div className="space-y-2">
             <Label htmlFor="stiHistory">History of STIs (if any)</Label>
-            <Textarea id="stiHistory" placeholder="List any past sexually transmitted infections and treatments" />
+            <Textarea 
+              id="stiHistory" 
+              placeholder="List any past sexually transmitted infections and treatments" 
+              value={stiHistory}
+              onChange={(e) => setStiHistory(e.target.value)}
+            />
           </div>
         </div>
       </div>

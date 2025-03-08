@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -18,6 +18,95 @@ const MedicalProfileReproductiveHistoryForm = () => {
     complications: string;
     weeks: string;
   }>>([]);
+  
+  // Form fields
+  const [biologicalSex, setBiologicalSex] = useState('female');
+  const [menarcheAge, setMenarcheAge] = useState('');
+  const [cycleLength, setCycleLength] = useState('');
+  const [periodLength, setPeriodLength] = useState('');
+  const [periodFlow, setPeriodFlow] = useState('');
+  const [lastPeriod, setLastPeriod] = useState('');
+  const [menstrualRegularity, setMenstrualRegularity] = useState('');
+  const [menstrualSymptoms, setMenstrualSymptoms] = useState('');
+  const [totalPregnancies, setTotalPregnancies] = useState('');
+  const [gynecologicalConditions, setGynecologicalConditions] = useState('');
+  const [gynecologicalProcedures, setGynecologicalProcedures] = useState('');
+  const [lastPapSmear, setLastPapSmear] = useState('');
+  const [papSmearResults, setPapSmearResults] = useState('');
+  const [lastMammogram, setLastMammogram] = useState('');
+  const [mammogramResults, setMammogramResults] = useState('');
+  const [menopauseStatus, setMenopauseStatus] = useState('');
+  const [menopauseAge, setMenopauseAge] = useState('');
+  const [menopauseSymptoms, setMenopauseSymptoms] = useState('');
+  const [hrt, setHrt] = useState('');
+  
+  // Male fields
+  const [prostateConcerns, setProstateConcerns] = useState('');
+  const [lastProstate, setLastProstate] = useState('');
+  const [psaResult, setPsaResult] = useState('');
+  const [testicular, setTesticular] = useState('');
+  const [fertilityIssues, setFertilityIssues] = useState('');
+  
+  // Contraception
+  const [currentContraception, setCurrentContraception] = useState('');
+  const [contraceptionDuration, setContraceptionDuration] = useState('');
+  const [previousContraception, setPreviousContraception] = useState('');
+  const [contraceptionIssues, setContraceptionIssues] = useState('');
+
+  // Load saved data on component mount
+  useEffect(() => {
+    const savedProfile = JSON.parse(localStorage.getItem('medicalProfile') || '{}');
+    if (savedProfile && savedProfile.reproductive) {
+      const data = savedProfile.reproductive;
+      
+      // Set biological sex and gender
+      const sex = data.biologicalSex || 'female';
+      setBiologicalSex(sex);
+      setIsFemale(sex === 'female');
+      
+      // Load pregnancies if available
+      if (data.pregnancies) {
+        try {
+          setPregnancies(JSON.parse(data.pregnancies));
+        } catch (e) {
+          console.error("Error parsing pregnancy data:", e);
+        }
+      }
+      
+      // Load female-specific fields
+      setMenarcheAge(data.menarcheAge || '');
+      setCycleLength(data.cycleLength || '');
+      setPeriodLength(data.periodLength || '');
+      setPeriodFlow(data.periodFlow || '');
+      setLastPeriod(data.lastPeriod || '');
+      setMenstrualRegularity(data.menstrualRegularity || '');
+      setMenstrualSymptoms(data.menstrualSymptoms || '');
+      setTotalPregnancies(data.totalPregnancies || '');
+      setGynecologicalConditions(data.gynecologicalConditions || '');
+      setGynecologicalProcedures(data.gynecologicalProcedures || '');
+      setLastPapSmear(data.lastPapSmear || '');
+      setPapSmearResults(data.papSmearResults || '');
+      setLastMammogram(data.lastMammogram || '');
+      setMammogramResults(data.mammogramResults || '');
+      setMenopauseStatus(data.menopauseStatus || '');
+      setMenopauseAge(data.menopauseAge || '');
+      setMenopauseSymptoms(data.menopauseSymptoms || '');
+      setHrt(data.hrt || '');
+      
+      // Load male-specific fields
+      setProstateConcerns(data.prostateConcerns || '');
+      setLastProstate(data.lastProstate || '');
+      setPsaResult(data.psaResult || '');
+      setTesticular(data.testicular || '');
+      setFertilityIssues(data.fertilityIssues || '');
+      
+      // Load contraception fields
+      setCurrentContraception(data.currentContraception || '');
+      setContraceptionDuration(data.contraceptionDuration || '');
+      setPreviousContraception(data.previousContraception || '');
+      setContraceptionIssues(data.contraceptionIssues || '');
+    }
+  }, []);
 
   // Handler for adding pregnancies
   const addPregnancy = () => {
@@ -43,6 +132,79 @@ const MedicalProfileReproductiveHistoryForm = () => {
     ));
   };
 
+  // Make form data available to the parent component for saving
+  useEffect(() => {
+    const formData = {
+      biologicalSex,
+      pregnancies: JSON.stringify(pregnancies),
+      menarcheAge,
+      cycleLength,
+      periodLength,
+      periodFlow,
+      lastPeriod,
+      menstrualRegularity,
+      menstrualSymptoms,
+      totalPregnancies,
+      gynecologicalConditions,
+      gynecologicalProcedures,
+      lastPapSmear,
+      papSmearResults,
+      lastMammogram,
+      mammogramResults,
+      menopauseStatus,
+      menopauseAge,
+      menopauseSymptoms,
+      hrt,
+      prostateConcerns,
+      lastProstate,
+      psaResult,
+      testicular,
+      fertilityIssues,
+      currentContraception,
+      contraceptionDuration,
+      previousContraception,
+      contraceptionIssues
+    };
+    
+    // Store the current form state in window for the parent component to access
+    (window as any).reproductiveHistoryFormData = formData;
+    
+    return () => {
+      // Clean up when component unmounts
+      delete (window as any).reproductiveHistoryFormData;
+    };
+  }, [
+    biologicalSex,
+    pregnancies,
+    menarcheAge,
+    cycleLength,
+    periodLength,
+    periodFlow,
+    lastPeriod,
+    menstrualRegularity,
+    menstrualSymptoms,
+    totalPregnancies,
+    gynecologicalConditions,
+    gynecologicalProcedures,
+    lastPapSmear,
+    papSmearResults,
+    lastMammogram,
+    mammogramResults,
+    menopauseStatus,
+    menopauseAge,
+    menopauseSymptoms,
+    hrt,
+    prostateConcerns,
+    lastProstate,
+    psaResult,
+    testicular,
+    fertilityIssues,
+    currentContraception,
+    contraceptionDuration,
+    previousContraception,
+    contraceptionIssues
+  ]);
+
   return (
     <div className="space-y-8">
       <div>
@@ -52,13 +214,21 @@ const MedicalProfileReproductiveHistoryForm = () => {
         <div className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="biologicalSex">Biological Sex</Label>
-            <RadioGroup id="biologicalSex" defaultValue="female" className="flex flex-col space-y-1">
+            <RadioGroup 
+              id="biologicalSex" 
+              value={biologicalSex} 
+              onValueChange={(value) => {
+                setBiologicalSex(value);
+                setIsFemale(value === 'female');
+              }} 
+              className="flex flex-col space-y-1"
+            >
               <div className="flex items-center space-x-2">
-                <RadioGroupItem value="female" id="female" onClick={() => setIsFemale(true)} />
+                <RadioGroupItem value="female" id="female" />
                 <Label htmlFor="female">Female</Label>
               </div>
               <div className="flex items-center space-x-2">
-                <RadioGroupItem value="male" id="male" onClick={() => setIsFemale(false)} />
+                <RadioGroupItem value="male" id="male" />
                 <Label htmlFor="male">Male</Label>
               </div>
               <div className="flex items-center space-x-2">
@@ -78,22 +248,46 @@ const MedicalProfileReproductiveHistoryForm = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="menarcheAge">Age at First Menstruation</Label>
-                <Input id="menarcheAge" type="number" min="8" max="20" placeholder="Age" />
+                <Input 
+                  id="menarcheAge" 
+                  type="number" 
+                  min="8" 
+                  max="20" 
+                  placeholder="Age" 
+                  value={menarcheAge}
+                  onChange={(e) => setMenarcheAge(e.target.value)}
+                />
               </div>
               
               <div className="space-y-2">
                 <Label htmlFor="cycleLength">Average Cycle Length (days)</Label>
-                <Input id="cycleLength" type="number" min="20" max="45" placeholder="Days" />
+                <Input 
+                  id="cycleLength" 
+                  type="number" 
+                  min="20" 
+                  max="45" 
+                  placeholder="Days" 
+                  value={cycleLength}
+                  onChange={(e) => setCycleLength(e.target.value)}
+                />
               </div>
               
               <div className="space-y-2">
                 <Label htmlFor="periodLength">Average Period Duration (days)</Label>
-                <Input id="periodLength" type="number" min="1" max="10" placeholder="Days" />
+                <Input 
+                  id="periodLength" 
+                  type="number" 
+                  min="1" 
+                  max="10" 
+                  placeholder="Days" 
+                  value={periodLength}
+                  onChange={(e) => setPeriodLength(e.target.value)}
+                />
               </div>
               
               <div className="space-y-2">
                 <Label htmlFor="periodFlow">Flow Description</Label>
-                <Select>
+                <Select value={periodFlow} onValueChange={setPeriodFlow}>
                   <SelectTrigger id="periodFlow">
                     <SelectValue placeholder="Select" />
                   </SelectTrigger>
@@ -108,12 +302,17 @@ const MedicalProfileReproductiveHistoryForm = () => {
               
               <div className="space-y-2">
                 <Label htmlFor="lastPeriod">Date of Last Menstrual Period</Label>
-                <Input id="lastPeriod" type="date" />
+                <Input 
+                  id="lastPeriod" 
+                  type="date" 
+                  value={lastPeriod}
+                  onChange={(e) => setLastPeriod(e.target.value)}
+                />
               </div>
               
               <div className="space-y-2">
                 <Label htmlFor="menstrualRegularity">Regularity</Label>
-                <Select>
+                <Select value={menstrualRegularity} onValueChange={setMenstrualRegularity}>
                   <SelectTrigger id="menstrualRegularity">
                     <SelectValue placeholder="Select" />
                   </SelectTrigger>
@@ -132,6 +331,8 @@ const MedicalProfileReproductiveHistoryForm = () => {
               <Textarea 
                 id="menstrualSymptoms" 
                 placeholder="Describe any symptoms you experience before or during your period (e.g., cramps, bloating, headaches, mood changes)"
+                value={menstrualSymptoms}
+                onChange={(e) => setMenstrualSymptoms(e.target.value)}
               />
             </div>
           </div>
@@ -142,7 +343,14 @@ const MedicalProfileReproductiveHistoryForm = () => {
             <div className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="totalPregnancies">Total Number of Pregnancies</Label>
-                <Input id="totalPregnancies" type="number" min="0" placeholder="Number" />
+                <Input 
+                  id="totalPregnancies" 
+                  type="number" 
+                  min="0" 
+                  placeholder="Number" 
+                  value={totalPregnancies}
+                  onChange={(e) => setTotalPregnancies(e.target.value)}
+                />
               </div>
               
               <div className="flex items-center justify-between">
@@ -241,6 +449,8 @@ const MedicalProfileReproductiveHistoryForm = () => {
                 <Textarea 
                   id="gynecologicalConditions" 
                   placeholder="List any gynecological conditions (e.g., PCOS, endometriosis, fibroids, ovarian cysts)"
+                  value={gynecologicalConditions}
+                  onChange={(e) => setGynecologicalConditions(e.target.value)}
                 />
               </div>
               
@@ -249,17 +459,24 @@ const MedicalProfileReproductiveHistoryForm = () => {
                 <Textarea 
                   id="gynecologicalProcedures" 
                   placeholder="List any gynecological procedures or surgeries (e.g., D&C, LEEP, hysteroscopy, laparoscopy)"
+                  value={gynecologicalProcedures}
+                  onChange={(e) => setGynecologicalProcedures(e.target.value)}
                 />
               </div>
               
               <div className="space-y-2">
                 <Label htmlFor="lastPapSmear">Date of Last Pap Smear</Label>
-                <Input id="lastPapSmear" type="date" />
+                <Input 
+                  id="lastPapSmear" 
+                  type="date" 
+                  value={lastPapSmear}
+                  onChange={(e) => setLastPapSmear(e.target.value)}
+                />
               </div>
               
               <div className="space-y-2">
                 <Label htmlFor="papSmearResults">Pap Smear Results</Label>
-                <Select>
+                <Select value={papSmearResults} onValueChange={setPapSmearResults}>
                   <SelectTrigger id="papSmearResults">
                     <SelectValue placeholder="Select results" />
                   </SelectTrigger>
@@ -273,12 +490,17 @@ const MedicalProfileReproductiveHistoryForm = () => {
               
               <div className="space-y-2">
                 <Label htmlFor="lastMammogram">Date of Last Mammogram (if applicable)</Label>
-                <Input id="lastMammogram" type="date" />
+                <Input 
+                  id="lastMammogram" 
+                  type="date" 
+                  value={lastMammogram}
+                  onChange={(e) => setLastMammogram(e.target.value)}
+                />
               </div>
               
               <div className="space-y-2">
                 <Label htmlFor="mammogramResults">Mammogram Results</Label>
-                <Select>
+                <Select value={mammogramResults} onValueChange={setMammogramResults}>
                   <SelectTrigger id="mammogramResults">
                     <SelectValue placeholder="Select results" />
                   </SelectTrigger>
@@ -299,7 +521,7 @@ const MedicalProfileReproductiveHistoryForm = () => {
             <div className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="menopauseStatus">Menopause Status</Label>
-                <Select>
+                <Select value={menopauseStatus} onValueChange={setMenopauseStatus}>
                   <SelectTrigger id="menopauseStatus">
                     <SelectValue placeholder="Select status" />
                   </SelectTrigger>
@@ -314,7 +536,15 @@ const MedicalProfileReproductiveHistoryForm = () => {
               
               <div className="space-y-2">
                 <Label htmlFor="menopauseAge">Age at Menopause (if applicable)</Label>
-                <Input id="menopauseAge" type="number" min="30" max="65" placeholder="Age" />
+                <Input 
+                  id="menopauseAge" 
+                  type="number" 
+                  min="30" 
+                  max="65" 
+                  placeholder="Age" 
+                  value={menopauseAge}
+                  onChange={(e) => setMenopauseAge(e.target.value)}
+                />
               </div>
               
               <div className="space-y-2">
@@ -322,12 +552,14 @@ const MedicalProfileReproductiveHistoryForm = () => {
                 <Textarea 
                   id="menopauseSymptoms" 
                   placeholder="Describe any menopausal symptoms (e.g., hot flashes, night sweats, mood changes)"
+                  value={menopauseSymptoms}
+                  onChange={(e) => setMenopauseSymptoms(e.target.value)}
                 />
               </div>
               
               <div className="space-y-2">
                 <Label htmlFor="hrt">Hormone Replacement Therapy</Label>
-                <Select>
+                <Select value={hrt} onValueChange={setHrt}>
                   <SelectTrigger id="hrt">
                     <SelectValue placeholder="Select" />
                   </SelectTrigger>
@@ -354,17 +586,29 @@ const MedicalProfileReproductiveHistoryForm = () => {
               <Textarea 
                 id="prostateConcerns" 
                 placeholder="Describe any prostate health concerns or conditions"
+                value={prostateConcerns}
+                onChange={(e) => setProstateConcerns(e.target.value)}
               />
             </div>
             
             <div className="space-y-2">
               <Label htmlFor="lastProstate">Date of Last Prostate Exam (if applicable)</Label>
-              <Input id="lastProstate" type="date" />
+              <Input 
+                id="lastProstate" 
+                type="date" 
+                value={lastProstate}
+                onChange={(e) => setLastProstate(e.target.value)}
+              />
             </div>
             
             <div className="space-y-2">
               <Label htmlFor="psaResult">PSA Test Result (if known)</Label>
-              <Input id="psaResult" placeholder="PSA level" />
+              <Input 
+                id="psaResult" 
+                placeholder="PSA level" 
+                value={psaResult}
+                onChange={(e) => setPsaResult(e.target.value)}
+              />
             </div>
             
             <div className="space-y-2">
@@ -372,6 +616,8 @@ const MedicalProfileReproductiveHistoryForm = () => {
               <Textarea 
                 id="testicular" 
                 placeholder="Describe any testicular concerns or conditions"
+                value={testicular}
+                onChange={(e) => setTesticular(e.target.value)}
               />
             </div>
             
@@ -380,6 +626,8 @@ const MedicalProfileReproductiveHistoryForm = () => {
               <Textarea 
                 id="fertilityIssues" 
                 placeholder="Describe any fertility issues or concerns"
+                value={fertilityIssues}
+                onChange={(e) => setFertilityIssues(e.target.value)}
               />
             </div>
           </div>
@@ -392,7 +640,7 @@ const MedicalProfileReproductiveHistoryForm = () => {
         <div className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="currentContraception">Current Contraception Method</Label>
-            <Select>
+            <Select value={currentContraception} onValueChange={setCurrentContraception}>
               <SelectTrigger id="currentContraception">
                 <SelectValue placeholder="Select method" />
               </SelectTrigger>
@@ -415,7 +663,12 @@ const MedicalProfileReproductiveHistoryForm = () => {
           
           <div className="space-y-2">
             <Label htmlFor="contraceptionDuration">Duration of Current Method Use</Label>
-            <Input id="contraceptionDuration" placeholder="e.g., 2 years, 6 months" />
+            <Input 
+              id="contraceptionDuration" 
+              placeholder="e.g., 2 years, 6 months" 
+              value={contraceptionDuration}
+              onChange={(e) => setContraceptionDuration(e.target.value)}
+            />
           </div>
           
           <div className="space-y-2">
@@ -423,6 +676,8 @@ const MedicalProfileReproductiveHistoryForm = () => {
             <Textarea 
               id="previousContraception" 
               placeholder="List any previous contraception methods you have used"
+              value={previousContraception}
+              onChange={(e) => setPreviousContraception(e.target.value)}
             />
           </div>
           
@@ -431,6 +686,8 @@ const MedicalProfileReproductiveHistoryForm = () => {
             <Textarea 
               id="contraceptionIssues" 
               placeholder="Describe any issues or side effects with current or previous contraception methods"
+              value={contraceptionIssues}
+              onChange={(e) => setContraceptionIssues(e.target.value)}
             />
           </div>
         </div>

@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -24,9 +24,40 @@ const MedicalProfileAllergiesForm = () => {
     otherVaccine?: string
   }>>([]);
   
+  const [noKnownAllergies, setNoKnownAllergies] = useState(false);
+  
+  // Load saved data on component mount
+  useEffect(() => {
+    const savedProfile = JSON.parse(localStorage.getItem('medicalProfile') || '{}');
+    if (savedProfile && savedProfile.allergies) {
+      const data = savedProfile.allergies;
+      
+      // Load allergies if available
+      if (data.allergies) {
+        try {
+          setAllergies(JSON.parse(data.allergies));
+        } catch (e) {
+          console.error("Error parsing allergies data:", e);
+        }
+      }
+      
+      // Load immunizations if available
+      if (data.immunizations) {
+        try {
+          setImmunizations(JSON.parse(data.immunizations));
+        } catch (e) {
+          console.error("Error parsing immunizations data:", e);
+        }
+      }
+      
+      setNoKnownAllergies(data.noKnownAllergies === 'true' || false);
+    }
+  }, []);
+  
   // Handler for allergies
   const handleAddAllergy = () => {
     setAllergies([...allergies, { allergen: '', reaction: '', severity: '' }]);
+    setNoKnownAllergies(false);
   };
   
   const handleUpdateAllergy = (index: number, field: keyof (typeof allergies)[0], value: string) => {
@@ -54,6 +85,30 @@ const MedicalProfileAllergiesForm = () => {
     setImmunizations(immunizations.filter((_, i) => i !== index));
   };
   
+  const handleNoKnownAllergiesChange = (checked: boolean) => {
+    setNoKnownAllergies(checked);
+    if (checked) {
+      setAllergies([]);
+    }
+  };
+  
+  // Make form data available to the parent component for saving
+  useEffect(() => {
+    const formData = {
+      allergies: JSON.stringify(allergies),
+      immunizations: JSON.stringify(immunizations),
+      noKnownAllergies: noKnownAllergies.toString()
+    };
+    
+    // Store the current form state in window for the parent component to access
+    (window as any).allergiesFormData = formData;
+    
+    return () => {
+      // Clean up when component unmounts
+      delete (window as any).allergiesFormData;
+    };
+  }, [allergies, immunizations, noKnownAllergies]);
+  
   // Common severity options
   const severityOptions = ["Mild", "Moderate", "Severe", "Life-threatening", "Other"];
   
@@ -79,18 +134,20 @@ const MedicalProfileAllergiesForm = () => {
         <h3 className="text-lg font-medium mb-4">Allergies</h3>
         <p className="text-sm text-gray-600 mb-4">List allergies to foods, environmental factors, or other substances.</p>
         
-        {allergies.length === 0 ? (
-          <div className="mb-4">
-            <div className="flex items-center space-x-2 mb-2">
-              <Checkbox id="no-known-allergies" />
-              <Label htmlFor="no-known-allergies" className="text-sm cursor-pointer">
-                No known allergies
-              </Label>
-            </div>
+        <div className="mb-4">
+          <div className="flex items-center space-x-2 mb-2">
+            <Checkbox 
+              id="no-known-allergies" 
+              checked={noKnownAllergies}
+              onCheckedChange={handleNoKnownAllergiesChange}
+            />
+            <Label htmlFor="no-known-allergies" className="text-sm cursor-pointer">
+              No known allergies
+            </Label>
           </div>
-        ) : null}
+        </div>
         
-        {allergies.map((allergy, index) => (
+        {!noKnownAllergies && allergies.map((allergy, index) => (
           <div key={index} className="p-3 border border-gray-200 rounded-md bg-gray-50 mb-3 relative">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               <div className="space-y-2">
@@ -150,14 +207,16 @@ const MedicalProfileAllergiesForm = () => {
           </div>
         ))}
         
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleAddAllergy}
-          className="mt-2"
-        >
-          <Plus className="h-4 w-4 mr-1" /> Add Allergy
-        </Button>
+        {!noKnownAllergies && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleAddAllergy}
+            className="mt-2"
+          >
+            <Plus className="h-4 w-4 mr-1" /> Add Allergy
+          </Button>
+        )}
       </div>
       
       <div>
