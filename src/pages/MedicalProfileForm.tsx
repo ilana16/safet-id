@@ -60,7 +60,14 @@ const MedicalProfileForm = () => {
       setIsSaving(false);
       toast.success('Medical information saved successfully');
       
-      // Navigate to the next section if available, otherwise go to dashboard
+      // Determine where to navigate next
+      if (currentSection === 'preventative') {
+        // If we're on the last form section, always go to dashboard
+        navigate('/dashboard');
+        return;
+      }
+      
+      // For all other sections, continue to the next one (unless specified otherwise)
       const sections: SectionType[] = [
         'personal', 'history', 'medications', 'allergies', 'social',
         'reproductive', 'mental', 'functional', 'cultural', 'preventative'
