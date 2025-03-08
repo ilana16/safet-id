@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import PageLayout from '@/components/layout/PageLayout';
@@ -17,7 +16,6 @@ import MedicalProfileCulturalPreferencesForm from '@/components/forms/MedicalPro
 import MedicalProfilePreventativeCareForm from '@/components/forms/MedicalProfilePreventativeCareForm';
 import { logChanges } from '@/utils/changeLog';
 
-// Define the valid section types
 type SectionType = 'personal' | 'history' | 'medications' | 'allergies' | 'social' | 
                    'reproductive' | 'mental' | 'functional' | 'cultural' | 'preventative';
 
@@ -28,10 +26,8 @@ const MedicalProfileForm = () => {
   const [hasMentalHealthHistory, setHasMentalHealthHistory] = useState('no');
   const [formData, setFormData] = useState<any>({});
   
-  // Get the current section or default to personal
   const currentSection = section || 'personal';
 
-  // Load previous data when section changes
   useEffect(() => {
     const savedProfile = JSON.parse(localStorage.getItem('medicalProfile') || '{}');
     if (savedProfile && savedProfile[currentSection]) {
@@ -40,7 +36,6 @@ const MedicalProfileForm = () => {
       setFormData({});
     }
     
-    // Check for mental health history setting
     if (savedProfile && savedProfile.history && savedProfile.history.hasMentalHealthHistory) {
       setHasMentalHealthHistory(savedProfile.history.hasMentalHealthHistory);
     }
@@ -49,19 +44,34 @@ const MedicalProfileForm = () => {
   const handleSave = () => {
     setIsSaving(true);
     
-    // Get existing data for this section
     const existingProfile = JSON.parse(localStorage.getItem('medicalProfile') || '{}');
     const existingSectionData = existingProfile[currentSection] || {};
     
-    // Special handling for medications section
-    let newFormData;
+    let newFormData: any = {};
+    
     if (currentSection === 'medications' && (window as any).medicationsFormData) {
-      // Use the data prepared by the MedicationsForm component
       newFormData = (window as any).medicationsFormData;
+    } else if (currentSection === 'cultural' && (window as any).culturalPreferencesFormData) {
+      newFormData = (window as any).culturalPreferencesFormData;
+    } else if (currentSection === 'preventative' && (window as any).preventativeCareFormData) {
+      newFormData = (window as any).preventativeCareFormData;
+    } else if (currentSection === 'social' && (window as any).socialHistoryFormData) {
+      newFormData = (window as any).socialHistoryFormData;
+    } else if (currentSection === 'functional' && (window as any).functionalStatusFormData) {
+      newFormData = (window as any).functionalStatusFormData;
+    } else if (currentSection === 'reproductive' && (window as any).reproductiveHistoryFormData) {
+      newFormData = (window as any).reproductiveHistoryFormData;
+    } else if (currentSection === 'mental' && (window as any).mentalHealthFormData) {
+      newFormData = (window as any).mentalHealthFormData;
+    } else if (currentSection === 'allergies' && (window as any).allergiesFormData) {
+      newFormData = (window as any).allergiesFormData;
+    } else if (currentSection === 'history' && (window as any).historyFormData) {
+      newFormData = (window as any).historyFormData;
+      newFormData.hasMentalHealthHistory = hasMentalHealthHistory;
+    } else if (currentSection === 'personal' && (window as any).personalFormData) {
+      newFormData = (window as any).personalFormData;
     } else {
-      // Standard form data collection
       const formElements = document.querySelectorAll('input, select, textarea');
-      newFormData = {};
       
       formElements.forEach(element => {
         const input = element as HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement;
@@ -72,48 +82,26 @@ const MedicalProfileForm = () => {
       });
     }
     
-    // Track changes for logging
     const changes: {field: string; oldValue: any; newValue: any}[] = [];
     
-    // For medications section, compare the entire object structures
-    if (currentSection === 'medications') {
-      // Compare prescriptions
-      const oldPrescriptions = existingSectionData.prescriptions || [];
-      const newPrescriptions = newFormData.prescriptions || [];
+    if (currentSection === 'medications' || 
+        currentSection === 'social' || 
+        currentSection === 'reproductive' || 
+        currentSection === 'mental') {
       
-      if (JSON.stringify(oldPrescriptions) !== JSON.stringify(newPrescriptions)) {
-        changes.push({
-          field: 'prescriptions',
-          oldValue: oldPrescriptions,
-          newValue: newPrescriptions
-        });
-      }
-      
-      // Compare OTC medications
-      const oldOtc = existingSectionData.otc || [];
-      const newOtc = newFormData.otc || [];
-      
-      if (JSON.stringify(oldOtc) !== JSON.stringify(newOtc)) {
-        changes.push({
-          field: 'otc',
-          oldValue: oldOtc,
-          newValue: newOtc
-        });
-      }
-      
-      // Compare supplements
-      const oldSupplements = existingSectionData.supplements || [];
-      const newSupplements = newFormData.supplements || [];
-      
-      if (JSON.stringify(oldSupplements) !== JSON.stringify(newSupplements)) {
-        changes.push({
-          field: 'supplements',
-          oldValue: oldSupplements,
-          newValue: newSupplements
-        });
-      }
+      Object.keys(newFormData).forEach(key => {
+        const oldValue = existingSectionData[key];
+        const newValue = newFormData[key];
+        
+        if (JSON.stringify(oldValue) !== JSON.stringify(newValue)) {
+          changes.push({
+            field: key,
+            oldValue: oldValue,
+            newValue: newValue
+          });
+        }
+      });
     } else {
-      // Standard field-by-field comparison for other sections
       Object.entries(newFormData).forEach(([key, value]) => {
         if (existingSectionData[key] !== value) {
           changes.push({
@@ -125,13 +113,10 @@ const MedicalProfileForm = () => {
       });
     }
     
-    // Additional data for history section
     const additionalData = currentSection === 'history' ? 
       { hasMentalHealthHistory } : {};
     
-    // Simulate API call
     setTimeout(() => {
-      // Update localStorage for demo purposes - in a real app this would hit an API
       localStorage.setItem('medicalProfile', JSON.stringify({
         ...existingProfile,
         [currentSection]: {
@@ -142,7 +127,6 @@ const MedicalProfileForm = () => {
         }
       }));
       
-      // Log changes if there are any
       if (changes.length > 0) {
         logChanges(currentSection, changes);
       }
@@ -150,21 +134,17 @@ const MedicalProfileForm = () => {
       setIsSaving(false);
       toast.success('Medical information saved successfully');
       
-      // Determine where to navigate next
       if (currentSection === 'preventative') {
-        // If we're on the last form section, always go to dashboard
         navigate('/dashboard');
         return;
       }
       
-      // For all other sections, continue to the next one (unless specified otherwise)
       const sections: SectionType[] = [
         'personal', 'history', 'medications', 'allergies', 'social',
         'reproductive', 'mental', 'functional', 'cultural', 'preventative'
       ];
       const currentIndex = sections.indexOf(currentSection as SectionType);
       
-      // Skip mental health section if user selected "no" for mental health history
       if (currentSection === 'history' && hasMentalHealthHistory === 'no' && currentIndex < sections.length - 2) {
         navigate(`/profile/edit/${sections[currentIndex + 2]}`);
       } else if (currentIndex < sections.length - 1) {
@@ -175,12 +155,10 @@ const MedicalProfileForm = () => {
     }, 1000);
   };
 
-  // Function to update mental health history state from child component
   const updateMentalHealthHistory = (value: string) => {
     setHasMentalHealthHistory(value);
   };
 
-  // Render the appropriate form based on section parameter
   const renderForm = () => {
     switch (currentSection) {
       case 'personal':
@@ -196,7 +174,6 @@ const MedicalProfileForm = () => {
       case 'reproductive':
         return <MedicalProfileReproductiveHistoryForm />;
       case 'mental':
-        // Only render mental health form if user has mental health history
         return hasMentalHealthHistory === 'yes' ? (
           <MedicalProfileMentalHealthForm />
         ) : (
@@ -215,7 +192,6 @@ const MedicalProfileForm = () => {
     }
   };
 
-  // Get section title for page heading
   const getSectionTitle = () => {
     switch (currentSection) {
       case 'personal':
@@ -278,7 +254,6 @@ const MedicalProfileForm = () => {
                   ];
                   const currentIndex = sections.indexOf(currentSection as SectionType);
                   
-                  // Skip mental health section when navigating backward if user selected "no"
                   if (currentSection === 'functional' && hasMentalHealthHistory === 'no' && currentIndex > 1) {
                     navigate(`/profile/edit/${sections[currentIndex - 2]}`);
                   } else if (currentIndex > 0) {

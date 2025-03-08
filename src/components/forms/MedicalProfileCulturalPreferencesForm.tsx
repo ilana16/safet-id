@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -8,7 +8,66 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 
 const MedicalProfileCulturalPreferencesForm = () => {
-  const [additionalNotes, setAdditionalNotes] = useState('');
+  const [religion, setReligion] = useState<string>('');
+  const [otherReligion, setOtherReligion] = useState<string>('');
+  const [culturalConsiderations, setCulturalConsiderations] = useState<string>('');
+  const [familyInvolvement, setFamilyInvolvement] = useState<boolean>(false);
+  const [religiousLeader, setReligiousLeader] = useState<boolean>(false);
+  const [languagePreferences, setLanguagePreferences] = useState<string>('english');
+  const [interpreterNeeded, setInterpreterNeeded] = useState<string>('no');
+  const [dietaryRestrictions, setDietaryRestrictions] = useState<string>('');
+  const [additionalNotes, setAdditionalNotes] = useState<string>('');
+
+  // Load saved data on component mount
+  useEffect(() => {
+    const savedProfile = JSON.parse(localStorage.getItem('medicalProfile') || '{}');
+    if (savedProfile && savedProfile.cultural) {
+      const culturalData = savedProfile.cultural;
+      
+      setReligion(culturalData.religion || '');
+      setOtherReligion(culturalData.otherReligion || '');
+      setCulturalConsiderations(culturalData.culturalConsiderations || '');
+      setFamilyInvolvement(culturalData.familyInvolvement === 'true' || false);
+      setReligiousLeader(culturalData.religiousLeader === 'true' || false);
+      setLanguagePreferences(culturalData.languagePreferences || 'english');
+      setInterpreterNeeded(culturalData.interpreterNeeded || 'no');
+      setDietaryRestrictions(culturalData.dietaryRestrictions || '');
+      setAdditionalNotes(culturalData.additionalNotes || '');
+    }
+  }, []);
+
+  // Make form data available to the parent component for saving
+  useEffect(() => {
+    const formData = {
+      religion,
+      otherReligion,
+      culturalConsiderations,
+      familyInvolvement: familyInvolvement.toString(),
+      religiousLeader: religiousLeader.toString(),
+      languagePreferences,
+      interpreterNeeded,
+      dietaryRestrictions,
+      additionalNotes
+    };
+    
+    // Store the current form state in window for the parent component to access
+    (window as any).culturalPreferencesFormData = formData;
+    
+    return () => {
+      // Clean up when component unmounts
+      delete (window as any).culturalPreferencesFormData;
+    };
+  }, [
+    religion, 
+    otherReligion, 
+    culturalConsiderations, 
+    familyInvolvement, 
+    religiousLeader, 
+    languagePreferences, 
+    interpreterNeeded, 
+    dietaryRestrictions, 
+    additionalNotes
+  ]);
 
   return (
     <div className="space-y-6">
@@ -20,7 +79,7 @@ const MedicalProfileCulturalPreferencesForm = () => {
             <div className="grid grid-cols-1 gap-4">
               <div>
                 <Label htmlFor="religion">Religious Affiliation (if any)</Label>
-                <Select defaultValue="">
+                <Select value={religion} onValueChange={setReligion}>
                   <SelectTrigger id="religion">
                     <SelectValue placeholder="Select religious affiliation" />
                   </SelectTrigger>
@@ -39,7 +98,12 @@ const MedicalProfileCulturalPreferencesForm = () => {
               
               <div>
                 <Label htmlFor="otherReligion">If other, please specify</Label>
-                <Input id="otherReligion" placeholder="Please specify your religious affiliation" />
+                <Input 
+                  id="otherReligion" 
+                  placeholder="Please specify your religious affiliation" 
+                  value={otherReligion}
+                  onChange={(e) => setOtherReligion(e.target.value)}
+                />
               </div>
             </div>
             
@@ -49,6 +113,8 @@ const MedicalProfileCulturalPreferencesForm = () => {
                 id="culturalConsiderations" 
                 placeholder="Are there any cultural factors that you'd like your healthcare providers to know about?" 
                 rows={3}
+                value={culturalConsiderations}
+                onChange={(e) => setCulturalConsiderations(e.target.value)}
               />
             </div>
             
@@ -56,13 +122,21 @@ const MedicalProfileCulturalPreferencesForm = () => {
               <Label>Healthcare Decision Preferences</Label>
               <div className="space-y-2">
                 <div className="flex items-center space-x-2">
-                  <Checkbox id="familyInvolvement" />
+                  <Checkbox 
+                    id="familyInvolvement" 
+                    checked={familyInvolvement}
+                    onCheckedChange={(checked) => setFamilyInvolvement(checked === true)}
+                  />
                   <Label htmlFor="familyInvolvement" className="text-sm font-normal">
                     I prefer family involvement in healthcare decisions
                   </Label>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <Checkbox id="religiousLeader" />
+                  <Checkbox 
+                    id="religiousLeader" 
+                    checked={religiousLeader}
+                    onCheckedChange={(checked) => setReligiousLeader(checked === true)}
+                  />
                   <Label htmlFor="religiousLeader" className="text-sm font-normal">
                     I prefer involving a religious/spiritual leader in major healthcare decisions
                   </Label>
@@ -72,7 +146,7 @@ const MedicalProfileCulturalPreferencesForm = () => {
             
             <div>
               <Label htmlFor="languagePreferences">Language Preferences</Label>
-              <Select defaultValue="english">
+              <Select value={languagePreferences} onValueChange={setLanguagePreferences}>
                 <SelectTrigger id="languagePreferences">
                   <SelectValue placeholder="Select preferred language" />
                 </SelectTrigger>
@@ -90,7 +164,7 @@ const MedicalProfileCulturalPreferencesForm = () => {
             
             <div>
               <Label htmlFor="interpreterNeeded">Need for Interpreter</Label>
-              <Select defaultValue="no">
+              <Select value={interpreterNeeded} onValueChange={setInterpreterNeeded}>
                 <SelectTrigger id="interpreterNeeded">
                   <SelectValue placeholder="Do you need an interpreter?" />
                 </SelectTrigger>
@@ -107,10 +181,11 @@ const MedicalProfileCulturalPreferencesForm = () => {
                 id="dietaryRestrictions" 
                 placeholder="Please describe any dietary restrictions or preferences based on religious/cultural beliefs" 
                 rows={3}
+                value={dietaryRestrictions}
+                onChange={(e) => setDietaryRestrictions(e.target.value)}
               />
             </div>
             
-            {/* Single Additional Notes field at the end */}
             <div>
               <Label htmlFor="additionalNotes">Additional Notes</Label>
               <Textarea 
