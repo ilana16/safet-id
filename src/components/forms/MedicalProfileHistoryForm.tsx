@@ -35,36 +35,28 @@ const MedicalProfileHistoryForm = ({ onMentalHealthHistoryChange }: MedicalProfi
   
   const [childbirthHistory, setChildbirthHistory] = useState<Array<{year: string, deliveryType: string, complications: string}>>([]);
   
-  // Changed from array to string for yes/no selection
   const [hasMentalHealthHistory, setHasMentalHealthHistory] = useState<string>('no');
   
   const [physicalDisabilities, setPhysicalDisabilities] = useState('');
   const [previousDiagnoses, setPreviousDiagnoses] = useState<Array<{condition: string, year: string, status: string}>>([]);
   const [bloodType, setBloodType] = useState('');
   const [lastPhysicalDate, setLastPhysicalDate] = useState<Date | undefined>(undefined);
-  
-  const [otherMentalHealthCondition, setOtherMentalHealthCondition] = useState('');
-  const [otherMentalHealthConditions, setOtherMentalHealthConditions] = useState<string[]>([]);
 
-  // Check localStorage for saved values on component mount
   useEffect(() => {
     const savedProfile = JSON.parse(localStorage.getItem('medicalProfile') || '{}');
     if (savedProfile && savedProfile.history && savedProfile.history.hasMentalHealthHistory) {
       const savedValue = savedProfile.history.hasMentalHealthHistory;
       setHasMentalHealthHistory(savedValue);
       
-      // Notify parent component of the loaded value
       if (onMentalHealthHistoryChange) {
         onMentalHealthHistoryChange(savedValue);
       }
     }
   }, [onMentalHealthHistoryChange]);
 
-  // Handle changes to the mental health history selection
   const handleMentalHealthHistoryChange = (value: string) => {
     setHasMentalHealthHistory(value);
     
-    // Notify parent component of the change
     if (onMentalHealthHistoryChange) {
       onMentalHealthHistoryChange(value);
     }
@@ -173,13 +165,6 @@ const MedicalProfileHistoryForm = ({ onMentalHealthHistoryChange }: MedicalProfi
 
   const handleRemoveDiagnosis = (index: number) => {
     setPreviousDiagnoses(previousDiagnoses.filter((_, i) => i !== index));
-  };
-
-  const handleAddOtherMentalHealthCondition = () => {
-    if (otherMentalHealthCondition.trim() !== '') {
-      setOtherMentalHealthConditions([...otherMentalHealthConditions, otherMentalHealthCondition.trim()]);
-      setOtherMentalHealthCondition('');
-    }
   };
 
   return (
@@ -508,40 +493,6 @@ const MedicalProfileHistoryForm = ({ onMentalHealthHistoryChange }: MedicalProfi
             <Label htmlFor="r-no">No</Label>
           </div>
         </RadioGroup>
-        
-        {hasMentalHealthHistory === 'yes' && (
-          <div className="mt-4">
-            <Label htmlFor="other-mental-condition" className="text-sm">Other condition not listed:</Label>
-            <div className="flex gap-2 mt-1">
-              <Input 
-                id="other-mental-condition" 
-                value={otherMentalHealthCondition}
-                onChange={(e) => setOtherMentalHealthCondition(e.target.value)}
-                placeholder="Enter mental health condition"
-                className="flex-grow"
-              />
-              <Button 
-                type="button" 
-                onClick={handleAddOtherMentalHealthCondition}
-                disabled={!otherMentalHealthCondition.trim()}
-                size="sm"
-              >
-                <Plus className="h-4 w-4 mr-1" /> Add
-              </Button>
-            </div>
-            
-            {otherMentalHealthConditions.length > 0 && (
-              <div className="mt-2 space-y-1">
-                <p className="text-sm font-medium text-gray-700">Added conditions:</p>
-                <ul className="text-sm pl-5 list-disc space-y-1">
-                  {otherMentalHealthConditions.map((condition, index) => (
-                    <li key={index}>{condition}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
-          </div>
-        )}
       </div>
       
       <div>
