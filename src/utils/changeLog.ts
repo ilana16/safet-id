@@ -10,6 +10,42 @@ interface ChangeLogEntry {
 }
 
 /**
+ * Formats a value for display in the logs
+ */
+const formatValueForLog = (value: any): string => {
+  if (value === undefined || value === null) {
+    return 'Not set';
+  }
+  
+  if (typeof value === 'object') {
+    if (Array.isArray(value)) {
+      if (value.length === 0) return 'Empty list';
+      
+      // For arrays of medication items, count them
+      if (value[0] && (value[0].name !== undefined || value[0].doseTimes !== undefined)) {
+        return `${value.length} item(s)`;
+      }
+      
+      return JSON.stringify(value);
+    }
+    
+    // For empty objects
+    if (Object.keys(value).length === 0) {
+      return 'Empty';
+    }
+    
+    // Try to get a name or identifier for the object
+    if (value.name) {
+      return value.name;
+    }
+    
+    return JSON.stringify(value);
+  }
+  
+  return String(value);
+};
+
+/**
  * Logs changes made to medical profile
  */
 export const logChanges = (section: string, changes: {field: string; oldValue: any; newValue: any}[]) => {
@@ -30,11 +66,19 @@ export const logChanges = (section: string, changes: {field: string; oldValue: a
   // Get existing logs
   const existingLogs = JSON.parse(localStorage.getItem('medicalProfileChangeLogs') || '[]');
   
+  // Process changes to add formatted values for display
+  const processedChanges = filteredChanges.map(change => ({
+    ...change,
+    // Add formatted values for display
+    formattedOldValue: formatValueForLog(change.oldValue),
+    formattedNewValue: formatValueForLog(change.newValue)
+  }));
+  
   // Create new log entry
   const newEntry: ChangeLogEntry = {
     section,
     timestamp: new Date().toISOString(),
-    changes: filteredChanges
+    changes: processedChanges
   };
   
   // Add new log entry

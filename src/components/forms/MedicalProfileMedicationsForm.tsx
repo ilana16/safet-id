@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { PlusCircle, Trash2, Clock } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -60,78 +60,95 @@ interface Supplement {
   doseTimes: DoseTime[];
 }
 
+const defaultMedication: Medication = {
+  id: `med_${Date.now()}`,
+  name: '',
+  totalDosage: '',
+  unit: '',
+  pillsPerDose: '',
+  dosagePerPill: '',
+  form: '',
+  customForm: '',
+  withFood: 'with',
+  prescriptionType: 'prescription',
+  brandName: '',
+  reason: '',
+  doseTimes: [{ id: `time_${Date.now()}`, time: '' }]
+};
+
+const defaultOtcMedication: OTCMedication = {
+  id: `otc_${Date.now()}`,
+  name: '',
+  totalDosage: '',
+  unit: '',
+  pillsPerDose: '',
+  dosagePerPill: '',
+  form: '',
+  customForm: '',
+  withFood: 'with',
+  brandName: '',
+  reason: '',
+  doseTimes: [{ id: `time_${Date.now()}`, time: '' }]
+};
+
+const defaultSupplement: Supplement = {
+  id: `supp_${Date.now()}`,
+  name: '',
+  totalDosage: '',
+  unit: '',
+  pillsPerDose: '',
+  dosagePerPill: '',
+  form: '',
+  customForm: '',
+  withFood: 'with',
+  brandName: '',
+  reason: '',
+  doseTimes: [{ id: `time_${Date.now()}`, time: '' }]
+};
+
 const MedicalProfileMedicationsForm = () => {
   // State for prescription medications
   const [medications, setMedications] = useState<Medication[]>([
-    {
-      id: `med_${Date.now()}`,
-      name: '',
-      totalDosage: '',
-      unit: '',
-      pillsPerDose: '',
-      dosagePerPill: '',
-      form: '',
-      customForm: '',
-      withFood: 'with',
-      prescriptionType: 'prescription',
-      brandName: '',
-      reason: '',
-      doseTimes: [{ id: `time_${Date.now()}`, time: '' }]
-    }
+    { ...defaultMedication }
   ]);
 
   // State for OTC medications
   const [otcMedications, setOtcMedications] = useState<OTCMedication[]>([
-    {
-      id: `otc_${Date.now()}`,
-      name: '',
-      totalDosage: '',
-      unit: '',
-      pillsPerDose: '',
-      dosagePerPill: '',
-      form: '',
-      customForm: '',
-      withFood: 'with',
-      brandName: '',
-      reason: '',
-      doseTimes: [{ id: `time_${Date.now()}`, time: '' }]
-    }
+    { ...defaultOtcMedication }
   ]);
 
   // State for supplements
   const [supplements, setSupplements] = useState<Supplement[]>([
-    {
-      id: `supp_${Date.now()}`,
-      name: '',
-      totalDosage: '',
-      unit: '',
-      pillsPerDose: '',
-      dosagePerPill: '',
-      form: '',
-      customForm: '',
-      withFood: 'with',
-      brandName: '',
-      reason: '',
-      doseTimes: [{ id: `time_${Date.now()}`, time: '' }]
-    }
+    { ...defaultSupplement }
   ]);
+
+  // Load saved data when component mounts
+  useEffect(() => {
+    const savedProfile = JSON.parse(localStorage.getItem('medicalProfile') || '{}');
+    
+    if (savedProfile && savedProfile.medications) {
+      // Load saved medications
+      if (savedProfile.medications.prescriptions && savedProfile.medications.prescriptions.length > 0) {
+        setMedications(savedProfile.medications.prescriptions);
+      }
+      
+      // Load saved OTC medications
+      if (savedProfile.medications.otc && savedProfile.medications.otc.length > 0) {
+        setOtcMedications(savedProfile.medications.otc);
+      }
+      
+      // Load saved supplements
+      if (savedProfile.medications.supplements && savedProfile.medications.supplements.length > 0) {
+        setSupplements(savedProfile.medications.supplements);
+      }
+    }
+  }, []);
 
   // Handler for adding a new prescription medication
   const addMedication = () => {
     const newMed: Medication = {
-      id: `med_${Date.now()}`,
-      name: '',
-      totalDosage: '',
-      unit: '',
-      pillsPerDose: '',
-      dosagePerPill: '',
-      form: '',
-      customForm: '',
-      withFood: 'with',
-      prescriptionType: 'prescription',
-      brandName: '',
-      reason: '',
-      doseTimes: [{ id: `time_${Date.now()}`, time: '' }]
+      ...defaultMedication,
+      id: `med_${Date.now()}`
     };
     setMedications([...medications, newMed]);
   };
@@ -146,18 +163,8 @@ const MedicalProfileMedicationsForm = () => {
   // Handler for adding a new OTC medication
   const addOtcMedication = () => {
     const newOtc: OTCMedication = {
-      id: `otc_${Date.now()}`,
-      name: '',
-      totalDosage: '',
-      unit: '',
-      pillsPerDose: '',
-      dosagePerPill: '',
-      form: '',
-      customForm: '',
-      withFood: 'with',
-      brandName: '',
-      reason: '',
-      doseTimes: [{ id: `time_${Date.now()}`, time: '' }]
+      ...defaultOtcMedication,
+      id: `otc_${Date.now()}`
     };
     setOtcMedications([...otcMedications, newOtc]);
   };
@@ -172,18 +179,8 @@ const MedicalProfileMedicationsForm = () => {
   // Handler for adding a new supplement
   const addSupplement = () => {
     const newSupplement: Supplement = {
-      id: `supp_${Date.now()}`,
-      name: '',
-      totalDosage: '',
-      unit: '',
-      pillsPerDose: '',
-      dosagePerPill: '',
-      form: '',
-      customForm: '',
-      withFood: 'with',
-      brandName: '',
-      reason: '',
-      doseTimes: [{ id: `time_${Date.now()}`, time: '' }]
+      ...defaultSupplement,
+      id: `supp_${Date.now()}`
     };
     setSupplements([...supplements, newSupplement]);
   };
@@ -315,6 +312,21 @@ const MedicalProfileMedicationsForm = () => {
       }));
     }
   };
+
+  // This function prepares the form data for submission
+  const prepareFormData = () => {
+    return {
+      prescriptions: medications,
+      otc: otcMedications,
+      supplements: supplements
+    };
+  };
+
+  // Export the form data for the parent component to access
+  React.useEffect(() => {
+    // Attach the form data to the window object for the parent component to access
+    (window as any).medicationsFormData = prepareFormData();
+  }, [medications, otcMedications, supplements]);
 
   return (
     <div className="space-y-8">

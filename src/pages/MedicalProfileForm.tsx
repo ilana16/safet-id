@@ -49,36 +49,81 @@ const MedicalProfileForm = () => {
   const handleSave = () => {
     setIsSaving(true);
     
-    // Get form data from the form components
-    // This would ideally be done through a ref or form submission
-    const formElements = document.querySelectorAll('input, select, textarea');
-    const newFormData: Record<string, any> = {};
-    
-    formElements.forEach(element => {
-      const input = element as HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement;
-      const id = input.id;
-      if (id && !id.startsWith('react-')) {
-        newFormData[id] = input.value;
-      }
-    });
-    
     // Get existing data for this section
     const existingProfile = JSON.parse(localStorage.getItem('medicalProfile') || '{}');
     const existingSectionData = existingProfile[currentSection] || {};
     
+    // Special handling for medications section
+    let newFormData;
+    if (currentSection === 'medications' && (window as any).medicationsFormData) {
+      // Use the data prepared by the MedicationsForm component
+      newFormData = (window as any).medicationsFormData;
+    } else {
+      // Standard form data collection
+      const formElements = document.querySelectorAll('input, select, textarea');
+      newFormData = {};
+      
+      formElements.forEach(element => {
+        const input = element as HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement;
+        const id = input.id;
+        if (id && !id.startsWith('react-')) {
+          newFormData[id] = input.value;
+        }
+      });
+    }
+    
     // Track changes for logging
     const changes: {field: string; oldValue: any; newValue: any}[] = [];
     
-    // For each field in the new data, check if it's different from existing
-    Object.entries(newFormData).forEach(([key, value]) => {
-      if (existingSectionData[key] !== value) {
+    // For medications section, compare the entire object structures
+    if (currentSection === 'medications') {
+      // Compare prescriptions
+      const oldPrescriptions = existingSectionData.prescriptions || [];
+      const newPrescriptions = newFormData.prescriptions || [];
+      
+      if (JSON.stringify(oldPrescriptions) !== JSON.stringify(newPrescriptions)) {
         changes.push({
-          field: key,
-          oldValue: existingSectionData[key],
-          newValue: value
+          field: 'prescriptions',
+          oldValue: oldPrescriptions,
+          newValue: newPrescriptions
         });
       }
-    });
+      
+      // Compare OTC medications
+      const oldOtc = existingSectionData.otc || [];
+      const newOtc = newFormData.otc || [];
+      
+      if (JSON.stringify(oldOtc) !== JSON.stringify(newOtc)) {
+        changes.push({
+          field: 'otc',
+          oldValue: oldOtc,
+          newValue: newOtc
+        });
+      }
+      
+      // Compare supplements
+      const oldSupplements = existingSectionData.supplements || [];
+      const newSupplements = newFormData.supplements || [];
+      
+      if (JSON.stringify(oldSupplements) !== JSON.stringify(newSupplements)) {
+        changes.push({
+          field: 'supplements',
+          oldValue: oldSupplements,
+          newValue: newSupplements
+        });
+      }
+    } else {
+      // Standard field-by-field comparison for other sections
+      Object.entries(newFormData).forEach(([key, value]) => {
+        if (existingSectionData[key] !== value) {
+          changes.push({
+            field: key,
+            oldValue: existingSectionData[key],
+            newValue: value
+          });
+        }
+      });
+    }
     
     // Additional data for history section
     const additionalData = currentSection === 'history' ? 
