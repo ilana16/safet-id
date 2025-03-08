@@ -1,4 +1,3 @@
-
 import React from 'react';
 import {
   Dialog,
@@ -9,7 +8,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { ProxyUser } from './ProxyAccessModal';
-import { Calendar, Mail, User, Shield, Clock, Link, AlertTriangle } from 'lucide-react';
+import { Calendar, Mail, User, Shield, Clock, Link, AlertTriangle, Edit, MessageSquare, Eye } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { 
   Tooltip,
@@ -44,9 +43,9 @@ const ProxyDetailDialog: React.FC<ProxyDetailDialogProps> = ({
   
   const getAccessLevelColor = (level: string) => {
     switch(level) {
-      case 'full': return 'bg-green-100 text-green-800 hover:bg-green-100';
-      case 'limited': return 'bg-blue-100 text-blue-800 hover:bg-blue-100';
-      case 'emergency': return 'bg-amber-100 text-amber-800 hover:bg-amber-100';
+      case 'full_edit': return 'bg-green-100 text-green-800 hover:bg-green-100';
+      case 'view_comment': return 'bg-blue-100 text-blue-800 hover:bg-blue-100';
+      case 'view_only': return 'bg-amber-100 text-amber-800 hover:bg-amber-100';
       default: return 'bg-gray-100 text-gray-800 hover:bg-gray-100';
     }
   };
@@ -62,9 +61,9 @@ const ProxyDetailDialog: React.FC<ProxyDetailDialogProps> = ({
   
   const getAccessLevelLabel = (level: string) => {
     switch(level) {
-      case 'full': return 'Full Access';
-      case 'limited': return 'Limited Access';
-      case 'emergency': return 'Emergency Only';
+      case 'full_edit': return 'Full Editing Access';
+      case 'view_comment': return 'View & Comment Only';
+      case 'view_only': return 'View Only';
       default: return 'Other';
     }
   };
@@ -80,14 +79,23 @@ const ProxyDetailDialog: React.FC<ProxyDetailDialogProps> = ({
   
   const getAccessLevelDescription = (level: string) => {
     switch(level) {
-      case 'full': 
-        return 'Can view and manage all your medical information, including emergency contacts, prescriptions, and medical history.';
-      case 'limited': 
-        return 'Can view limited sections of your medical information, including allergies and current medications.';
-      case 'emergency': 
-        return 'Can only access critical information during emergency situations.';
+      case 'full_edit': 
+        return 'Can view, comment, and edit all your medical information, including emergency contacts, prescriptions, and medical history.';
+      case 'view_comment': 
+        return 'Can view and add comments to your medical information, but cannot make any changes to the data.';
+      case 'view_only': 
+        return 'Can only view your medical information, without the ability to comment or edit.';
       default: 
         return 'Custom access level';
+    }
+  };
+  
+  const getAccessLevelIcon = (level: string) => {
+    switch(level) {
+      case 'full_edit': return <Edit className="h-5 w-5 mr-3 text-green-500 mt-0.5" />;
+      case 'view_comment': return <MessageSquare className="h-5 w-5 mr-3 text-blue-500 mt-0.5" />;
+      case 'view_only': return <Eye className="h-5 w-5 mr-3 text-amber-500 mt-0.5" />;
+      default: return <Shield className="h-5 w-5 mr-3 text-gray-500 mt-0.5" />;
     }
   };
   
@@ -148,7 +156,7 @@ const ProxyDetailDialog: React.FC<ProxyDetailDialogProps> = ({
             </div>
             
             <div className="flex items-start">
-              <Shield className="h-5 w-5 mr-3 text-gray-500 mt-0.5" />
+              {getAccessLevelIcon(proxy.accessLevel)}
               <div>
                 <p className="font-medium text-gray-700">Access Level</p>
                 <p className="text-gray-600">{getAccessLevelDescription(proxy.accessLevel)}</p>

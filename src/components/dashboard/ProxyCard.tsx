@@ -1,6 +1,5 @@
-
 import React from 'react';
-import { Trash2, MoreVertical, Shield, Eye, Mail } from 'lucide-react';
+import { Trash2, MoreVertical, Shield, Eye, Mail, MessageSquare, Edit } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -16,7 +15,7 @@ import {
 interface ProxyCardProps {
   proxy: ProxyUser;
   onRemove: (id: string) => void;
-  onUpdateAccess: (id: string, level: 'full' | 'limited' | 'emergency') => void;
+  onUpdateAccess: (id: string, level: 'full_edit' | 'view_comment' | 'view_only') => void;
   onResendInvite?: (id: string) => void;
   onViewDetails: (proxy: ProxyUser) => void;
 }
@@ -39,9 +38,9 @@ const ProxyCard: React.FC<ProxyCardProps> = ({
   
   const getAccessLevelColor = (level: string) => {
     switch(level) {
-      case 'full': return 'bg-green-100 text-green-800';
-      case 'limited': return 'bg-blue-100 text-blue-800';
-      case 'emergency': return 'bg-amber-100 text-amber-800';
+      case 'full_edit': return 'bg-green-100 text-green-800';
+      case 'view_comment': return 'bg-blue-100 text-blue-800';
+      case 'view_only': return 'bg-amber-100 text-amber-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
@@ -80,13 +79,11 @@ const ProxyCard: React.FC<ProxyCardProps> = ({
                   {getStatusLabel(proxy.inviteStatus)}
                 </Badge>
                 <Badge className={getAccessLevelColor(proxy.accessLevel)}>
-                  {proxy.accessLevel === 'full' 
-                    ? 'Full Access' 
-                    : proxy.accessLevel === 'limited' 
-                      ? 'Limited Access' 
-                      : proxy.accessLevel === 'emergency'
-                        ? 'Emergency Only'
-                        : 'Other'}
+                  {proxy.accessLevel === 'full_edit' 
+                    ? 'Full Editing Access' 
+                    : proxy.accessLevel === 'view_comment' 
+                      ? 'View & Comment' 
+                      : 'View Only'}
                 </Badge>
               </div>
             </div>
@@ -139,27 +136,27 @@ const ProxyCard: React.FC<ProxyCardProps> = ({
                 <DropdownMenuSeparator />
                 
                 <DropdownMenuItem 
-                  disabled={proxy.accessLevel === 'full'}
-                  onClick={() => onUpdateAccess(proxy.id, 'full')}
+                  disabled={proxy.accessLevel === 'full_edit'}
+                  onClick={() => onUpdateAccess(proxy.id, 'full_edit')}
                 >
-                  <Shield className="mr-2 h-4 w-4 text-green-600" />
-                  <span>Set Full Access</span>
+                  <Edit className="mr-2 h-4 w-4 text-green-600" />
+                  <span>Set Full Editing Access</span>
                 </DropdownMenuItem>
                 
                 <DropdownMenuItem 
-                  disabled={proxy.accessLevel === 'limited'}
-                  onClick={() => onUpdateAccess(proxy.id, 'limited')}
+                  disabled={proxy.accessLevel === 'view_comment'}
+                  onClick={() => onUpdateAccess(proxy.id, 'view_comment')}
                 >
-                  <Shield className="mr-2 h-4 w-4 text-blue-600" />
-                  <span>Set Limited Access</span>
+                  <MessageSquare className="mr-2 h-4 w-4 text-blue-600" />
+                  <span>Set View & Comment Only</span>
                 </DropdownMenuItem>
                 
                 <DropdownMenuItem 
-                  disabled={proxy.accessLevel === 'emergency'}
-                  onClick={() => onUpdateAccess(proxy.id, 'emergency')}
+                  disabled={proxy.accessLevel === 'view_only'}
+                  onClick={() => onUpdateAccess(proxy.id, 'view_only')}
                 >
-                  <Shield className="mr-2 h-4 w-4 text-amber-600" />
-                  <span>Set Emergency Only</span>
+                  <Eye className="mr-2 h-4 w-4 text-amber-600" />
+                  <span>Set View Only</span>
                 </DropdownMenuItem>
                 
                 <DropdownMenuSeparator />

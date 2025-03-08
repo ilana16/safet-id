@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Users, PlusCircle, Shield, Download, Search, ChevronUp, ChevronDown, Filter, Mail } from 'lucide-react';
+import { Users, PlusCircle, Shield, Download, Search, ChevronUp, ChevronDown, Filter, Mail, Edit, MessageSquare, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { 
@@ -20,14 +20,12 @@ const ProxyAccessTab: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [proxies, setProxies] = useState<ProxyUser[]>([]);
   
-  // Filter states
   const [searchTerm, setSearchTerm] = useState('');
   const [filterAccess, setFilterAccess] = useState<string>('all');
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [sortField, setSortField] = useState<string>('dateAdded');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   
-  // Confirmation dialog states
   const [confirmDialog, setConfirmDialog] = useState({
     isOpen: false,
     proxyId: '',
@@ -35,13 +33,11 @@ const ProxyAccessTab: React.FC = () => {
     description: ''
   });
   
-  // Detail dialog state
   const [detailDialog, setDetailDialog] = useState({
     isOpen: false,
     proxy: null as ProxyUser | null
   });
 
-  // Load from localStorage on mount
   useEffect(() => {
     const savedProxies = localStorage.getItem('proxies');
     if (savedProxies) {
@@ -53,7 +49,6 @@ const ProxyAccessTab: React.FC = () => {
     }
   }, []);
 
-  // Save to localStorage when proxies change
   useEffect(() => {
     if (proxies.length > 0) {
       localStorage.setItem('proxies', JSON.stringify(proxies));
@@ -83,30 +78,32 @@ const ProxyAccessTab: React.FC = () => {
     setConfirmDialog(prev => ({ ...prev, isOpen: false, proxyId: '' }));
   };
 
-  const handleUpdateAccess = (id: string, level: 'full' | 'limited' | 'emergency') => {
+  const handleUpdateAccess = (id: string, level: 'full_edit' | 'view_comment' | 'view_only') => {
     setProxies(prev => 
       prev.map(proxy => 
         proxy.id === id ? { ...proxy, accessLevel: level } : proxy
       )
     );
-    toast.success('Proxy access level updated');
+    
+    const accessLevelLabel = 
+      level === 'full_edit' ? 'Full Editing Access' :
+      level === 'view_comment' ? 'View & Comment Only' : 'View Only';
+    
+    toast.success(`Proxy access level updated to ${accessLevelLabel}`);
   };
   
   const handleResendInvite = (id: string) => {
     const proxy = proxies.find(p => p.id === id);
     if (!proxy) return;
     
-    // In a real app, this would send another email
     toast.success(`Invitation resent to ${proxy.name}`);
     
-    // Update the proxy with a new invite token and reset expiry
     setProxies(prev => 
       prev.map(p => 
         p.id === id 
           ? { 
               ...p, 
               inviteToken: `invite_${Math.random().toString(36).substring(2, 15)}_${Date.now()}`,
-              // Keep it as pending since we're resending
               inviteStatus: 'pending' 
             } 
           : p
@@ -127,22 +124,21 @@ const ProxyAccessTab: React.FC = () => {
       return;
     }
     
-    // Prepare data for export - transform data for better CSV formatting
     const dataToExport = proxies.map(proxy => ({
       Name: proxy.name,
       Email: proxy.email,
       Relationship: proxy.relationship,
-      AccessLevel: proxy.accessLevel === 'full' 
-        ? 'Full Access' 
-        : proxy.accessLevel === 'limited' 
-          ? 'Limited Access' 
-          : 'Emergency Only',
+      AccessLevel: proxy.accessLevel === 'full_edit' 
+        ? 'Full Editing Access' 
+        : proxy.accessLevel === 'view_comment' 
+          ? 'View & Comment Only' 
+          : 'View Only',
       Status: proxy.inviteStatus === 'pending'
         ? 'Invitation Pending'
         : proxy.inviteStatus === 'accepted'
           ? 'Active'
           : 'Expired',
-      dateAdded: proxy.dateAdded, // This will be formatted by the export function
+      dateAdded: proxy.dateAdded,
     }));
     
     exportToCSV(dataToExport, 'proxy-access-list');
@@ -152,22 +148,18 @@ const ProxyAccessTab: React.FC = () => {
   const toggleSortDirection = () => {
     setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
   };
-  
-  // Filter and sort proxies
+
   const filteredAndSortedProxies = proxies
     .filter(proxy => {
-      // Apply search filter
       const matchesSearch = 
         proxy.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         proxy.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
         proxy.relationship.toLowerCase().includes(searchTerm.toLowerCase());
       
-      // Apply access level filter
       const matchesAccessLevel = 
         filterAccess === 'all' || 
         proxy.accessLevel === filterAccess;
         
-      // Apply status filter
       const matchesStatus =
         filterStatus === 'all' ||
         proxy.inviteStatus === filterStatus;
@@ -175,7 +167,6 @@ const ProxyAccessTab: React.FC = () => {
       return matchesSearch && matchesAccessLevel && matchesStatus;
     })
     .sort((a, b) => {
-      // Sort by selected field
       if (sortField === 'name') {
         return sortDirection === 'asc'
           ? a.name.localeCompare(b.name)
@@ -188,11 +179,9 @@ const ProxyAccessTab: React.FC = () => {
           : new Date(b.dateAdded).getTime() - new Date(a.dateAdded).getTime();
       }
       
-      // Default sort
       return 0;
     });
 
-  // Calculate summary information for screen readers
   const accessSummary = proxies.reduce((acc, proxy) => {
     acc[proxy.accessLevel] = (acc[proxy.accessLevel] || 0) + 1;
     return acc;
@@ -212,16 +201,15 @@ const ProxyAccessTab: React.FC = () => {
             Manage who can access your medical information
           </p>
           
-          {/* Screen reader summary */}
           <div className="sr-only" aria-live="polite">
             {proxies.length === 0 ? (
               'No proxy access has been granted yet.'
             ) : (
               <>
                 You have {proxies.length} {proxies.length === 1 ? 'person' : 'people'} with proxy access.
-                {accessSummary.full ? ` ${accessSummary.full} with full access.` : ''}
-                {accessSummary.limited ? ` ${accessSummary.limited} with limited access.` : ''}
-                {accessSummary.emergency ? ` ${accessSummary.emergency} with emergency only access.` : ''}
+                {accessSummary.full_edit ? ` ${accessSummary.full_edit} with full editing access.` : ''}
+                {accessSummary.view_comment ? ` ${accessSummary.view_comment} with view and comment access.` : ''}
+                {accessSummary.view_only ? ` ${accessSummary.view_only} with view only access.` : ''}
                 {statusSummary.pending ? ` ${statusSummary.pending} with pending invitations.` : ''}
                 {statusSummary.accepted ? ` ${statusSummary.accepted} with accepted invitations.` : ''}
               </>
@@ -258,7 +246,6 @@ const ProxyAccessTab: React.FC = () => {
         </div>
       ) : (
         <div>
-          {/* Filters and Controls */}
           <div className="mb-4 flex flex-col space-y-3 sm:flex-row sm:space-y-0 sm:space-x-3">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" aria-hidden="true" />
@@ -281,9 +268,24 @@ const ProxyAccessTab: React.FC = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Access Levels</SelectItem>
-                  <SelectItem value="full">Full Access</SelectItem>
-                  <SelectItem value="limited">Limited Access</SelectItem>
-                  <SelectItem value="emergency">Emergency Only</SelectItem>
+                  <SelectItem value="full_edit">
+                    <div className="flex items-center">
+                      <Edit className="mr-2 h-4 w-4 text-green-600" />
+                      <span>Full Editing Access</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="view_comment">
+                    <div className="flex items-center">
+                      <MessageSquare className="mr-2 h-4 w-4 text-blue-600" />
+                      <span>View & Comment Only</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="view_only">
+                    <div className="flex items-center">
+                      <Eye className="mr-2 h-4 w-4 text-amber-600" />
+                      <span>View Only</span>
+                    </div>
+                  </SelectItem>
                 </SelectContent>
               </Select>
               
@@ -337,19 +339,16 @@ const ProxyAccessTab: React.FC = () => {
             </div>
           </div>
           
-          {/* Results summary for screen readers */}
           <div className="sr-only" aria-live="polite">
             Showing {filteredAndSortedProxies.length} of {proxies.length} proxies
           </div>
           
-          {/* Empty state for filtered results */}
           {filteredAndSortedProxies.length === 0 && (
             <div className="text-center py-6 bg-gray-50 rounded-lg">
               <p className="text-gray-500">No proxies match your search criteria</p>
             </div>
           )}
           
-          {/* Proxy list */}
           <div className="space-y-4">
             {filteredAndSortedProxies.map(proxy => (
               <ProxyCard 
@@ -365,7 +364,6 @@ const ProxyAccessTab: React.FC = () => {
         </div>
       )}
 
-      {/* Modals and Dialogs */}
       <ProxyAccessModal 
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}

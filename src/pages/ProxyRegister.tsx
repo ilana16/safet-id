@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import PageLayout from '@/components/layout/PageLayout';
@@ -8,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from '@/lib/toast';
-import { Mail, Lock, User, Shield, AlertTriangle } from 'lucide-react';
+import { Mail, Lock, User, Shield, AlertTriangle, Edit, MessageSquare, Eye } from 'lucide-react';
 import { ProxyUser } from '@/components/dashboard/ProxyAccessModal';
 
 const ProxyRegister = () => {
@@ -30,16 +29,31 @@ const ProxyRegister = () => {
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  // Validate the invitation token
+  const getAccessLevelIcon = (level: string) => {
+    switch(level) {
+      case 'full_edit': return <Edit className="h-4 w-4 mr-2 text-green-600" />;
+      case 'view_comment': return <MessageSquare className="h-4 w-4 mr-2 text-blue-600" />;
+      case 'view_only': return <Eye className="h-4 w-4 mr-2 text-amber-600" />;
+      default: return <Shield className="h-4 w-4 mr-2 text-gray-600" />;
+    }
+  };
+  
+  const getAccessLevelLabel = (level: string) => {
+    switch(level) {
+      case 'full_edit': return 'Full Editing Access';
+      case 'view_comment': return 'View & Comment Only';
+      case 'view_only': return 'View Only';
+      default: return 'Custom Access';
+    }
+  };
+
   useEffect(() => {
     if (!token) {
       setIsValidating(false);
       return;
     }
 
-    // Simulate token validation (in a real app, this would be an API call)
     setTimeout(() => {
-      // Fetch all proxies from localStorage
       const savedProxies = localStorage.getItem('proxies');
       let proxies: ProxyUser[] = [];
       
@@ -51,11 +65,9 @@ const ProxyRegister = () => {
         }
       }
       
-      // Find the proxy with the matching token
       const proxy = proxies.find(p => p.inviteToken === token);
       
       if (proxy && proxy.inviteStatus === 'pending') {
-        // Get host user info
         const userData = localStorage.getItem('user');
         let hostName = 'Account Owner';
         
@@ -89,7 +101,6 @@ const ProxyRegister = () => {
       [name]: type === 'checkbox' ? checked : value
     });
     
-    // Clear error when field is edited
     if (errors[name]) {
       setErrors({
         ...errors,
@@ -126,9 +137,7 @@ const ProxyRegister = () => {
     
     setIsLoading(true);
     
-    // In a real app, this would be an API call to register the proxy user
     setTimeout(() => {
-      // Update the proxy status in localStorage
       const savedProxies = localStorage.getItem('proxies');
       if (savedProxies) {
         try {
@@ -145,13 +154,11 @@ const ProxyRegister = () => {
         }
       }
       
-      // Create proxy user account - in a real app, this would be in a separate DB
-      // For demo, we'll just use localStorage to show the concept
       const proxyAccount = {
         id: `proxy_user_${Date.now()}`,
         name: inviteData.proxy?.name,
         email: inviteData.proxy?.email,
-        hostId: 'user_id_from_localStorage', // In a real app, this would be the actual user ID
+        hostId: 'user_id_from_localStorage',
         accessLevel: inviteData.proxy?.accessLevel,
         relationship: inviteData.proxy?.relationship,
         createdAt: new Date().toISOString(),
@@ -165,7 +172,6 @@ const ProxyRegister = () => {
     }, 1500);
   };
 
-  // Loading state
   if (isValidating) {
     return (
       <PageLayout className="bg-gray-50">
@@ -180,7 +186,6 @@ const ProxyRegister = () => {
     );
   }
 
-  // Invalid invitation
   if (!inviteData.valid) {
     return (
       <PageLayout className="bg-gray-50">
@@ -200,7 +205,6 @@ const ProxyRegister = () => {
     );
   }
 
-  // Valid invitation - show registration form
   return (
     <PageLayout className="bg-gray-50">
       <div className="max-w-md mx-auto px-4 py-12">
@@ -231,12 +235,13 @@ const ProxyRegister = () => {
                 <div className="mt-2 text-sm text-blue-700 space-y-1">
                   <p><span className="font-medium">Name:</span> {inviteData.proxy.name}</p>
                   <p><span className="font-medium">Email:</span> {inviteData.proxy.email}</p>
-                  <p><span className="font-medium">Access Level:</span> {
-                    inviteData.proxy.accessLevel === 'full' ? 'Full Access' :
-                    inviteData.proxy.accessLevel === 'limited' ? 'Limited Access' :
-                    inviteData.proxy.accessLevel === 'emergency' ? 'Emergency Only' :
-                    'Custom Access'
-                  }</p>
+                  <p className="flex items-center">
+                    <span className="font-medium">Access Level:</span>
+                    <span className="ml-1 flex items-center">
+                      {getAccessLevelIcon(inviteData.proxy.accessLevel)}
+                      {getAccessLevelLabel(inviteData.proxy.accessLevel)}
+                    </span>
+                  </p>
                   <p><span className="font-medium">Relationship:</span> {inviteData.proxy.relationship}</p>
                 </div>
               </div>

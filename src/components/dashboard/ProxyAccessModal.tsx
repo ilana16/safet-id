@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -20,7 +19,7 @@ export interface ProxyUser {
   name: string;
   email: string;
   relationship: string;
-  accessLevel: 'full' | 'limited' | 'emergency' | 'other';
+  accessLevel: 'full_edit' | 'view_comment' | 'view_only';
   dateAdded: string;
   inviteStatus: 'pending' | 'accepted' | 'expired';
   inviteToken?: string;
@@ -31,7 +30,7 @@ const ProxyAccessModal: React.FC<ProxyAccessModalProps> = ({ isOpen, onClose, on
     name: '',
     email: '',
     relationship: '',
-    accessLevel: 'limited',
+    accessLevel: 'view_only',
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
@@ -41,7 +40,6 @@ const ProxyAccessModal: React.FC<ProxyAccessModalProps> = ({ isOpen, onClose, on
     const { name, value } = e.target;
     setProxyData(prev => ({ ...prev, [name]: value }));
     
-    // Clear error when field is edited
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: '' }));
     }
@@ -50,7 +48,6 @@ const ProxyAccessModal: React.FC<ProxyAccessModalProps> = ({ isOpen, onClose, on
   const handleSelectChange = (name: string, value: string) => {
     setProxyData(prev => ({ ...prev, [name]: value }));
     
-    // Clear error when field is edited
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: '' }));
     }
@@ -74,7 +71,6 @@ const ProxyAccessModal: React.FC<ProxyAccessModalProps> = ({ isOpen, onClose, on
   };
 
   const generateInviteToken = () => {
-    // Generate a random token with timestamp for uniqueness
     return `invite_${Math.random().toString(36).substring(2, 15)}_${Date.now()}`;
   };
 
@@ -83,9 +79,7 @@ const ProxyAccessModal: React.FC<ProxyAccessModalProps> = ({ isOpen, onClose, on
     
     setIsSending(true);
     
-    // In a real app, this would send an actual email
     setTimeout(() => {
-      // Create new proxy user with pending status
       const inviteToken = generateInviteToken();
       const newProxy: ProxyUser = {
         ...proxyData,
@@ -98,12 +92,11 @@ const ProxyAccessModal: React.FC<ProxyAccessModalProps> = ({ isOpen, onClose, on
       onAddProxy(newProxy);
       toast.success('Invitation sent successfully!');
       
-      // Reset form and close modals
       setProxyData({
         name: '',
         email: '',
         relationship: '',
-        accessLevel: 'limited',
+        accessLevel: 'view_only',
       });
       setIsPreviewOpen(false);
       setIsSending(false);
@@ -123,7 +116,6 @@ const ProxyAccessModal: React.FC<ProxyAccessModalProps> = ({ isOpen, onClose, on
   };
 
   const getCurrentUser = () => {
-    // Get the current user from localStorage (in a real app, this would come from auth)
     const userData = localStorage.getItem('user');
     if (!userData) return { firstName: 'Your', lastName: 'Name' };
     
@@ -134,7 +126,6 @@ const ProxyAccessModal: React.FC<ProxyAccessModalProps> = ({ isOpen, onClose, on
     };
   };
 
-  // Generate invite link
   const getInviteLink = () => {
     const inviteToken = generateInviteToken();
     const baseUrl = window.location.origin;
@@ -203,20 +194,17 @@ const ProxyAccessModal: React.FC<ProxyAccessModalProps> = ({ isOpen, onClose, on
                   <SelectValue placeholder="Select access level" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="full">Full Access</SelectItem>
-                  <SelectItem value="limited">Limited Access</SelectItem>
-                  <SelectItem value="emergency">Emergency Only</SelectItem>
-                  <SelectItem value="other">Other</SelectItem>
+                  <SelectItem value="full_edit">Full Editing Access</SelectItem>
+                  <SelectItem value="view_comment">View and Comment Only</SelectItem>
+                  <SelectItem value="view_only">View Only</SelectItem>
                 </SelectContent>
               </Select>
               <p className="text-xs text-gray-500">
-                {proxyData.accessLevel === 'full' 
-                  ? 'Can view and manage all your medical information'
-                  : proxyData.accessLevel === 'limited'
-                    ? 'Can view only specific sections of your medical information'
-                    : proxyData.accessLevel === 'emergency'
-                      ? 'Can only access information during emergencies'
-                      : 'Custom access level'}
+                {proxyData.accessLevel === 'full_edit' 
+                  ? 'Can view, comment, and edit all your medical information'
+                  : proxyData.accessLevel === 'view_comment'
+                    ? 'Can view and add comments, but cannot edit your medical information'
+                    : 'Can only view your medical information, no editing or comments'}
               </p>
             </div>
             
@@ -230,7 +218,6 @@ const ProxyAccessModal: React.FC<ProxyAccessModalProps> = ({ isOpen, onClose, on
         </DialogContent>
       </Dialog>
 
-      {/* Email Preview Dialog */}
       <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>

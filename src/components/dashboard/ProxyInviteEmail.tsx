@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Mail, Link, Shield } from 'lucide-react';
+import { Mail, Link, Shield, Edit, MessageSquare, Eye } from 'lucide-react';
 
 interface ProxyInviteEmailProps {
   recipientName: string;
@@ -19,14 +19,32 @@ const ProxyInviteEmail: React.FC<ProxyInviteEmailProps> = ({
 }) => {
   const getAccessLevelDescription = (level: string) => {
     switch(level) {
-      case 'full': 
-        return 'full access to view and manage all medical information';
-      case 'limited': 
-        return 'limited access to view specific sections of medical information';
-      case 'emergency': 
-        return 'emergency-only access to critical medical information';
+      case 'full_edit': 
+        return 'full access to view, comment, and edit all medical information';
+      case 'view_comment': 
+        return 'access to view and comment on medical information, without editing capabilities';
+      case 'view_only': 
+        return 'view-only access to medical information, without commenting or editing capabilities';
       default: 
         return 'customized access to medical information';
+    }
+  };
+  
+  const getAccessLevelIcon = (level: string) => {
+    switch(level) {
+      case 'full_edit': return <Edit className="h-5 w-5 text-safet-500 mr-2" />;
+      case 'view_comment': return <MessageSquare className="h-5 w-5 text-safet-500 mr-2" />;
+      case 'view_only': return <Eye className="h-5 w-5 text-safet-500 mr-2" />;
+      default: return <Shield className="h-5 w-5 text-safet-500 mr-2" />;
+    }
+  };
+  
+  const getAccessLevelLabel = (level: string) => {
+    switch(level) {
+      case 'full_edit': return 'Full Editing Access';
+      case 'view_comment': return 'View & Comment Only';
+      case 'view_only': return 'View Only';
+      default: return 'Custom Access';
     }
   };
 
@@ -50,18 +68,12 @@ const ProxyInviteEmail: React.FC<ProxyInviteEmailProps> = ({
         
         <div className="bg-white border border-gray-200 rounded-md p-4 my-4">
           <div className="flex items-center mb-2">
-            <Shield className="h-5 w-5 text-safet-500 mr-2" />
+            {getAccessLevelIcon(accessLevel)}
             <h3 className="font-medium">Access Details</h3>
           </div>
           <ul className="pl-8 list-disc space-y-1 text-sm">
             <li>Granted by: {senderName}</li>
-            <li>Access type: {accessLevel === 'full' 
-              ? 'Full Access' 
-              : accessLevel === 'limited' 
-                ? 'Limited Access' 
-                : accessLevel === 'emergency'
-                  ? 'Emergency Only'
-                  : 'Custom Access'}</li>
+            <li>Access type: {getAccessLevelLabel(accessLevel)}</li>
             <li>You will need to create an account to access this information</li>
           </ul>
         </div>
