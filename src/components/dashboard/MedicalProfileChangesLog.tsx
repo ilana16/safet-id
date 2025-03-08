@@ -73,8 +73,9 @@ const MedicalProfileChangesLog = () => {
           {uniqueSections.length > 0 && (
             <div className="flex gap-2 overflow-x-auto pb-2 max-w-[60%]">
               <Badge 
+                clickable
                 variant="outline" 
-                className={!filter ? 'bg-gray-100' : 'hover:bg-gray-100 cursor-pointer'}
+                className={!filter ? 'bg-gray-100' : 'hover:bg-gray-100'}
                 onClick={() => setFilter(null)}
               >
                 All
@@ -82,8 +83,9 @@ const MedicalProfileChangesLog = () => {
               {uniqueSections.map(section => (
                 <Badge 
                   key={section}
+                  clickable
                   variant="outline" 
-                  className={`${filter === section ? sectionColors[section] : ''} hover:bg-gray-100 cursor-pointer whitespace-nowrap`}
+                  className={`${filter === section ? sectionColors[section] : ''} hover:bg-gray-100 whitespace-nowrap`}
                   onClick={() => setFilter(section)}
                 >
                   {getSectionDisplayName(section)}

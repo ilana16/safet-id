@@ -16,6 +16,17 @@ export const logChanges = (section: string, changes: {field: string; oldValue: a
   // Only log if there are actual changes
   if (changes.length === 0) return;
   
+  const filteredChanges = changes.filter(change => {
+    // Skip if the values are the same
+    if (JSON.stringify(change.oldValue) === JSON.stringify(change.newValue)) {
+      return false;
+    }
+    return true;
+  });
+  
+  // Exit if no changes after filtering
+  if (filteredChanges.length === 0) return;
+  
   // Get existing logs
   const existingLogs = JSON.parse(localStorage.getItem('medicalProfileChangeLogs') || '[]');
   
@@ -23,7 +34,7 @@ export const logChanges = (section: string, changes: {field: string; oldValue: a
   const newEntry: ChangeLogEntry = {
     section,
     timestamp: new Date().toISOString(),
-    changes
+    changes: filteredChanges
   };
   
   // Add new log entry
@@ -31,6 +42,9 @@ export const logChanges = (section: string, changes: {field: string; oldValue: a
   
   // Store in localStorage
   localStorage.setItem('medicalProfileChangeLogs', JSON.stringify(updatedLogs));
+  
+  // Log for debugging
+  console.log('Changes logged:', newEntry);
 };
 
 /**
@@ -38,4 +52,12 @@ export const logChanges = (section: string, changes: {field: string; oldValue: a
  */
 export const getChangeLogs = (): ChangeLogEntry[] => {
   return JSON.parse(localStorage.getItem('medicalProfileChangeLogs') || '[]');
+};
+
+/**
+ * Clear all change logs (useful for testing)
+ */
+export const clearChangeLogs = (): void => {
+  localStorage.removeItem('medicalProfileChangeLogs');
+  console.log('Change logs cleared');
 };
