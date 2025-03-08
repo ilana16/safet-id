@@ -7,6 +7,7 @@ import { Toaster } from 'sonner';
 import Register from './pages/Register';
 import MedicalProfileForm from './pages/MedicalProfileForm';
 import ViewOnly from './pages/ViewOnly';
+import MedicalRecordView from './pages/MedicalRecordView';
 
 function App() {
   return (
@@ -18,6 +19,7 @@ function App() {
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/profile/edit/:section?" element={<MedicalProfileForm />} />
           <Route path="/profile/edit" element={<MedicalProfileForm />} />
+          <Route path="/profile/view" element={<MedicalRecordView />} />
           <Route path="/view/:userId" element={<ViewOnly />} />
           <Route path="/view/:userId/:accessCode" element={<ViewOnly />} />
           <Route path="*" element={<NotFound />} />
