@@ -1,11 +1,10 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ShieldCheck, Lock, AlertTriangle } from 'lucide-react';
 import { validateAccessCode } from '@/utils/accessCode';
-import { toast } from '@/components/ui/sonner';
+import { toast } from '@/lib/toast';
 
 interface UserData {
   id: string;

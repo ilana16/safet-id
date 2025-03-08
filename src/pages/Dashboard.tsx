@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { generateQRCodeUrl } from '@/utils/qrcode';
-import { toast } from '@/components/ui/sonner';
+import { toast } from '@/lib/toast';
 import { User, QrCode, ClipboardCheck, Share2, Users, Settings } from 'lucide-react';
 
 interface UserData {
