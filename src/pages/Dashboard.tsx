@@ -6,6 +6,7 @@ import { generateQRCodeUrl } from '@/utils/qrcode';
 import UserProfileCard from '@/components/dashboard/UserProfileCard';
 import QRCodeCard from '@/components/dashboard/QRCodeCard';
 import DashboardTabs from '@/components/dashboard/DashboardTabs';
+import { toast } from '@/lib/toast';
 
 interface UserData {
   id: string;
@@ -21,11 +22,15 @@ const Dashboard = () => {
   const [user, setUser] = useState<UserData | null>(null);
   const [qrCodeUrl, setQrCodeUrl] = useState<string>('');
   const [completionPercentage, setCompletionPercentage] = useState<number>(0);
+  const [isLoading, setIsLoading] = useState(true);
   
   useEffect(() => {
     // Check if user is logged in
+    const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
     const storedUser = localStorage.getItem('user');
-    if (!storedUser) {
+    
+    if (!isLoggedIn || !storedUser) {
+      toast.error('Please login to access the dashboard');
       navigate('/login');
       return;
     }
@@ -43,14 +48,27 @@ const Dashboard = () => {
     // In a real app, this would check actual profile data
     const hasProfile = localStorage.getItem('medicalProfile');
     setCompletionPercentage(hasProfile ? 85 : 15);
+    setIsLoading(false);
   }, [navigate]);
+
+  if (isLoading) {
+    return (
+      <PageLayout className="bg-gray-50">
+        <div className="max-w-7xl mx-auto px-4 py-12">
+          <div className="flex justify-center items-center h-64">
+            <div className="animate-pulse text-gray-400">Loading...</div>
+          </div>
+        </div>
+      </PageLayout>
+    );
+  }
 
   if (!user) {
     return (
       <PageLayout className="bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 py-12">
           <div className="flex justify-center items-center h-64">
-            <div className="animate-pulse text-gray-400">Loading...</div>
+            <div className="text-gray-400">User not found</div>
           </div>
         </div>
       </PageLayout>

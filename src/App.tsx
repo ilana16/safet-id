@@ -5,6 +5,7 @@ import Dashboard from './pages/Dashboard';
 import NotFound from './pages/NotFound';
 import { Toaster } from 'sonner';
 import Register from './pages/Register';
+import Login from './pages/Login';
 import MedicalProfileForm from './pages/MedicalProfileForm';
 import ViewOnly from './pages/ViewOnly';
 import MedicalRecordView from './pages/MedicalRecordView';
@@ -16,6 +17,7 @@ function App() {
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/login" element={<Login />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/profile/edit/:section?" element={<MedicalProfileForm />} />
           <Route path="/profile/edit" element={<MedicalProfileForm />} />

@@ -1,13 +1,28 @@
 
-import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { User, LogIn } from 'lucide-react';
+import { User, LogIn, LogOut } from 'lucide-react';
 import Logo from '@/components/ui/Logo';
+import { toast } from '@/lib/toast';
 
 const Header = () => {
   const location = useLocation();
-  const isAuthenticated = localStorage.getItem('user') !== null;
+  const navigate = useNavigate();
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  useEffect(() => {
+    // Check authentication status whenever location changes
+    const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
+    setIsAuthenticated(isLoggedIn);
+  }, [location]);
+
+  const handleLogout = () => {
+    localStorage.setItem('isLoggedIn', 'false');
+    setIsAuthenticated(false);
+    toast.success('Successfully logged out');
+    navigate('/');
+  };
 
   return (
     <header className="w-full py-4 bg-white bg-opacity-80 backdrop-blur-md border-b border-gray-100 fixed top-0 z-50">
@@ -50,15 +65,25 @@ const Header = () => {
           
           <div className="flex items-center space-x-4">
             {isAuthenticated ? (
-              <Link to="/dashboard">
+              <>
+                <Link to="/dashboard">
+                  <Button 
+                    variant="ghost" 
+                    className="flex items-center space-x-2 hover:bg-safet-50"
+                  >
+                    <User className="h-5 w-5 text-safet-500" />
+                    <span className="text-sm font-medium">Dashboard</span>
+                  </Button>
+                </Link>
                 <Button 
                   variant="ghost" 
                   className="flex items-center space-x-2 hover:bg-safet-50"
+                  onClick={handleLogout}
                 >
-                  <User className="h-5 w-5 text-safet-500" />
-                  <span className="text-sm font-medium">Dashboard</span>
+                  <LogOut className="h-5 w-5 text-safet-500" />
+                  <span className="text-sm font-medium">Logout</span>
                 </Button>
-              </Link>
+              </>
             ) : (
               <>
                 <Link to="/login">
