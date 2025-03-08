@@ -24,9 +24,6 @@ const MedicalProfileAllergiesForm = () => {
     otherVaccine?: string
   }>>([]);
   
-  // State for additional notes
-  const [additionalNotes, setAdditionalNotes] = useState('');
-  
   // Handler for allergies
   const handleAddAllergy = () => {
     setAllergies([...allergies, { allergen: '', reaction: '', severity: '' }]);
@@ -227,22 +224,6 @@ const MedicalProfileAllergiesForm = () => {
         >
           <Plus className="h-4 w-4 mr-1" /> Add Immunization
         </Button>
-      </div>
-      
-      <div>
-        <h3 className="text-lg font-medium mb-4">Additional Notes</h3>
-        <p className="text-sm text-gray-600 mb-2">Any other relevant information about allergies or immunization history.</p>
-        
-        <div className="space-y-2">
-          <Label htmlFor="allergy-notes">Notes</Label>
-          <Textarea
-            id="allergy-notes"
-            placeholder="Additional information to share with healthcare providers"
-            className="w-full"
-            value={additionalNotes}
-            onChange={(e) => setAdditionalNotes(e.target.value)}
-          />
-        </div>
       </div>
     </div>
   );
