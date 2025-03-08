@@ -35,6 +35,9 @@ const MedicalProfileHistoryForm = () => {
   const [bloodType, setBloodType] = useState('');
   const [lastPhysicalDate, setLastPhysicalDate] = useState<Date | undefined>(undefined);
   
+  const [otherMentalHealthCondition, setOtherMentalHealthCondition] = useState('');
+  const [otherMentalHealthConditions, setOtherMentalHealthConditions] = useState<string[]>([]);
+
   const commonConditions = [
     "Hypertension (High Blood Pressure)",
     "Diabetes",
@@ -146,6 +149,13 @@ const MedicalProfileHistoryForm = () => {
 
   const handleRemoveDiagnosis = (index: number) => {
     setPreviousDiagnoses(previousDiagnoses.filter((_, i) => i !== index));
+  };
+
+  const handleAddOtherMentalHealthCondition = () => {
+    if (otherMentalHealthCondition.trim() !== '') {
+      setOtherMentalHealthConditions([...otherMentalHealthConditions, otherMentalHealthCondition.trim()]);
+      setOtherMentalHealthCondition('');
+    }
   };
 
   return (
@@ -476,6 +486,38 @@ const MedicalProfileHistoryForm = () => {
               </Label>
             </div>
           ))}
+        </div>
+        
+        <div className="mt-4">
+          <Label htmlFor="other-mental-condition" className="text-sm">Other condition not listed:</Label>
+          <div className="flex gap-2 mt-1">
+            <Input 
+              id="other-mental-condition" 
+              value={otherMentalHealthCondition}
+              onChange={(e) => setOtherMentalHealthCondition(e.target.value)}
+              placeholder="Enter other mental health condition"
+              className="flex-grow"
+            />
+            <Button 
+              type="button" 
+              onClick={handleAddOtherMentalHealthCondition}
+              disabled={!otherMentalHealthCondition.trim()}
+              size="sm"
+            >
+              <Plus className="h-4 w-4 mr-1" /> Add
+            </Button>
+          </div>
+          
+          {otherMentalHealthConditions.length > 0 && (
+            <div className="mt-2 space-y-1">
+              <p className="text-sm font-medium text-gray-700">Added conditions:</p>
+              <ul className="text-sm pl-5 list-disc space-y-1">
+                {otherMentalHealthConditions.map((condition, index) => (
+                  <li key={index}>{condition}</li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
       </div>
       
