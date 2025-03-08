@@ -255,14 +255,6 @@ const MedicalProfileMentalHealthForm = () => {
                 </div>
               </div>
             ))}
-            
-            <div className="space-y-2">
-              <Label htmlFor="currentMedications">Current Psychiatric Medications</Label>
-              <Textarea 
-                id="currentMedications" 
-                placeholder="List any current psychiatric medications, including dosage and frequency (or note 'None')"
-              />
-            </div>
           </div>
         )}
       </div>
