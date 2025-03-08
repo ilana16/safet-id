@@ -32,16 +32,6 @@ const SettingsTab: React.FC = () => {
           </div>
         </div>
         
-        <div className="pb-4 border-b border-gray-100">
-          <h3 className="text-sm font-medium text-gray-900 mb-2">Access Code</h3>
-          <p className="text-xs text-gray-600 mb-3">Reset your 5-digit access code</p>
-          <div className="flex items-center">
-            <Button size="sm" variant="outline" className="text-xs">
-              Reset Code
-            </Button>
-          </div>
-        </div>
-        
         <div>
           <h3 className="text-sm font-medium text-gray-900 mb-2">Delete Account</h3>
           <p className="text-xs text-gray-600 mb-3">Permanently remove your account and all associated data</p>
