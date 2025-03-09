@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Save } from 'lucide-react';
 import MedicalProfilePersonalForm from '@/components/forms/MedicalProfilePersonalForm';
@@ -8,6 +8,23 @@ import { logChanges } from '@/utils/changeLog';
 
 const PersonalSection = () => {
   const [isSaving, setIsSaving] = useState(false);
+  
+  // Load saved data when component mounts
+  useEffect(() => {
+    try {
+      const savedProfileJson = localStorage.getItem('medicalProfile');
+      if (savedProfileJson) {
+        const savedProfile = JSON.parse(savedProfileJson);
+        if (savedProfile && savedProfile.personal) {
+          // Make the data available to the form via window object
+          (window as any).personalFormData = savedProfile.personal;
+          console.log('Setting personal form data in window object:', savedProfile.personal);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading personal profile data:', error);
+    }
+  }, []);
   
   const handleSave = () => {
     setIsSaving(true);
