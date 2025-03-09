@@ -52,7 +52,7 @@ const MedicalProfile = () => {
 
   return (
     <PageLayout className="bg-gray-50">
-      <div className="max-w-3xl mx-auto px-4 py-8">
+      <div className="max-w-5xl mx-auto px-4 py-8">
         <div className="mb-6">
           <Button 
             variant="ghost" 
@@ -71,10 +71,15 @@ const MedicalProfile = () => {
           </p>
         </div>
 
-        <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-          <div className="border-b border-gray-200 overflow-x-auto">
-            <Tabs value={currentSection} onValueChange={handleTabChange} className="w-full">
-              <TabsList className="flex flex-nowrap min-w-full h-auto p-0 bg-transparent border-b border-gray-200 overflow-x-auto">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="md:col-span-1 bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+            <Tabs 
+              value={currentSection} 
+              onValueChange={handleTabChange} 
+              orientation="vertical" 
+              className="w-full"
+            >
+              <TabsList className="flex flex-col w-full h-auto p-0 bg-transparent space-y-1">
                 {sections
                   .filter(section => 
                     !(section.id === 'mental' && hasMentalHealthHistory === 'no')
@@ -83,7 +88,7 @@ const MedicalProfile = () => {
                     <TabsTrigger
                       key={section.id}
                       value={section.id}
-                      className="flex-shrink-0 whitespace-nowrap rounded-none border-b-2 border-transparent data-[state=active]:border-safet-500 data-[state=active]:text-safet-700 h-10 px-4 py-2"
+                      className="w-full justify-start text-left px-4 py-3 border-l-2 border-transparent data-[state=active]:border-l-safet-500 data-[state=active]:bg-safet-50 data-[state=active]:text-safet-700"
                     >
                       {section.label}
                     </TabsTrigger>
@@ -93,8 +98,10 @@ const MedicalProfile = () => {
             </Tabs>
           </div>
           
-          <div className="p-6">
-            <Outlet />
+          <div className="md:col-span-3 bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+            <div className="p-6">
+              <Outlet />
+            </div>
           </div>
         </div>
       </div>
