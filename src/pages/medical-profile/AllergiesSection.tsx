@@ -15,8 +15,9 @@ const AllergiesSection = () => {
       const sessionData = sessionStorage.getItem('allergiesFormData');
       if (sessionData) {
         try {
-          (window as any).allergiesFormData = JSON.parse(sessionData);
-          console.log('Setting allergies form data from session storage:', JSON.parse(sessionData));
+          const parsedData = JSON.parse(sessionData);
+          (window as any).allergiesFormData = parsedData;
+          console.log('Setting allergies form data from session storage:', parsedData);
           return;
         } catch (e) {
           console.error('Error parsing session data:', e);
@@ -53,6 +54,17 @@ const AllergiesSection = () => {
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, []);
+  
+  // Save form data when component unmounts
+  useEffect(() => {
+    return () => {
+      const currentFormData = (window as any).allergiesFormData;
+      if (currentFormData) {
+        sessionStorage.setItem('allergiesFormData', JSON.stringify(currentFormData));
+        console.log('Saving allergies form data to session storage on unmount:', currentFormData);
+      }
     };
   }, []);
   

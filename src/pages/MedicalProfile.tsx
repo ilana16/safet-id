@@ -54,6 +54,25 @@ const MedicalProfile = () => {
     }
   }, [location.pathname]);
 
+  // Update window object with the current section's form data to make it available for the forms
+  useEffect(() => {
+    if (Object.keys(profileData).length === 0) return;
+    
+    const currentSectionData = (profileData as any)[currentSection];
+    if (!currentSectionData) return;
+    
+    const formDataKey = getCurrentSectionWindowKey(currentSection);
+    
+    console.log(`Setting ${currentSection} form data in window object:`, currentSectionData);
+    
+    // Set the data in the window object
+    (window as any)[formDataKey] = { ...currentSectionData };
+    
+    // Additionally save to sessionStorage for persistence during page refreshes
+    sessionStorage.setItem(formDataKey, JSON.stringify(currentSectionData));
+    
+  }, [currentSection, profileData]);
+
   const saveCurrentSectionData = () => {
     const formDataKey = getCurrentSectionWindowKey(currentSection);
     console.log(`Attempting to save data for section: ${currentSection}, using key: ${formDataKey}`);
@@ -80,7 +99,10 @@ const MedicalProfile = () => {
           currentSection === 'social' || 
           currentSection === 'reproductive' || 
           currentSection === 'mental' || 
-          currentSection === 'functional') {
+          currentSection === 'functional' ||
+          currentSection === 'cultural' ||
+          currentSection === 'preventative' ||
+          currentSection === 'allergies') {
         
         Object.keys(currentFormData).forEach(key => {
           const oldValue = existingSectionData[key];
@@ -126,6 +148,7 @@ const MedicalProfile = () => {
       }
       
       setIsSaving(false);
+      setProfileData(updatedProfile); // Update the local state to reflect the changes
       return true;
     } catch (error) {
       console.error(`Error auto-saving ${currentSection} data:`, error);
@@ -168,25 +191,6 @@ const MedicalProfile = () => {
     const sectionObj = sections.find(s => s.id === section);
     return sectionObj ? sectionObj.label : 'Section';
   };
-
-  // Update window object with the current section's form data to make it available for the forms
-  useEffect(() => {
-    if (Object.keys(profileData).length === 0) return;
-    
-    const currentSectionData = (profileData as any)[currentSection];
-    if (!currentSectionData) return;
-    
-    const formDataKey = getCurrentSectionWindowKey(currentSection);
-    
-    console.log(`Setting ${currentSection} form data in window object:`, currentSectionData);
-    
-    // Set the data in the window object
-    (window as any)[formDataKey] = { ...currentSectionData };
-    
-    // Additionally save to sessionStorage for persistence during page refreshes
-    sessionStorage.setItem(formDataKey, JSON.stringify(currentSectionData));
-    
-  }, [currentSection, profileData]);
 
   // Listen for beforeunload event to save data when leaving the page
   useEffect(() => {

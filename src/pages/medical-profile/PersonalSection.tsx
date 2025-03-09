@@ -16,8 +16,9 @@ const PersonalSection = () => {
       const sessionData = sessionStorage.getItem('personalFormData');
       if (sessionData) {
         try {
-          (window as any).personalFormData = JSON.parse(sessionData);
-          console.log('Setting personal form data from session storage:', JSON.parse(sessionData));
+          const parsedData = JSON.parse(sessionData);
+          (window as any).personalFormData = parsedData;
+          console.log('Setting personal form data from session storage:', parsedData);
           return;
         } catch (e) {
           console.error('Error parsing session data:', e);
@@ -55,6 +56,17 @@ const PersonalSection = () => {
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, []);
+  
+  // Save form data when component unmounts
+  useEffect(() => {
+    return () => {
+      const currentFormData = (window as any).personalFormData;
+      if (currentFormData) {
+        sessionStorage.setItem('personalFormData', JSON.stringify(currentFormData));
+        console.log('Saving personal form data to session storage on unmount:', currentFormData);
+      }
     };
   }, []);
   
