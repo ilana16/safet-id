@@ -99,7 +99,7 @@ const MentalSection = () => {
 
   return (
     <div>
-      <MedicalProfileMentalHealthForm />
+      <MedicalProfileMentalHealthForm initialData={(window as any).mentalHealthFormData} />
       
       <div className="mt-8 flex justify-end gap-3">
         <Button 

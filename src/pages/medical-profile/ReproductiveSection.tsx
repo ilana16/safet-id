@@ -82,7 +82,7 @@ const ReproductiveSection = () => {
 
   return (
     <div>
-      <MedicalProfileReproductiveHistoryForm />
+      <MedicalProfileReproductiveHistoryForm initialData={(window as any).reproductiveHistoryFormData} />
       
       <div className="mt-8 flex justify-end gap-3">
         <Button 

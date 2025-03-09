@@ -82,7 +82,7 @@ const MedicationsSection = () => {
 
   return (
     <div>
-      <MedicalProfileMedicationsForm />
+      <MedicalProfileMedicationsForm initialData={(window as any).medicationsFormData} />
       
       <div className="mt-8 flex justify-end gap-3">
         <Button 

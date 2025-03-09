@@ -34,6 +34,13 @@ const HistorySection = () => {
   
   const handleMentalHealthHistoryChange = (value: string) => {
     setHasMentalHealthHistory(value);
+    
+    // Also update the window object with the new value
+    if ((window as any).historyFormData) {
+      (window as any).historyFormData.hasMentalHealthHistory = value;
+    } else {
+      (window as any).historyFormData = { hasMentalHealthHistory: value };
+    }
   };
   
   const handleSave = () => {
@@ -44,7 +51,10 @@ const HistorySection = () => {
       const existingProfile = existingProfileJson ? JSON.parse(existingProfileJson) : {};
       const existingSectionData = existingProfile.history || {};
       
+      // Get form data from window object
       let newFormData = (window as any).historyFormData || {};
+      
+      // Ensure mental health history is included
       newFormData.hasMentalHealthHistory = hasMentalHealthHistory;
       
       console.log('Saving history form data:', newFormData);
@@ -67,8 +77,7 @@ const HistorySection = () => {
           history: {
             ...newFormData,
             completed: true,
-            lastUpdated: new Date().toISOString(),
-            hasMentalHealthHistory
+            lastUpdated: new Date().toISOString()
           }
         };
         
@@ -91,7 +100,10 @@ const HistorySection = () => {
 
   return (
     <div>
-      <MedicalProfileHistoryForm onMentalHealthHistoryChange={handleMentalHealthHistoryChange} />
+      <MedicalProfileHistoryForm 
+        onMentalHealthHistoryChange={handleMentalHealthHistoryChange}
+        initialData={(window as any).historyFormData}
+      />
       
       <div className="mt-8 flex justify-end gap-3">
         <Button 

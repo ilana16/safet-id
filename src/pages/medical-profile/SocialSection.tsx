@@ -82,7 +82,7 @@ const SocialSection = () => {
 
   return (
     <div>
-      <MedicalProfileSocialHistoryForm />
+      <MedicalProfileSocialHistoryForm initialData={(window as any).socialHistoryFormData} />
       
       <div className="mt-8 flex justify-end gap-3">
         <Button 
