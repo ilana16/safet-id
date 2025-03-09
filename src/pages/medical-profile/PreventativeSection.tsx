@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Save } from 'lucide-react';
 import MedicalProfilePreventativeCareForm from '@/components/forms/MedicalProfilePreventativeCareForm';
@@ -8,6 +8,23 @@ import { logChanges } from '@/utils/changeLog';
 
 const PreventativeSection = () => {
   const [isSaving, setIsSaving] = useState(false);
+  
+  // Load saved data when component mounts
+  useEffect(() => {
+    try {
+      const savedProfileJson = localStorage.getItem('medicalProfile');
+      if (savedProfileJson) {
+        const savedProfile = JSON.parse(savedProfileJson);
+        if (savedProfile && savedProfile.preventative) {
+          // Make the data available to the form via window object
+          (window as any).preventativeCareFormData = savedProfile.preventative;
+          console.log('Setting preventative care form data in window object:', savedProfile.preventative);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading preventative care data:', error);
+    }
+  }, []);
   
   const handleSave = () => {
     setIsSaving(true);

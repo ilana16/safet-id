@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Save } from 'lucide-react';
 import MedicalProfileAllergiesForm from '@/components/forms/MedicalProfileAllergiesForm';
@@ -8,6 +8,23 @@ import { logChanges } from '@/utils/changeLog';
 
 const AllergiesSection = () => {
   const [isSaving, setIsSaving] = useState(false);
+  
+  // Load saved data when component mounts
+  useEffect(() => {
+    try {
+      const savedProfileJson = localStorage.getItem('medicalProfile');
+      if (savedProfileJson) {
+        const savedProfile = JSON.parse(savedProfileJson);
+        if (savedProfile && savedProfile.allergies) {
+          // Make the data available to the form via window object
+          (window as any).allergiesFormData = savedProfile.allergies;
+          console.log('Setting allergies form data in window object:', savedProfile.allergies);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading allergies profile data:', error);
+    }
+  }, []);
   
   const handleSave = () => {
     setIsSaving(true);

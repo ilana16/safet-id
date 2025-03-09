@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Save } from 'lucide-react';
 import MedicalProfileFunctionalStatusForm from '@/components/forms/MedicalProfileFunctionalStatusForm';
@@ -8,6 +8,23 @@ import { logChanges } from '@/utils/changeLog';
 
 const FunctionalSection = () => {
   const [isSaving, setIsSaving] = useState(false);
+  
+  // Load saved data when component mounts
+  useEffect(() => {
+    try {
+      const savedProfileJson = localStorage.getItem('medicalProfile');
+      if (savedProfileJson) {
+        const savedProfile = JSON.parse(savedProfileJson);
+        if (savedProfile && savedProfile.functional) {
+          // Make the data available to the form via window object
+          (window as any).functionalStatusFormData = savedProfile.functional;
+          console.log('Setting functional status form data in window object:', savedProfile.functional);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading functional status data:', error);
+    }
+  }, []);
   
   const handleSave = () => {
     setIsSaving(true);

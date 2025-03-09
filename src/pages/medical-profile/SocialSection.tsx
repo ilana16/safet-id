@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Save } from 'lucide-react';
 import MedicalProfileSocialHistoryForm from '@/components/forms/MedicalProfileSocialHistoryForm';
@@ -8,6 +8,23 @@ import { logChanges } from '@/utils/changeLog';
 
 const SocialSection = () => {
   const [isSaving, setIsSaving] = useState(false);
+  
+  // Load saved data when component mounts
+  useEffect(() => {
+    try {
+      const savedProfileJson = localStorage.getItem('medicalProfile');
+      if (savedProfileJson) {
+        const savedProfile = JSON.parse(savedProfileJson);
+        if (savedProfile && savedProfile.social) {
+          // Make the data available to the form via window object
+          (window as any).socialHistoryFormData = savedProfile.social;
+          console.log('Setting social history form data in window object:', savedProfile.social);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading social history data:', error);
+    }
+  }, []);
   
   const handleSave = () => {
     setIsSaving(true);

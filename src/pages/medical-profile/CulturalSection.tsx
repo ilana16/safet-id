@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Save } from 'lucide-react';
 import MedicalProfileCulturalPreferencesForm from '@/components/forms/MedicalProfileCulturalPreferencesForm';
@@ -8,6 +8,23 @@ import { logChanges } from '@/utils/changeLog';
 
 const CulturalSection = () => {
   const [isSaving, setIsSaving] = useState(false);
+  
+  // Load saved data when component mounts
+  useEffect(() => {
+    try {
+      const savedProfileJson = localStorage.getItem('medicalProfile');
+      if (savedProfileJson) {
+        const savedProfile = JSON.parse(savedProfileJson);
+        if (savedProfile && savedProfile.cultural) {
+          // Make the data available to the form via window object
+          (window as any).culturalPreferencesFormData = savedProfile.cultural;
+          console.log('Setting cultural preferences form data in window object:', savedProfile.cultural);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading cultural preferences data:', error);
+    }
+  }, []);
   
   const handleSave = () => {
     setIsSaving(true);

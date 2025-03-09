@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Save } from 'lucide-react';
 import MedicalProfileHistoryForm from '@/components/forms/MedicalProfileHistoryForm';
@@ -9,6 +9,28 @@ import { logChanges } from '@/utils/changeLog';
 const HistorySection = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [hasMentalHealthHistory, setHasMentalHealthHistory] = useState('no');
+  
+  // Load saved data when component mounts
+  useEffect(() => {
+    try {
+      const savedProfileJson = localStorage.getItem('medicalProfile');
+      if (savedProfileJson) {
+        const savedProfile = JSON.parse(savedProfileJson);
+        if (savedProfile && savedProfile.history) {
+          // Make the data available to the form via window object
+          (window as any).historyFormData = savedProfile.history;
+          console.log('Setting history form data in window object:', savedProfile.history);
+          
+          // Also update local state for mental health history
+          if (savedProfile.history.hasMentalHealthHistory) {
+            setHasMentalHealthHistory(savedProfile.history.hasMentalHealthHistory);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error loading history data:', error);
+    }
+  }, []);
   
   const handleMentalHealthHistoryChange = (value: string) => {
     setHasMentalHealthHistory(value);

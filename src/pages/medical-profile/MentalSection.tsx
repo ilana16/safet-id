@@ -27,8 +27,15 @@ const MentalSection = () => {
           navigate('/profile/functional');
         }
       }
+      
+      // Load mental health data if available
+      if (savedProfile && savedProfile.mental) {
+        // Make the data available to the form via window object
+        (window as any).mentalHealthFormData = savedProfile.mental;
+        console.log('Setting mental health form data in window object:', savedProfile.mental);
+      }
     } catch (error) {
-      console.error('Error checking mental health history status:', error);
+      console.error('Error loading mental health data:', error);
     }
   }, [navigate]);
   
