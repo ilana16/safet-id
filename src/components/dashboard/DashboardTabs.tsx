@@ -12,22 +12,22 @@ interface DashboardTabsProps {
 const DashboardTabs: React.FC<DashboardTabsProps> = ({ completionPercentage }) => {
   return (
     <Tabs defaultValue="profile" className="w-full">
-      <TabsList className="w-full bg-white border-b border-gray-200 rounded-t-lg px-3 h-14">
+      <TabsList className="w-full flex bg-white border-b border-gray-200 rounded-t-lg px-3 h-14">
         <TabsTrigger 
           value="profile" 
-          className="data-[state=active]:bg-safet-50 data-[state=active]:text-safet-900 data-[state=active]:shadow-none rounded-md px-4"
+          className="flex-1 data-[state=active]:bg-safet-50 data-[state=active]:text-safet-900 data-[state=active]:shadow-none rounded-md px-4"
         >
           Medical Profile
         </TabsTrigger>
         <TabsTrigger 
           value="proxy" 
-          className="data-[state=active]:bg-safet-50 data-[state=active]:text-safet-900 data-[state=active]:shadow-none rounded-md px-4"
+          className="flex-1 data-[state=active]:bg-safet-50 data-[state=active]:text-safet-900 data-[state=active]:shadow-none rounded-md px-4"
         >
           Proxy Access
         </TabsTrigger>
         <TabsTrigger 
           value="settings" 
-          className="data-[state=active]:bg-safet-50 data-[state=active]:text-safet-900 data-[state=active]:shadow-none rounded-md px-4"
+          className="flex-1 data-[state=active]:bg-safet-50 data-[state=active]:text-safet-900 data-[state=active]:shadow-none rounded-md px-4"
         >
           Settings
         </TabsTrigger>

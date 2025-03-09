@@ -74,7 +74,7 @@ const MedicalProfile = () => {
         <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
           <div className="border-b border-gray-200 overflow-x-auto">
             <Tabs value={currentSection} onValueChange={handleTabChange} className="w-full">
-              <TabsList className="inline-flex w-full h-auto p-0 bg-transparent border-b border-gray-200">
+              <TabsList className="flex flex-nowrap min-w-full h-auto p-0 bg-transparent border-b border-gray-200 overflow-x-auto">
                 {sections
                   .filter(section => 
                     !(section.id === 'mental' && hasMentalHealthHistory === 'no')
@@ -83,7 +83,7 @@ const MedicalProfile = () => {
                     <TabsTrigger
                       key={section.id}
                       value={section.id}
-                      className="rounded-none border-b-2 border-transparent data-[state=active]:border-safet-500 data-[state=active]:text-safet-700 h-10 px-4 py-2"
+                      className="flex-shrink-0 whitespace-nowrap rounded-none border-b-2 border-transparent data-[state=active]:border-safet-500 data-[state=active]:text-safet-700 h-10 px-4 py-2"
                     >
                       {section.label}
                     </TabsTrigger>
