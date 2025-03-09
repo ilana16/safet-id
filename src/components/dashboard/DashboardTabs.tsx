@@ -4,6 +4,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import MedicalProfileTab from './MedicalProfileTab';
 import ProxyAccessTab from './ProxyAccessTab';
 import SettingsTab from './SettingsTab';
+import { User } from 'lucide-react';
+import UserProfileCard from './UserProfileCard';
 
 interface DashboardTabsProps {
   completionPercentage: number;
