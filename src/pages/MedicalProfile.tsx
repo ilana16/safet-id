@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import PageLayout from '@/components/layout/PageLayout';
@@ -22,6 +23,7 @@ const MedicalProfile = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [hasMentalHealthHistory, setHasMentalHealthHistory] = useState('no');
+  const [profileData, setProfileData] = useState({});
   
   const pathParts = location.pathname.split('/');
   const currentSection = pathParts[pathParts.length - 1];
@@ -32,19 +34,54 @@ const MedicalProfile = () => {
       if (!savedProfileJson) return;
       
       const savedProfile = JSON.parse(savedProfileJson);
-      console.log('Loaded profile data for tab navigation:', savedProfile);
+      console.log('Loaded profile data for all sections:', savedProfile);
+      
+      // Store all sections data
+      setProfileData(savedProfile);
       
       if (savedProfile && savedProfile.history && savedProfile.history.hasMentalHealthHistory) {
         setHasMentalHealthHistory(savedProfile.history.hasMentalHealthHistory);
       }
     } catch (error) {
-      console.error('Error loading mental health history setting:', error);
+      console.error('Error loading medical profile data:', error);
     }
   }, []);
 
   const handleTabChange = (value: string) => {
     navigate(`/profile/${value}`);
   };
+
+  // Update window object with the current section's form data to make it available for the forms
+  useEffect(() => {
+    if (Object.keys(profileData).length === 0) return;
+    
+    const currentSectionData = (profileData as any)[currentSection];
+    if (!currentSectionData) return;
+    
+    console.log(`Setting ${currentSection} form data in window object:`, currentSectionData);
+    
+    if (currentSection === 'personal') {
+      (window as any).personalFormData = { ...currentSectionData };
+    } else if (currentSection === 'history') {
+      (window as any).historyFormData = { ...currentSectionData };
+    } else if (currentSection === 'medications') {
+      (window as any).medicationsFormData = { ...currentSectionData };
+    } else if (currentSection === 'allergies') {
+      (window as any).allergiesFormData = { ...currentSectionData };
+    } else if (currentSection === 'social') {
+      (window as any).socialHistoryFormData = { ...currentSectionData };
+    } else if (currentSection === 'reproductive') {
+      (window as any).reproductiveHistoryFormData = { ...currentSectionData };
+    } else if (currentSection === 'mental') {
+      (window as any).mentalHealthFormData = { ...currentSectionData };
+    } else if (currentSection === 'functional') {
+      (window as any).functionalStatusFormData = { ...currentSectionData };
+    } else if (currentSection === 'cultural') {
+      (window as any).culturalPreferencesFormData = { ...currentSectionData };
+    } else if (currentSection === 'preventative') {
+      (window as any).preventativeCareFormData = { ...currentSectionData };
+    }
+  }, [currentSection, profileData]);
 
   return (
     <PageLayout className="bg-gray-50">
