@@ -18,54 +18,71 @@ const MedicalProfileCulturalPreferencesForm = () => {
   const [dietaryRestrictions, setDietaryRestrictions] = useState<string>('');
   const [additionalNotes, setAdditionalNotes] = useState<string>('');
 
-  // Load saved data on component mount
+  // Load saved data on component mount and when route changes
   useEffect(() => {
-    try {
-      // First check if data is available in the window object (from parent component)
-      if ((window as any).culturalPreferencesFormData) {
-        const culturalData = (window as any).culturalPreferencesFormData;
-        
-        setReligion(culturalData.religion || '');
-        setOtherReligion(culturalData.otherReligion || '');
-        setCulturalConsiderations(culturalData.culturalConsiderations || '');
-        setFamilyInvolvement(culturalData.familyInvolvement === 'true' || false);
-        setReligiousLeader(culturalData.religiousLeader === 'true' || false);
-        setLanguagePreferences(culturalData.languagePreferences || 'english');
-        setInterpreterNeeded(culturalData.interpreterNeeded || 'no');
-        setDietaryRestrictions(culturalData.dietaryRestrictions || '');
-        setAdditionalNotes(culturalData.additionalNotes || '');
-        
-        console.log('Loaded cultural preferences from window object:', culturalData);
-      } 
-      // Fallback to localStorage if window object doesn't have the data
-      else {
-        const savedProfile = localStorage.getItem('medicalProfile');
-        
-        if (savedProfile) {
-          const profileData = JSON.parse(savedProfile);
-          if (profileData && profileData.cultural) {
-            const culturalData = profileData.cultural;
-            
-            setReligion(culturalData.religion || '');
-            setOtherReligion(culturalData.otherReligion || '');
-            setCulturalConsiderations(culturalData.culturalConsiderations || '');
-            setFamilyInvolvement(culturalData.familyInvolvement === 'true' || false);
-            setReligiousLeader(culturalData.religiousLeader === 'true' || false);
-            setLanguagePreferences(culturalData.languagePreferences || 'english');
-            setInterpreterNeeded(culturalData.interpreterNeeded || 'no');
-            setDietaryRestrictions(culturalData.dietaryRestrictions || '');
-            setAdditionalNotes(culturalData.additionalNotes || '');
-            
-            console.log('Loaded cultural preferences from localStorage:', culturalData);
+    const loadSavedData = () => {
+      try {
+        console.log('Loading cultural preferences data...');
+        // First check if data is available in the window object (from parent component)
+        if ((window as any).culturalPreferencesFormData) {
+          const culturalData = (window as any).culturalPreferencesFormData;
+          
+          setReligion(culturalData.religion || '');
+          setOtherReligion(culturalData.otherReligion || '');
+          setCulturalConsiderations(culturalData.culturalConsiderations || '');
+          setFamilyInvolvement(culturalData.familyInvolvement === 'true' || false);
+          setReligiousLeader(culturalData.religiousLeader === 'true' || false);
+          setLanguagePreferences(culturalData.languagePreferences || 'english');
+          setInterpreterNeeded(culturalData.interpreterNeeded || 'no');
+          setDietaryRestrictions(culturalData.dietaryRestrictions || '');
+          setAdditionalNotes(culturalData.additionalNotes || '');
+          
+          console.log('Loaded cultural preferences from window object:', culturalData);
+        } 
+        // Fallback to localStorage if window object doesn't have the data
+        else {
+          const savedProfile = localStorage.getItem('medicalProfile');
+          
+          if (savedProfile) {
+            const profileData = JSON.parse(savedProfile);
+            if (profileData && profileData.cultural) {
+              const culturalData = profileData.cultural;
+              
+              setReligion(culturalData.religion || '');
+              setOtherReligion(culturalData.otherReligion || '');
+              setCulturalConsiderations(culturalData.culturalConsiderations || '');
+              setFamilyInvolvement(culturalData.familyInvolvement === 'true' || false);
+              setReligiousLeader(culturalData.religiousLeader === 'true' || false);
+              setLanguagePreferences(culturalData.languagePreferences || 'english');
+              setInterpreterNeeded(culturalData.interpreterNeeded || 'no');
+              setDietaryRestrictions(culturalData.dietaryRestrictions || '');
+              setAdditionalNotes(culturalData.additionalNotes || '');
+              
+              console.log('Loaded cultural preferences from localStorage:', culturalData);
+              
+              // Also update the window object so other components can access it
+              (window as any).culturalPreferencesFormData = culturalData;
+            }
           }
         }
+      } catch (error) {
+        console.error('Error loading cultural preferences data:', error);
       }
-    } catch (error) {
-      console.error('Error loading cultural preferences data:', error);
-    }
+    };
+
+    // Load data when component mounts
+    loadSavedData();
+    
+    // Update when the route changes to ensure data persistence between tabs
+    window.addEventListener('popstate', loadSavedData);
+    
+    return () => {
+      window.removeEventListener('popstate', loadSavedData);
+    };
   }, []);
 
   // Make form data available to the parent component for saving
+  // Update more frequently to ensure data persistence
   useEffect(() => {
     const formData = {
       religion,
@@ -82,9 +99,13 @@ const MedicalProfileCulturalPreferencesForm = () => {
     // Store the current form state in window for the parent component to access
     (window as any).culturalPreferencesFormData = formData;
     
+    // Additionally, store in sessionStorage for route changes
+    sessionStorage.setItem('culturalPreferencesFormData', JSON.stringify(formData));
+    
     return () => {
-      // Clean up when component unmounts
-      delete (window as any).culturalPreferencesFormData;
+      // Don't clean up when component unmounts - we want to persist this data
+      // Only clean up session storage
+      sessionStorage.removeItem('culturalPreferencesFormData');
     };
   }, [
     religion, 

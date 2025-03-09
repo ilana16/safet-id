@@ -28,6 +28,7 @@ const MedicalProfile = () => {
   const pathParts = location.pathname.split('/');
   const currentSection = pathParts[pathParts.length - 1];
 
+  // Load all profile data when component mounts or when location changes
   useEffect(() => {
     try {
       const savedProfileJson = localStorage.getItem('medicalProfile');
@@ -45,10 +46,51 @@ const MedicalProfile = () => {
     } catch (error) {
       console.error('Error loading medical profile data:', error);
     }
-  }, []);
+  }, [location.pathname]);
 
   const handleTabChange = (value: string) => {
+    // Save any current section data to localStorage before navigating
+    const formDataKey = getCurrentSectionWindowKey(currentSection);
+    const currentFormData = (window as any)[formDataKey];
+    
+    if (currentFormData) {
+      console.log(`Saving ${currentSection} data before tab change:`, currentFormData);
+      
+      try {
+        const existingProfileJson = localStorage.getItem('medicalProfile');
+        const existingProfile = existingProfileJson ? JSON.parse(existingProfileJson) : {};
+        
+        localStorage.setItem('medicalProfile', JSON.stringify({
+          ...existingProfile,
+          [currentSection]: {
+            ...currentFormData,
+            lastUpdated: new Date().toISOString()
+          }
+        }));
+      } catch (error) {
+        console.error(`Error saving ${currentSection} data before tab change:`, error);
+      }
+    }
+    
+    // Navigate to the new tab
     navigate(`/profile/${value}`);
+  };
+
+  // Helper function to get the window key for a given section
+  const getCurrentSectionWindowKey = (section: string): string => {
+    switch (section) {
+      case 'personal': return 'personalFormData';
+      case 'history': return 'historyFormData';
+      case 'medications': return 'medicationsFormData';
+      case 'allergies': return 'allergiesFormData';
+      case 'social': return 'socialHistoryFormData';
+      case 'reproductive': return 'reproductiveHistoryFormData';
+      case 'mental': return 'mentalHealthFormData';
+      case 'functional': return 'functionalStatusFormData';
+      case 'cultural': return 'culturalPreferencesFormData';
+      case 'preventative': return 'preventativeCareFormData';
+      default: return '';
+    }
   };
 
   // Update window object with the current section's form data to make it available for the forms
@@ -58,29 +100,16 @@ const MedicalProfile = () => {
     const currentSectionData = (profileData as any)[currentSection];
     if (!currentSectionData) return;
     
+    const formDataKey = getCurrentSectionWindowKey(currentSection);
+    
     console.log(`Setting ${currentSection} form data in window object:`, currentSectionData);
     
-    if (currentSection === 'personal') {
-      (window as any).personalFormData = { ...currentSectionData };
-    } else if (currentSection === 'history') {
-      (window as any).historyFormData = { ...currentSectionData };
-    } else if (currentSection === 'medications') {
-      (window as any).medicationsFormData = { ...currentSectionData };
-    } else if (currentSection === 'allergies') {
-      (window as any).allergiesFormData = { ...currentSectionData };
-    } else if (currentSection === 'social') {
-      (window as any).socialHistoryFormData = { ...currentSectionData };
-    } else if (currentSection === 'reproductive') {
-      (window as any).reproductiveHistoryFormData = { ...currentSectionData };
-    } else if (currentSection === 'mental') {
-      (window as any).mentalHealthFormData = { ...currentSectionData };
-    } else if (currentSection === 'functional') {
-      (window as any).functionalStatusFormData = { ...currentSectionData };
-    } else if (currentSection === 'cultural') {
-      (window as any).culturalPreferencesFormData = { ...currentSectionData };
-    } else if (currentSection === 'preventative') {
-      (window as any).preventativeCareFormData = { ...currentSectionData };
-    }
+    // Set the data in the window object
+    (window as any)[formDataKey] = { ...currentSectionData };
+    
+    // Additionally save to sessionStorage for persistence during page refreshes
+    sessionStorage.setItem(formDataKey, JSON.stringify(currentSectionData));
+    
   }, [currentSection, profileData]);
 
   return (
