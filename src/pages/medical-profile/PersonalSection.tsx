@@ -17,27 +17,46 @@ const PersonalSection = () => {
       const existingProfile = existingProfileJson ? JSON.parse(existingProfileJson) : {};
       const existingSectionData = existingProfile.personal || {};
       
-      let newFormData = (window as any).personalFormData || {};
+      // Get complete form data from window object
+      let windowFormData = (window as any).personalFormData || {};
       
-      console.log('Saving personal form data:', newFormData);
+      console.log('Saving personal form data:', windowFormData);
       
       const changes: {field: string; oldValue: any; newValue: any}[] = [];
       
-      Object.entries(newFormData).forEach(([key, value]) => {
-        if (existingSectionData[key] !== value) {
+      // Track changes in basic form data
+      Object.entries(windowFormData.formData || {}).forEach(([key, value]) => {
+        if (existingSectionData.formData && existingSectionData.formData[key] !== value) {
           changes.push({
             field: key,
-            oldValue: existingSectionData[key],
+            oldValue: existingSectionData.formData ? existingSectionData.formData[key] : undefined,
             newValue: value
           });
         }
       });
       
+      // Track unit preference changes
+      if (existingSectionData.heightUnit !== windowFormData.heightUnit) {
+        changes.push({
+          field: 'heightUnit',
+          oldValue: existingSectionData.heightUnit,
+          newValue: windowFormData.heightUnit
+        });
+      }
+      
+      if (existingSectionData.weightUnit !== windowFormData.weightUnit) {
+        changes.push({
+          field: 'weightUnit',
+          oldValue: existingSectionData.weightUnit,
+          newValue: windowFormData.weightUnit
+        });
+      }
+      
       setTimeout(() => {
         const updatedProfile = {
           ...existingProfile,
           personal: {
-            ...newFormData,
+            ...windowFormData,
             completed: true,
             lastUpdated: new Date().toISOString()
           }

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -38,15 +37,47 @@ const MedicalProfilePersonalForm = () => {
     policyNumber: '',
     groupNumber: ''
   });
+  
+  // Unit preferences
+  const [heightUnit, setHeightUnit] = useState<'cm' | 'ft'>('cm');
+  const [weightUnit, setWeightUnit] = useState<'kg' | 'lb'>('kg');
+  
+  // For imperial height
+  const [feet, setFeet] = useState<string>('');
+  const [inches, setInches] = useState<string>('');
 
   // Load saved data on component mount
   useEffect(() => {
-    const savedProfile = JSON.parse(localStorage.getItem('medicalProfile') || '{}');
+    // Check if there's data in the window object first (from parent component)
+    const windowData = (window as any).personalFormData;
+
+    // Otherwise, try to load from localStorage
+    const savedProfile = windowData || JSON.parse(localStorage.getItem('medicalProfile') || '{}');
     
     if (savedProfile && savedProfile.personal) {
       // Load basic form data
       if (savedProfile.personal.formData) {
         setFormData(savedProfile.personal.formData);
+        
+        // Set unit preferences if saved
+        if (savedProfile.personal.heightUnit) {
+          setHeightUnit(savedProfile.personal.heightUnit);
+        }
+        if (savedProfile.personal.weightUnit) {
+          setWeightUnit(savedProfile.personal.weightUnit);
+        }
+        
+        // Convert height to feet/inches if needed
+        if (heightUnit === 'ft' && savedProfile.personal.formData.height) {
+          const heightCm = parseFloat(savedProfile.personal.formData.height);
+          if (!isNaN(heightCm)) {
+            const heightInches = heightCm / 2.54;
+            const feetValue = Math.floor(heightInches / 12);
+            const inchesValue = Math.round(heightInches % 12);
+            setFeet(feetValue.toString());
+            setInches(inchesValue.toString());
+          }
+        }
       }
       
       // Load emergency contacts
@@ -76,6 +107,77 @@ const MedicalProfilePersonalForm = () => {
       ...prev,
       [field]: value
     }));
+  };
+
+  // Handle height unit change
+  const handleHeightUnitChange = (value: 'cm' | 'ft') => {
+    setHeightUnit(value);
+    
+    // Convert current height value
+    if (value === 'ft' && formData.height) {
+      // Convert cm to feet/inches
+      const heightCm = parseFloat(formData.height);
+      if (!isNaN(heightCm)) {
+        const heightInches = heightCm / 2.54;
+        const feetValue = Math.floor(heightInches / 12);
+        const inchesValue = Math.round(heightInches % 12);
+        setFeet(feetValue.toString());
+        setInches(inchesValue.toString());
+      }
+    } else if (value === 'cm' && feet && inches) {
+      // Convert feet/inches to cm
+      const feetValue = parseFloat(feet);
+      const inchesValue = parseFloat(inches);
+      if (!isNaN(feetValue) && !isNaN(inchesValue)) {
+        const totalInches = (feetValue * 12) + inchesValue;
+        const heightCm = Math.round(totalInches * 2.54);
+        handleInputChange('height', heightCm.toString());
+      }
+    }
+  };
+
+  // Handle weight unit change
+  const handleWeightUnitChange = (value: 'kg' | 'lb') => {
+    setWeightUnit(value);
+    
+    // Convert current weight value
+    if (value === 'lb' && formData.weight) {
+      // Convert kg to lb
+      const weightKg = parseFloat(formData.weight);
+      if (!isNaN(weightKg)) {
+        const weightLb = Math.round(weightKg * 2.20462);
+        handleInputChange('weight', weightLb.toString());
+      }
+    } else if (value === 'kg' && formData.weight) {
+      // Convert lb to kg
+      const weightLb = parseFloat(formData.weight);
+      if (!isNaN(weightLb)) {
+        const weightKg = Math.round(weightLb / 2.20462);
+        handleInputChange('weight', weightKg.toString());
+      }
+    }
+  };
+
+  // Handle feet/inches changes
+  const handleFeetChange = (value: string) => {
+    setFeet(value);
+    updateHeightFromImperial(value, inches);
+  };
+
+  const handleInchesChange = (value: string) => {
+    setInches(value);
+    updateHeightFromImperial(feet, value);
+  };
+
+  const updateHeightFromImperial = (ft: string, inch: string) => {
+    const feetValue = parseFloat(ft);
+    const inchesValue = parseFloat(inch);
+    
+    if (!isNaN(feetValue) && !isNaN(inchesValue)) {
+      const totalInches = (feetValue * 12) + inchesValue;
+      const heightCm = Math.round(totalInches * 2.54);
+      handleInputChange('height', heightCm.toString());
+    }
   };
 
   // Handle insurance field changes
@@ -121,6 +223,23 @@ const MedicalProfilePersonalForm = () => {
   const removeInsuranceImage = (index: number) => {
     setInsuranceImages(insuranceImages.filter((_, i) => i !== index));
   };
+  
+  // Prepare data for parent component/global state
+  useEffect(() => {
+    // Update the window object with the current form data including unit preferences
+    (window as any).personalFormData = {
+      formData,
+      hasEmergencyContact,
+      emergencyContacts,
+      hasInsurance,
+      insuranceData,
+      insuranceImages,
+      heightUnit,
+      weightUnit,
+      feet,
+      inches
+    };
+  }, [formData, hasEmergencyContact, emergencyContacts, hasInsurance, insuranceData, insuranceImages, heightUnit, weightUnit, feet, inches]);
 
   return (
     <div className="space-y-6">
@@ -200,23 +319,96 @@ const MedicalProfilePersonalForm = () => {
             </Select>
           </div>
           
+          {/* Height input with unit toggle */}
           <div className="space-y-2">
-            <Label htmlFor="height">Height (cm)</Label>
-            <Input 
-              id="height" 
-              type="number" 
-              placeholder="Height in centimeters" 
-              value={formData.height}
-              onChange={(e) => handleInputChange('height', e.target.value)}
-            />
+            <div className="flex justify-between items-center">
+              <Label htmlFor="height">Height</Label>
+              <div className="flex items-center space-x-2">
+                <Button 
+                  type="button" 
+                  variant={heightUnit === 'cm' ? "default" : "outline"} 
+                  size="sm"
+                  onClick={() => handleHeightUnitChange('cm')}
+                  className="h-7 px-2 text-xs"
+                >
+                  cm
+                </Button>
+                <Button 
+                  type="button" 
+                  variant={heightUnit === 'ft' ? "default" : "outline"} 
+                  size="sm"
+                  onClick={() => handleHeightUnitChange('ft')}
+                  className="h-7 px-2 text-xs"
+                >
+                  ft/in
+                </Button>
+              </div>
+            </div>
+            
+            {heightUnit === 'cm' ? (
+              <Input 
+                id="height" 
+                type="number" 
+                placeholder="Height in centimeters" 
+                value={formData.height}
+                onChange={(e) => handleInputChange('height', e.target.value)}
+              />
+            ) : (
+              <div className="flex space-x-2">
+                <div className="flex-1">
+                  <Input 
+                    id="heightFeet" 
+                    type="number" 
+                    placeholder="Feet" 
+                    value={feet}
+                    onChange={(e) => handleFeetChange(e.target.value)}
+                  />
+                </div>
+                <div className="flex-1">
+                  <Input 
+                    id="heightInches" 
+                    type="number" 
+                    placeholder="Inches" 
+                    value={inches}
+                    min="0" 
+                    max="11"
+                    onChange={(e) => handleInchesChange(e.target.value)}
+                  />
+                </div>
+              </div>
+            )}
           </div>
           
+          {/* Weight input with unit toggle */}
           <div className="space-y-2">
-            <Label htmlFor="weight">Weight (kg)</Label>
+            <div className="flex justify-between items-center">
+              <Label htmlFor="weight">Weight</Label>
+              <div className="flex items-center space-x-2">
+                <Button 
+                  type="button" 
+                  variant={weightUnit === 'kg' ? "default" : "outline"} 
+                  size="sm"
+                  onClick={() => handleWeightUnitChange('kg')}
+                  className="h-7 px-2 text-xs"
+                >
+                  kg
+                </Button>
+                <Button 
+                  type="button" 
+                  variant={weightUnit === 'lb' ? "default" : "outline"} 
+                  size="sm"
+                  onClick={() => handleWeightUnitChange('lb')}
+                  className="h-7 px-2 text-xs"
+                >
+                  lb
+                </Button>
+              </div>
+            </div>
+            
             <Input 
               id="weight" 
               type="number" 
-              placeholder="Weight in kilograms" 
+              placeholder={`Weight in ${weightUnit === 'kg' ? 'kilograms' : 'pounds'}`} 
               value={formData.weight}
               onChange={(e) => handleInputChange('weight', e.target.value)}
             />
