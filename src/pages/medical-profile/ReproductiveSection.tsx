@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Save } from 'lucide-react';
@@ -9,14 +8,12 @@ import { logChanges } from '@/utils/changeLog';
 const ReproductiveSection = () => {
   const [isSaving, setIsSaving] = useState(false);
   
-  // Load saved data when component mounts
   useEffect(() => {
     try {
       const savedProfileJson = localStorage.getItem('medicalProfile');
       if (savedProfileJson) {
         const savedProfile = JSON.parse(savedProfileJson);
         if (savedProfile && savedProfile.reproductive) {
-          // Make the data available to the form via window object
           (window as any).reproductiveHistoryFormData = savedProfile.reproductive;
           console.log('Setting reproductive history form data in window object:', savedProfile.reproductive);
         }
@@ -82,6 +79,17 @@ const ReproductiveSection = () => {
 
   return (
     <div>
+      <div className="flex justify-end mb-6">
+        <Button 
+          onClick={handleSave} 
+          className="bg-safet-500 hover:bg-safet-600"
+          disabled={isSaving}
+        >
+          {isSaving ? 'Saving...' : 'Save'}
+          {!isSaving && <Save className="ml-2 h-4 w-4" />}
+        </Button>
+      </div>
+      
       <MedicalProfileReproductiveHistoryForm />
       
       <div className="mt-8 flex justify-end gap-3">

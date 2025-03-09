@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Save } from 'lucide-react';
@@ -10,18 +9,15 @@ const HistorySection = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [hasMentalHealthHistory, setHasMentalHealthHistory] = useState('no');
   
-  // Load saved data when component mounts
   useEffect(() => {
     try {
       const savedProfileJson = localStorage.getItem('medicalProfile');
       if (savedProfileJson) {
         const savedProfile = JSON.parse(savedProfileJson);
         if (savedProfile && savedProfile.history) {
-          // Make the data available to the form via window object
           (window as any).historyFormData = savedProfile.history;
           console.log('Setting history form data in window object:', savedProfile.history);
           
-          // Also update local state for mental health history
           if (savedProfile.history.hasMentalHealthHistory) {
             setHasMentalHealthHistory(savedProfile.history.hasMentalHealthHistory);
           }
@@ -35,7 +31,6 @@ const HistorySection = () => {
   const handleMentalHealthHistoryChange = (value: string) => {
     setHasMentalHealthHistory(value);
     
-    // Also update the window object with the new value
     if ((window as any).historyFormData) {
       (window as any).historyFormData.hasMentalHealthHistory = value;
     } else {
@@ -51,10 +46,8 @@ const HistorySection = () => {
       const existingProfile = existingProfileJson ? JSON.parse(existingProfileJson) : {};
       const existingSectionData = existingProfile.history || {};
       
-      // Get form data from window object
       let newFormData = (window as any).historyFormData || {};
       
-      // Ensure mental health history is included
       newFormData.hasMentalHealthHistory = hasMentalHealthHistory;
       
       console.log('Saving history form data:', newFormData);
@@ -100,6 +93,17 @@ const HistorySection = () => {
 
   return (
     <div>
+      <div className="flex justify-end mb-6">
+        <Button 
+          onClick={handleSave} 
+          className="bg-safet-500 hover:bg-safet-600"
+          disabled={isSaving}
+        >
+          {isSaving ? 'Saving...' : 'Save'}
+          {!isSaving && <Save className="ml-2 h-4 w-4" />}
+        </Button>
+      </div>
+      
       <MedicalProfileHistoryForm 
         onMentalHealthHistoryChange={handleMentalHealthHistoryChange}
       />

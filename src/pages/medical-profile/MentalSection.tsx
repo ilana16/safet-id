@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -13,7 +12,6 @@ const MentalSection = () => {
   const [hasMentalHealthHistory, setHasMentalHealthHistory] = useState('no');
   
   useEffect(() => {
-    // Check if this section should be shown
     try {
       const savedProfileJson = localStorage.getItem('medicalProfile');
       if (!savedProfileJson) return;
@@ -23,14 +21,11 @@ const MentalSection = () => {
       if (savedProfile && savedProfile.history && savedProfile.history.hasMentalHealthHistory) {
         setHasMentalHealthHistory(savedProfile.history.hasMentalHealthHistory);
         if (savedProfile.history.hasMentalHealthHistory === 'no') {
-          // If user shouldn't see this page, redirect
           navigate('/profile/functional');
         }
       }
       
-      // Load mental health data if available
       if (savedProfile && savedProfile.mental) {
-        // Make the data available to the form via window object
         (window as any).mentalHealthFormData = savedProfile.mental;
         console.log('Setting mental health form data in window object:', savedProfile.mental);
       }
@@ -99,6 +94,17 @@ const MentalSection = () => {
 
   return (
     <div>
+      <div className="flex justify-end mb-6">
+        <Button 
+          onClick={handleSave} 
+          className="bg-safet-500 hover:bg-safet-600"
+          disabled={isSaving}
+        >
+          {isSaving ? 'Saving...' : 'Save'}
+          {!isSaving && <Save className="ml-2 h-4 w-4" />}
+        </Button>
+      </div>
+      
       <MedicalProfileMentalHealthForm />
       
       <div className="mt-8 flex justify-end gap-3">

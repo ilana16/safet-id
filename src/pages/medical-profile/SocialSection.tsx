@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Save } from 'lucide-react';
@@ -9,14 +8,12 @@ import { logChanges } from '@/utils/changeLog';
 const SocialSection = () => {
   const [isSaving, setIsSaving] = useState(false);
   
-  // Load saved data when component mounts
   useEffect(() => {
     try {
       const savedProfileJson = localStorage.getItem('medicalProfile');
       if (savedProfileJson) {
         const savedProfile = JSON.parse(savedProfileJson);
         if (savedProfile && savedProfile.social) {
-          // Make the data available to the form via window object
           (window as any).socialHistoryFormData = savedProfile.social;
           console.log('Setting social history form data in window object:', savedProfile.social);
         }
@@ -82,6 +79,17 @@ const SocialSection = () => {
 
   return (
     <div>
+      <div className="flex justify-end mb-6">
+        <Button 
+          onClick={handleSave} 
+          className="bg-safet-500 hover:bg-safet-600"
+          disabled={isSaving}
+        >
+          {isSaving ? 'Saving...' : 'Save'}
+          {!isSaving && <Save className="ml-2 h-4 w-4" />}
+        </Button>
+      </div>
+      
       <MedicalProfileSocialHistoryForm />
       
       <div className="mt-8 flex justify-end gap-3">
