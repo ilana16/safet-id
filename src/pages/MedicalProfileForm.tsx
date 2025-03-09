@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import PageLayout from '@/components/layout/PageLayout';
@@ -28,9 +29,14 @@ const MedicalProfileForm = () => {
   
   const currentSection = section || 'personal';
 
+  // Load profile data from localStorage
   useEffect(() => {
     try {
-      const savedProfile = JSON.parse(localStorage.getItem('medicalProfile') || '{}');
+      const savedProfileJson = localStorage.getItem('medicalProfile');
+      if (!savedProfileJson) return;
+      
+      const savedProfile = JSON.parse(savedProfileJson);
+      console.log('Loaded profile data:', savedProfile);
       
       if (savedProfile && savedProfile.history && savedProfile.history.hasMentalHealthHistory) {
         setHasMentalHealthHistory(savedProfile.history.hasMentalHealthHistory);
@@ -51,11 +57,13 @@ const MedicalProfileForm = () => {
     setIsSaving(true);
     
     try {
-      const existingProfile = JSON.parse(localStorage.getItem('medicalProfile') || '{}');
+      const existingProfileJson = localStorage.getItem('medicalProfile');
+      const existingProfile = existingProfileJson ? JSON.parse(existingProfileJson) : {};
       const existingSectionData = existingProfile[currentSection] || {};
       
       let newFormData: any = {};
       
+      // Get form data from window object based on section
       if (currentSection === 'medications' && (window as any).medicationsFormData) {
         newFormData = (window as any).medicationsFormData;
       } else if (currentSection === 'cultural' && (window as any).culturalPreferencesFormData) {
@@ -78,6 +86,7 @@ const MedicalProfileForm = () => {
       } else if (currentSection === 'personal' && (window as any).personalFormData) {
         newFormData = (window as any).personalFormData;
       } else {
+        // Fallback to collect data from form elements if window object data is unavailable
         const formElements = document.querySelectorAll('input, select, textarea');
         
         formElements.forEach(element => {
@@ -88,6 +97,8 @@ const MedicalProfileForm = () => {
           }
         });
       }
+      
+      console.log('Saving form data for section:', currentSection, newFormData);
       
       const changes: {field: string; oldValue: any; newValue: any}[] = [];
       
@@ -124,7 +135,7 @@ const MedicalProfileForm = () => {
         { hasMentalHealthHistory } : {};
       
       setTimeout(() => {
-        localStorage.setItem('medicalProfile', JSON.stringify({
+        const updatedProfile = {
           ...existingProfile,
           [currentSection]: {
             ...newFormData,
@@ -132,7 +143,10 @@ const MedicalProfileForm = () => {
             lastUpdated: new Date().toISOString(),
             ...additionalData
           }
-        }));
+        };
+        
+        localStorage.setItem('medicalProfile', JSON.stringify(updatedProfile));
+        console.log('Saved updated profile:', updatedProfile);
         
         if (changes.length > 0) {
           logChanges(currentSection, changes);
