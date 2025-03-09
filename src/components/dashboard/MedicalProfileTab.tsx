@@ -64,7 +64,7 @@ const MedicalProfileTab: React.FC<MedicalProfileTabProps> = ({ completionPercent
       id: 'personal',
       title: 'Personal Information',
       description: 'Basic details, emergency contacts, and insurance information',
-      link: '/profile/edit/personal',
+      link: '/profile/personal',
       status: sectionStatus.personal,
       lastUpdated: lastUpdated.personal,
     },
@@ -72,7 +72,7 @@ const MedicalProfileTab: React.FC<MedicalProfileTabProps> = ({ completionPercent
       id: 'history',
       title: 'Medical History',
       description: 'Past diagnoses, hospitalizations, surgeries, and conditions',
-      link: '/profile/edit/history',
+      link: '/profile/history',
       status: sectionStatus.history,
       lastUpdated: lastUpdated.history,
     },
@@ -80,7 +80,7 @@ const MedicalProfileTab: React.FC<MedicalProfileTabProps> = ({ completionPercent
       id: 'medications',
       title: 'Medications',
       description: 'Current prescriptions, supplements, and over-the-counter medications',
-      link: '/profile/edit/medications',
+      link: '/profile/medications',
       status: sectionStatus.medications,
       lastUpdated: lastUpdated.medications,
     },
@@ -88,7 +88,7 @@ const MedicalProfileTab: React.FC<MedicalProfileTabProps> = ({ completionPercent
       id: 'allergies',
       title: 'Allergies & Immunizations',
       description: 'Allergic reactions and vaccination history',
-      link: '/profile/edit/allergies',
+      link: '/profile/allergies',
       status: sectionStatus.allergies,
       lastUpdated: lastUpdated.allergies,
     },
@@ -118,14 +118,14 @@ const MedicalProfileTab: React.FC<MedicalProfileTabProps> = ({ completionPercent
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Link to="/profile/edit">
+                <Link to="/profile/personal">
                   <Button className="bg-safet-500 hover:bg-safet-600">
                     {completionPercentage > 0 ? "Edit Information" : "Complete Profile"}
                   </Button>
                 </Link>
               </TooltipTrigger>
               <TooltipContent side="bottom">
-                <p>Update your medical information</p>
+                <p>Update your medical information using our new section editor</p>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
@@ -141,9 +141,9 @@ const MedicalProfileTab: React.FC<MedicalProfileTabProps> = ({ completionPercent
             Time to complete your medical profile
           </h3>
           <p className="text-gray-600 max-w-md mx-auto mb-6">
-            Add your comprehensive medical information to ensure healthcare providers have what they need in an emergency.
+            Add your comprehensive medical information section by section to ensure healthcare providers have what they need in an emergency.
           </p>
-          <Link to="/profile/edit">
+          <Link to="/profile/personal">
             <Button className="bg-safet-500 hover:bg-safet-600">
               Start Now
             </Button>

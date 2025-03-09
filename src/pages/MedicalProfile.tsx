@@ -66,7 +66,7 @@ const MedicalProfile = () => {
             Medical Profile
           </h1>
           <p className="text-gray-600 mt-1">
-            Update your medical information
+            Update your comprehensive medical information with our new section-by-section editor
           </p>
         </div>
 
