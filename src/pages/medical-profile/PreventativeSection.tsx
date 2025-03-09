@@ -1,6 +1,5 @@
 
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Save } from 'lucide-react';
 import MedicalProfilePreventativeCareForm from '@/components/forms/MedicalProfilePreventativeCareForm';
@@ -8,7 +7,6 @@ import { toast } from '@/lib/toast';
 import { logChanges } from '@/utils/changeLog';
 
 const PreventativeSection = () => {
-  const navigate = useNavigate();
   const [isSaving, setIsSaving] = useState(false);
   
   const handleSave = () => {
@@ -54,8 +52,6 @@ const PreventativeSection = () => {
         
         setIsSaving(false);
         toast.success('Preventative care information saved successfully');
-        
-        navigate('/dashboard');
       }, 500);
     } catch (error) {
       console.error('Error saving preventative care information:', error);
@@ -70,17 +66,11 @@ const PreventativeSection = () => {
       
       <div className="mt-8 flex justify-end gap-3">
         <Button 
-          variant="outline"
-          onClick={() => navigate('/profile/cultural')}
-        >
-          Previous
-        </Button>
-        <Button 
           onClick={handleSave} 
           className="bg-safet-500 hover:bg-safet-600"
           disabled={isSaving}
         >
-          {isSaving ? 'Saving...' : 'Complete Profile'}
+          {isSaving ? 'Saving...' : 'Save'}
           {!isSaving && <Save className="ml-2 h-4 w-4" />}
         </Button>
       </div>

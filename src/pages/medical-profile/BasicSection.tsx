@@ -1,6 +1,5 @@
 
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Save } from 'lucide-react';
 import { toast } from '@/lib/toast';
@@ -10,7 +9,6 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const BasicSection = () => {
-  const navigate = useNavigate();
   const [isSaving, setIsSaving] = useState(false);
   const [formData, setFormData] = useState({
     height: '',
@@ -80,8 +78,6 @@ const BasicSection = () => {
         
         setIsSaving(false);
         toast.success('Basic information saved successfully');
-        
-        navigate('/profile/history');
       }, 500);
     } catch (error) {
       console.error('Error saving basic information:', error);
@@ -171,7 +167,7 @@ const BasicSection = () => {
           className="bg-safet-500 hover:bg-safet-600"
           disabled={isSaving}
         >
-          {isSaving ? 'Saving...' : 'Save & Continue'}
+          {isSaving ? 'Saving...' : 'Save'}
           {!isSaving && <Save className="ml-2 h-4 w-4" />}
         </Button>
       </div>

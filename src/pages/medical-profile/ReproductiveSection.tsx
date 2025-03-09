@@ -1,6 +1,5 @@
 
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Save } from 'lucide-react';
 import MedicalProfileReproductiveHistoryForm from '@/components/forms/MedicalProfileReproductiveHistoryForm';
@@ -8,7 +7,6 @@ import { toast } from '@/lib/toast';
 import { logChanges } from '@/utils/changeLog';
 
 const ReproductiveSection = () => {
-  const navigate = useNavigate();
   const [isSaving, setIsSaving] = useState(false);
   
   const handleSave = () => {
@@ -57,14 +55,6 @@ const ReproductiveSection = () => {
         
         setIsSaving(false);
         toast.success('Reproductive history saved successfully');
-        
-        // Check if mental health history should be skipped
-        const hasMentalHealthHistory = existingProfile.history?.hasMentalHealthHistory;
-        if (hasMentalHealthHistory === 'yes') {
-          navigate('/profile/mental');
-        } else {
-          navigate('/profile/functional');
-        }
       }, 500);
     } catch (error) {
       console.error('Error saving reproductive history:', error);
@@ -79,17 +69,11 @@ const ReproductiveSection = () => {
       
       <div className="mt-8 flex justify-end gap-3">
         <Button 
-          variant="outline"
-          onClick={() => navigate('/profile/social')}
-        >
-          Previous
-        </Button>
-        <Button 
           onClick={handleSave} 
           className="bg-safet-500 hover:bg-safet-600"
           disabled={isSaving}
         >
-          {isSaving ? 'Saving...' : 'Save & Continue'}
+          {isSaving ? 'Saving...' : 'Save'}
           {!isSaving && <Save className="ml-2 h-4 w-4" />}
         </Button>
       </div>

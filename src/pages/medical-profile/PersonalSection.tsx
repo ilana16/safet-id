@@ -1,6 +1,5 @@
 
-import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Save } from 'lucide-react';
 import MedicalProfilePersonalForm from '@/components/forms/MedicalProfilePersonalForm';
@@ -8,7 +7,6 @@ import { toast } from '@/lib/toast';
 import { logChanges } from '@/utils/changeLog';
 
 const PersonalSection = () => {
-  const navigate = useNavigate();
   const [isSaving, setIsSaving] = useState(false);
   
   const handleSave = () => {
@@ -54,8 +52,6 @@ const PersonalSection = () => {
         
         setIsSaving(false);
         toast.success('Personal information saved successfully');
-        
-        navigate('/profile/history');
       }, 500);
     } catch (error) {
       console.error('Error saving personal information:', error);
@@ -74,7 +70,7 @@ const PersonalSection = () => {
           className="bg-safet-500 hover:bg-safet-600"
           disabled={isSaving}
         >
-          {isSaving ? 'Saving...' : 'Save & Continue'}
+          {isSaving ? 'Saving...' : 'Save'}
           {!isSaving && <Save className="ml-2 h-4 w-4" />}
         </Button>
       </div>

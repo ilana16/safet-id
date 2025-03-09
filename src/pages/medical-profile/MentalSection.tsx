@@ -78,8 +78,6 @@ const MentalSection = () => {
         
         setIsSaving(false);
         toast.success('Mental health information saved successfully');
-        
-        navigate('/profile/functional');
       }, 500);
     } catch (error) {
       console.error('Error saving mental health information:', error);
@@ -98,17 +96,11 @@ const MentalSection = () => {
       
       <div className="mt-8 flex justify-end gap-3">
         <Button 
-          variant="outline"
-          onClick={() => navigate('/profile/reproductive')}
-        >
-          Previous
-        </Button>
-        <Button 
           onClick={handleSave} 
           className="bg-safet-500 hover:bg-safet-600"
           disabled={isSaving}
         >
-          {isSaving ? 'Saving...' : 'Save & Continue'}
+          {isSaving ? 'Saving...' : 'Save'}
           {!isSaving && <Save className="ml-2 h-4 w-4" />}
         </Button>
       </div>

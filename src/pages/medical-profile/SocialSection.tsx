@@ -1,6 +1,5 @@
 
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Save } from 'lucide-react';
 import MedicalProfileSocialHistoryForm from '@/components/forms/MedicalProfileSocialHistoryForm';
@@ -8,7 +7,6 @@ import { toast } from '@/lib/toast';
 import { logChanges } from '@/utils/changeLog';
 
 const SocialSection = () => {
-  const navigate = useNavigate();
   const [isSaving, setIsSaving] = useState(false);
   
   const handleSave = () => {
@@ -57,8 +55,6 @@ const SocialSection = () => {
         
         setIsSaving(false);
         toast.success('Social history saved successfully');
-        
-        navigate('/profile/reproductive');
       }, 500);
     } catch (error) {
       console.error('Error saving social history:', error);
@@ -73,17 +69,11 @@ const SocialSection = () => {
       
       <div className="mt-8 flex justify-end gap-3">
         <Button 
-          variant="outline"
-          onClick={() => navigate('/profile/allergies')}
-        >
-          Previous
-        </Button>
-        <Button 
           onClick={handleSave} 
           className="bg-safet-500 hover:bg-safet-600"
           disabled={isSaving}
         >
-          {isSaving ? 'Saving...' : 'Save & Continue'}
+          {isSaving ? 'Saving...' : 'Save'}
           {!isSaving && <Save className="ml-2 h-4 w-4" />}
         </Button>
       </div>
