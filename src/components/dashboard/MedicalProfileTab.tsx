@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -24,22 +23,18 @@ const MedicalProfileTab: React.FC<MedicalProfileTabProps> = ({ completionPercent
   const [activeTab, setActiveTab] = useState<'sections' | 'logs'>('sections');
   const [hasChangeLogs, setHasChangeLogs] = useState(false);
   
-  // Check if there are any change logs
   useEffect(() => {
     const logs = getChangeLogs();
     setHasChangeLogs(logs.length > 0);
   }, []);
   
-  // Mock data for last updated timestamps
   const lastUpdated = {
     personal: '2023-10-15T14:30:00Z',
-    basic: '2023-10-20T10:15:00Z',
     history: '2023-11-20T09:45:00Z',
     medications: '2023-12-05T16:20:00Z',
     allergies: '2024-01-10T11:15:00Z',
   };
   
-  // Get formatted relative time
   const getRelativeTime = (dateString: string) => {
     const date = new Date(dateString);
     const now = new Date();
@@ -52,10 +47,8 @@ const MedicalProfileTab: React.FC<MedicalProfileTabProps> = ({ completionPercent
     return `${Math.floor(diffInDays / 365)} years ago`;
   };
   
-  // Mock data for section completion status
   const sectionStatus = {
     personal: 100,
-    basic: 90,
     history: 75,
     medications: 100,
     allergies: 60,
@@ -69,14 +62,6 @@ const MedicalProfileTab: React.FC<MedicalProfileTabProps> = ({ completionPercent
       link: '/profile/personal',
       status: sectionStatus.personal,
       lastUpdated: lastUpdated.personal,
-    },
-    {
-      id: 'basic',
-      title: 'Basic Information',
-      description: 'Height, weight, blood type, and other essential health metrics',
-      link: '/profile/basic',
-      status: sectionStatus.basic,
-      lastUpdated: lastUpdated.basic,
     },
     {
       id: 'history',
@@ -218,7 +203,6 @@ const MedicalProfileTab: React.FC<MedicalProfileTabProps> = ({ completionPercent
   );
 };
 
-// Extracted sections tab into a separate component for clarity
 const SectionsTab: React.FC<{
   completionPercentage: number;
   filter: 'all' | 'incomplete' | 'complete';
@@ -280,7 +264,6 @@ const SectionsTab: React.FC<{
         </div>
       </div>
       
-      {/* Preview of medical information sections */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4" role="list" aria-label="Medical information sections">
         {filteredSections.length > 0 ? (
           filteredSections.map((section) => (

@@ -1,9 +1,8 @@
-
 import React, { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import PageLayout from '@/components/layout/PageLayout';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, Printer, Share2 } from 'lucide-react';
+import { ChevronLeft, Printer } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 
 interface MedicalProfileData {

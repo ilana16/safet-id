@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import PageLayout from '@/components/layout/PageLayout';
@@ -8,7 +7,6 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const sections = [
   { id: 'personal', label: 'Personal' },
-  { id: 'basic', label: 'Basic Information' },
   { id: 'history', label: 'Medical History' },
   { id: 'medications', label: 'Medications' },
   { id: 'allergies', label: 'Allergies' },
@@ -25,11 +23,9 @@ const MedicalProfile = () => {
   const navigate = useNavigate();
   const [hasMentalHealthHistory, setHasMentalHealthHistory] = useState('no');
   
-  // Extract the current section from the URL
   const pathParts = location.pathname.split('/');
   const currentSection = pathParts[pathParts.length - 1];
 
-  // Load mental health history setting from localStorage
   useEffect(() => {
     try {
       const savedProfileJson = localStorage.getItem('medicalProfile');

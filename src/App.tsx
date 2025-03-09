@@ -13,7 +13,6 @@ import FullMedicalRecord from './pages/FullMedicalRecord';
 import ProxyRegister from './pages/ProxyRegister';
 import MedicalProfile from './pages/MedicalProfile';
 import PersonalSection from './pages/medical-profile/PersonalSection';
-import BasicSection from './pages/medical-profile/BasicSection';
 import HistorySection from './pages/medical-profile/HistorySection';
 import MedicationsSection from './pages/medical-profile/MedicationsSection';
 import AllergiesSection from './pages/medical-profile/AllergiesSection';
@@ -39,7 +38,6 @@ function App() {
           
           <Route path="/profile" element={<MedicalProfile />}>
             <Route path="personal" element={<PersonalSection />} />
-            <Route path="basic" element={<BasicSection />} />
             <Route path="history" element={<HistorySection />} />
             <Route path="medications" element={<MedicationsSection />} />
             <Route path="allergies" element={<AllergiesSection />} />
