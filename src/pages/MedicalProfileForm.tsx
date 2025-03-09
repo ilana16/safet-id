@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import PageLayout from '@/components/layout/PageLayout';
@@ -29,7 +28,6 @@ const MedicalProfileForm = () => {
   
   const currentSection = section || 'personal';
 
-  // Load profile data from localStorage
   useEffect(() => {
     try {
       const savedProfileJson = localStorage.getItem('medicalProfile');
@@ -63,7 +61,6 @@ const MedicalProfileForm = () => {
       
       let newFormData: any = {};
       
-      // Get form data from window object based on section
       if (currentSection === 'medications' && (window as any).medicationsFormData) {
         newFormData = (window as any).medicationsFormData;
       } else if (currentSection === 'cultural' && (window as any).culturalPreferencesFormData) {
@@ -86,7 +83,6 @@ const MedicalProfileForm = () => {
       } else if (currentSection === 'personal' && (window as any).personalFormData) {
         newFormData = (window as any).personalFormData;
       } else {
-        // Fallback to collect data from form elements if window object data is unavailable
         const formElements = document.querySelectorAll('input, select, textarea');
         
         formElements.forEach(element => {
@@ -249,14 +245,24 @@ const MedicalProfileForm = () => {
     <PageLayout className="bg-gray-50">
       <div className="max-w-3xl mx-auto px-4 py-8">
         <div className="mb-8">
-          <Button 
-            variant="ghost" 
-            onClick={() => navigate('/dashboard')} 
-            className="mb-4"
-          >
-            <ChevronLeft className="mr-2 h-4 w-4" />
-            Back to Dashboard
-          </Button>
+          <div className="flex justify-between items-center mb-4">
+            <Button 
+              variant="ghost" 
+              onClick={() => navigate('/dashboard')} 
+            >
+              <ChevronLeft className="mr-2 h-4 w-4" />
+              Back to Dashboard
+            </Button>
+            
+            <Button 
+              onClick={handleSave} 
+              className="bg-safet-500 hover:bg-safet-600"
+              disabled={isSaving}
+            >
+              {isSaving ? 'Saving...' : 'Save'}
+              {!isSaving && <Save className="ml-2 h-4 w-4" />}
+            </Button>
+          </div>
           
           <h1 className="text-2xl font-bold text-gray-900">
             {getSectionTitle()}
