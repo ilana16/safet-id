@@ -98,6 +98,17 @@ const PersonalSection = () => {
 
   return (
     <div>
+      <div className="flex justify-end mb-6">
+        <Button 
+          onClick={handleSave} 
+          className="bg-safet-500 hover:bg-safet-600"
+          disabled={isSaving}
+        >
+          {isSaving ? 'Saving...' : 'Save'}
+          {!isSaving && <Save className="ml-2 h-4 w-4" />}
+        </Button>
+      </div>
+      
       <MedicalProfilePersonalForm />
       
       <div className="mt-8 flex justify-end gap-3">
