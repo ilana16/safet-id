@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Save } from 'lucide-react';
@@ -10,17 +11,44 @@ const PreventativeSection = () => {
   
   useEffect(() => {
     try {
+      // First check if session storage has any data
+      const sessionData = sessionStorage.getItem('preventativeCareFormData');
+      if (sessionData) {
+        (window as any).preventativeCareFormData = JSON.parse(sessionData);
+        console.log('Setting preventative care form data from session storage:', JSON.parse(sessionData));
+        return;
+      }
+      
+      // Fall back to localStorage
       const savedProfileJson = localStorage.getItem('medicalProfile');
       if (savedProfileJson) {
         const savedProfile = JSON.parse(savedProfileJson);
         if (savedProfile && savedProfile.preventative) {
           (window as any).preventativeCareFormData = savedProfile.preventative;
           console.log('Setting preventative care form data in window object:', savedProfile.preventative);
+          
+          // Also save to session storage for better persistence
+          sessionStorage.setItem('preventativeCareFormData', JSON.stringify(savedProfile.preventative));
         }
       }
     } catch (error) {
       console.error('Error loading preventative care data:', error);
     }
+  }, []);
+  
+  // Add event listener for page unload to save data
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      const currentFormData = (window as any).preventativeCareFormData;
+      if (currentFormData) {
+        sessionStorage.setItem('preventativeCareFormData', JSON.stringify(currentFormData));
+      }
+    };
+    
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
   }, []);
   
   const handleSave = () => {
@@ -59,6 +87,13 @@ const PreventativeSection = () => {
         
         localStorage.setItem('medicalProfile', JSON.stringify(updatedProfile));
         console.log('Saved updated profile:', updatedProfile);
+        
+        // Also update session storage
+        sessionStorage.setItem('preventativeCareFormData', JSON.stringify({
+          ...newFormData,
+          completed: true,
+          lastUpdated: new Date().toISOString()
+        }));
         
         if (changes.length > 0) {
           logChanges('preventative', changes);

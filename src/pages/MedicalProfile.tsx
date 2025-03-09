@@ -5,6 +5,11 @@ import PageLayout from '@/components/layout/PageLayout';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { toast } from '@/lib/toast';
+import { logChanges } from '@/utils/changeLog';
+
+type SectionType = 'personal' | 'history' | 'medications' | 'allergies' | 'social' | 
+                   'reproductive' | 'mental' | 'functional' | 'cultural' | 'preventative';
 
 const sections = [
   { id: 'personal', label: 'Personal' },
@@ -24,6 +29,7 @@ const MedicalProfile = () => {
   const navigate = useNavigate();
   const [hasMentalHealthHistory, setHasMentalHealthHistory] = useState('no');
   const [profileData, setProfileData] = useState({});
+  const [isSaving, setIsSaving] = useState(false);
   
   const pathParts = location.pathname.split('/');
   const currentSection = pathParts[pathParts.length - 1];
@@ -48,28 +54,83 @@ const MedicalProfile = () => {
     }
   }, [location.pathname]);
 
-  const handleTabChange = (value: string) => {
-    // Save any current section data to localStorage before navigating
+  const saveCurrentSectionData = () => {
     const formDataKey = getCurrentSectionWindowKey(currentSection);
     const currentFormData = (window as any)[formDataKey];
     
-    if (currentFormData) {
-      console.log(`Saving ${currentSection} data before tab change:`, currentFormData);
+    if (!currentFormData) return false;
+    
+    console.log(`Auto-saving ${currentSection} data before tab change:`, currentFormData);
+    setIsSaving(true);
+    
+    try {
+      const existingProfileJson = localStorage.getItem('medicalProfile');
+      const existingProfile = existingProfileJson ? JSON.parse(existingProfileJson) : {};
+      const existingSectionData = existingProfile[currentSection] || {};
       
-      try {
-        const existingProfileJson = localStorage.getItem('medicalProfile');
-        const existingProfile = existingProfileJson ? JSON.parse(existingProfileJson) : {};
+      const changes: {field: string; oldValue: any; newValue: any}[] = [];
+      
+      // Handle different section data formats
+      if (currentSection === 'medications' || 
+          currentSection === 'social' || 
+          currentSection === 'reproductive' || 
+          currentSection === 'mental' || 
+          currentSection === 'functional') {
         
-        localStorage.setItem('medicalProfile', JSON.stringify({
-          ...existingProfile,
-          [currentSection]: {
-            ...currentFormData,
-            lastUpdated: new Date().toISOString()
+        Object.keys(currentFormData).forEach(key => {
+          const oldValue = existingSectionData[key];
+          const newValue = currentFormData[key];
+          
+          if (JSON.stringify(oldValue) !== JSON.stringify(newValue)) {
+            changes.push({
+              field: key,
+              oldValue: oldValue,
+              newValue: newValue
+            });
           }
-        }));
-      } catch (error) {
-        console.error(`Error saving ${currentSection} data before tab change:`, error);
+        });
+      } else {
+        Object.entries(currentFormData).forEach(([key, value]) => {
+          if (existingSectionData[key] !== value) {
+            changes.push({
+              field: key,
+              oldValue: existingSectionData[key],
+              newValue: value
+            });
+          }
+        });
       }
+      
+      const updatedProfile = {
+        ...existingProfile,
+        [currentSection]: {
+          ...currentFormData,
+          lastUpdated: new Date().toISOString()
+        }
+      };
+      
+      localStorage.setItem('medicalProfile', JSON.stringify(updatedProfile));
+      console.log('Auto-saved updated profile:', updatedProfile);
+      
+      if (changes.length > 0) {
+        logChanges(currentSection, changes);
+      }
+      
+      setIsSaving(false);
+      return true;
+    } catch (error) {
+      console.error(`Error auto-saving ${currentSection} data:`, error);
+      setIsSaving(false);
+      return false;
+    }
+  };
+
+  const handleTabChange = (value: string) => {
+    // Save any current section data to localStorage before navigating
+    const saved = saveCurrentSectionData();
+    
+    if (saved) {
+      toast.success(`${getSectionTitle(currentSection)} information saved automatically`);
     }
     
     // Navigate to the new tab
@@ -93,6 +154,12 @@ const MedicalProfile = () => {
     }
   };
 
+  // Function to get section title for toast message
+  const getSectionTitle = (section: string): string => {
+    const sectionObj = sections.find(s => s.id === section);
+    return sectionObj ? sectionObj.label : 'Section';
+  };
+
   // Update window object with the current section's form data to make it available for the forms
   useEffect(() => {
     if (Object.keys(profileData).length === 0) return;
@@ -111,6 +178,19 @@ const MedicalProfile = () => {
     sessionStorage.setItem(formDataKey, JSON.stringify(currentSectionData));
     
   }, [currentSection, profileData]);
+
+  // Listen for beforeunload event to save data when leaving the page
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      saveCurrentSectionData();
+    };
+    
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [currentSection]);
 
   return (
     <PageLayout className="bg-gray-50">

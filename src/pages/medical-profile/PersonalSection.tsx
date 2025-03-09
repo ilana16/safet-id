@@ -12,6 +12,15 @@ const PersonalSection = () => {
   // Load saved data when component mounts
   useEffect(() => {
     try {
+      // First check if session storage has any data
+      const sessionData = sessionStorage.getItem('personalFormData');
+      if (sessionData) {
+        (window as any).personalFormData = JSON.parse(sessionData);
+        console.log('Setting personal form data from session storage:', JSON.parse(sessionData));
+        return;
+      }
+      
+      // Fall back to localStorage
       const savedProfileJson = localStorage.getItem('medicalProfile');
       if (savedProfileJson) {
         const savedProfile = JSON.parse(savedProfileJson);
@@ -19,11 +28,29 @@ const PersonalSection = () => {
           // Make the data available to the form via window object
           (window as any).personalFormData = savedProfile.personal;
           console.log('Setting personal form data in window object:', savedProfile.personal);
+          
+          // Also save to session storage for better persistence
+          sessionStorage.setItem('personalFormData', JSON.stringify(savedProfile.personal));
         }
       }
     } catch (error) {
       console.error('Error loading personal profile data:', error);
     }
+  }, []);
+  
+  // Add event listener for page unload to save data
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      const currentFormData = (window as any).personalFormData;
+      if (currentFormData) {
+        sessionStorage.setItem('personalFormData', JSON.stringify(currentFormData));
+      }
+    };
+    
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
   }, []);
   
   const handleSave = () => {
@@ -81,6 +108,13 @@ const PersonalSection = () => {
         
         localStorage.setItem('medicalProfile', JSON.stringify(updatedProfile));
         console.log('Saved updated profile:', updatedProfile);
+        
+        // Also update session storage
+        sessionStorage.setItem('personalFormData', JSON.stringify({
+          ...windowFormData,
+          completed: true,
+          lastUpdated: new Date().toISOString()
+        }));
         
         if (changes.length > 0) {
           logChanges('personal', changes);
