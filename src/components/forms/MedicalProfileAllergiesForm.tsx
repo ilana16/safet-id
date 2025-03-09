@@ -28,29 +28,62 @@ const MedicalProfileAllergiesForm = () => {
   
   // Load saved data on component mount
   useEffect(() => {
-    const savedProfile = JSON.parse(localStorage.getItem('medicalProfile') || '{}');
-    if (savedProfile && savedProfile.allergies) {
-      const data = savedProfile.allergies;
-      
-      // Load allergies if available
-      if (data.allergies) {
-        try {
-          setAllergies(JSON.parse(data.allergies));
-        } catch (e) {
-          console.error("Error parsing allergies data:", e);
+    try {
+      // First check if data is available in the window object (from parent component)
+      if ((window as any).allergiesFormData) {
+        const data = (window as any).allergiesFormData;
+        
+        // Load allergies if available
+        if (data.allergies) {
+          try {
+            setAllergies(JSON.parse(data.allergies));
+          } catch (e) {
+            console.error("Error parsing allergies data:", e);
+          }
+        }
+        
+        // Load immunizations if available
+        if (data.immunizations) {
+          try {
+            setImmunizations(JSON.parse(data.immunizations));
+          } catch (e) {
+            console.error("Error parsing immunizations data:", e);
+          }
+        }
+        
+        setNoKnownAllergies(data.noKnownAllergies === 'true' || false);
+        console.log('Loaded allergies data from window object:', data);
+      } 
+      // Fallback to localStorage if window object doesn't have the data
+      else {
+        const savedProfile = JSON.parse(localStorage.getItem('medicalProfile') || '{}');
+        if (savedProfile && savedProfile.allergies) {
+          const data = savedProfile.allergies;
+          
+          // Load allergies if available
+          if (data.allergies) {
+            try {
+              setAllergies(JSON.parse(data.allergies));
+            } catch (e) {
+              console.error("Error parsing allergies data:", e);
+            }
+          }
+          
+          // Load immunizations if available
+          if (data.immunizations) {
+            try {
+              setImmunizations(JSON.parse(data.immunizations));
+            } catch (e) {
+              console.error("Error parsing immunizations data:", e);
+            }
+          }
+          
+          setNoKnownAllergies(data.noKnownAllergies === 'true' || false);
+          console.log('Loaded allergies data from localStorage:', data);
         }
       }
-      
-      // Load immunizations if available
-      if (data.immunizations) {
-        try {
-          setImmunizations(JSON.parse(data.immunizations));
-        } catch (e) {
-          console.error("Error parsing immunizations data:", e);
-        }
-      }
-      
-      setNoKnownAllergies(data.noKnownAllergies === 'true' || false);
+    } catch (error) {
+      console.error("Error loading allergies profile data:", error);
     }
   }, []);
   

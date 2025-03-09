@@ -21,22 +21,43 @@ const MedicalProfileCulturalPreferencesForm = () => {
   // Load saved data on component mount
   useEffect(() => {
     try {
-      const savedProfile = localStorage.getItem('medicalProfile');
-      
-      if (savedProfile) {
-        const profileData = JSON.parse(savedProfile);
-        if (profileData && profileData.cultural) {
-          const culturalData = profileData.cultural;
-          
-          setReligion(culturalData.religion || '');
-          setOtherReligion(culturalData.otherReligion || '');
-          setCulturalConsiderations(culturalData.culturalConsiderations || '');
-          setFamilyInvolvement(culturalData.familyInvolvement === 'true' || false);
-          setReligiousLeader(culturalData.religiousLeader === 'true' || false);
-          setLanguagePreferences(culturalData.languagePreferences || 'english');
-          setInterpreterNeeded(culturalData.interpreterNeeded || 'no');
-          setDietaryRestrictions(culturalData.dietaryRestrictions || '');
-          setAdditionalNotes(culturalData.additionalNotes || '');
+      // First check if data is available in the window object (from parent component)
+      if ((window as any).culturalPreferencesFormData) {
+        const culturalData = (window as any).culturalPreferencesFormData;
+        
+        setReligion(culturalData.religion || '');
+        setOtherReligion(culturalData.otherReligion || '');
+        setCulturalConsiderations(culturalData.culturalConsiderations || '');
+        setFamilyInvolvement(culturalData.familyInvolvement === 'true' || false);
+        setReligiousLeader(culturalData.religiousLeader === 'true' || false);
+        setLanguagePreferences(culturalData.languagePreferences || 'english');
+        setInterpreterNeeded(culturalData.interpreterNeeded || 'no');
+        setDietaryRestrictions(culturalData.dietaryRestrictions || '');
+        setAdditionalNotes(culturalData.additionalNotes || '');
+        
+        console.log('Loaded cultural preferences from window object:', culturalData);
+      } 
+      // Fallback to localStorage if window object doesn't have the data
+      else {
+        const savedProfile = localStorage.getItem('medicalProfile');
+        
+        if (savedProfile) {
+          const profileData = JSON.parse(savedProfile);
+          if (profileData && profileData.cultural) {
+            const culturalData = profileData.cultural;
+            
+            setReligion(culturalData.religion || '');
+            setOtherReligion(culturalData.otherReligion || '');
+            setCulturalConsiderations(culturalData.culturalConsiderations || '');
+            setFamilyInvolvement(culturalData.familyInvolvement === 'true' || false);
+            setReligiousLeader(culturalData.religiousLeader === 'true' || false);
+            setLanguagePreferences(culturalData.languagePreferences || 'english');
+            setInterpreterNeeded(culturalData.interpreterNeeded || 'no');
+            setDietaryRestrictions(culturalData.dietaryRestrictions || '');
+            setAdditionalNotes(culturalData.additionalNotes || '');
+            
+            console.log('Loaded cultural preferences from localStorage:', culturalData);
+          }
         }
       }
     } catch (error) {
