@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Save } from 'lucide-react';
@@ -11,6 +12,21 @@ const HistorySection = () => {
   
   useEffect(() => {
     try {
+      // First check if session storage has any data
+      const sessionData = sessionStorage.getItem('historyFormData');
+      if (sessionData) {
+        const parsedData = JSON.parse(sessionData);
+        (window as any).historyFormData = parsedData;
+        console.log('Setting history form data from session storage:', parsedData);
+        
+        if (parsedData.hasMentalHealthHistory) {
+          setHasMentalHealthHistory(parsedData.hasMentalHealthHistory);
+        }
+        
+        return;
+      }
+      
+      // Fall back to localStorage
       const savedProfileJson = localStorage.getItem('medicalProfile');
       if (savedProfileJson) {
         const savedProfile = JSON.parse(savedProfileJson);
@@ -21,11 +37,29 @@ const HistorySection = () => {
           if (savedProfile.history.hasMentalHealthHistory) {
             setHasMentalHealthHistory(savedProfile.history.hasMentalHealthHistory);
           }
+          
+          // Also save to session storage for better persistence
+          sessionStorage.setItem('historyFormData', JSON.stringify(savedProfile.history));
         }
       }
     } catch (error) {
       console.error('Error loading history data:', error);
     }
+  }, []);
+  
+  // Add event listener for page unload to save data
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      const currentFormData = (window as any).historyFormData;
+      if (currentFormData) {
+        sessionStorage.setItem('historyFormData', JSON.stringify(currentFormData));
+      }
+    };
+    
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
   }, []);
   
   const handleMentalHealthHistoryChange = (value: string) => {
@@ -36,6 +70,13 @@ const HistorySection = () => {
     } else {
       (window as any).historyFormData = { hasMentalHealthHistory: value };
     }
+    
+    // Update session storage immediately when this value changes
+    const currentFormData = (window as any).historyFormData || {};
+    sessionStorage.setItem('historyFormData', JSON.stringify({
+      ...currentFormData,
+      hasMentalHealthHistory: value
+    }));
   };
   
   const handleSave = () => {
@@ -76,6 +117,13 @@ const HistorySection = () => {
         
         localStorage.setItem('medicalProfile', JSON.stringify(updatedProfile));
         console.log('Saved updated profile:', updatedProfile);
+        
+        // Also update session storage
+        sessionStorage.setItem('historyFormData', JSON.stringify({
+          ...newFormData,
+          completed: true,
+          lastUpdated: new Date().toISOString()
+        }));
         
         if (changes.length > 0) {
           logChanges('history', changes);

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Save } from 'lucide-react';
@@ -10,17 +11,44 @@ const MedicationsSection = () => {
   
   useEffect(() => {
     try {
+      // First check if session storage has any data
+      const sessionData = sessionStorage.getItem('medicationsFormData');
+      if (sessionData) {
+        (window as any).medicationsFormData = JSON.parse(sessionData);
+        console.log('Setting medications form data from session storage:', JSON.parse(sessionData));
+        return;
+      }
+      
+      // Fall back to localStorage
       const savedProfileJson = localStorage.getItem('medicalProfile');
       if (savedProfileJson) {
         const savedProfile = JSON.parse(savedProfileJson);
         if (savedProfile && savedProfile.medications) {
           (window as any).medicationsFormData = savedProfile.medications;
           console.log('Setting medications form data in window object:', savedProfile.medications);
+          
+          // Also save to session storage for better persistence
+          sessionStorage.setItem('medicationsFormData', JSON.stringify(savedProfile.medications));
         }
       }
     } catch (error) {
       console.error('Error loading medications data:', error);
     }
+  }, []);
+  
+  // Add event listener for page unload to save data
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      const currentFormData = (window as any).medicationsFormData;
+      if (currentFormData) {
+        sessionStorage.setItem('medicationsFormData', JSON.stringify(currentFormData));
+      }
+    };
+    
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
   }, []);
   
   const handleSave = () => {
@@ -62,6 +90,13 @@ const MedicationsSection = () => {
         
         localStorage.setItem('medicalProfile', JSON.stringify(updatedProfile));
         console.log('Saved updated profile:', updatedProfile);
+        
+        // Also update session storage
+        sessionStorage.setItem('medicationsFormData', JSON.stringify({
+          ...newFormData,
+          completed: true,
+          lastUpdated: new Date().toISOString()
+        }));
         
         if (changes.length > 0) {
           logChanges('medications', changes);

@@ -9,21 +9,46 @@ import { logChanges } from '@/utils/changeLog';
 const AllergiesSection = () => {
   const [isSaving, setIsSaving] = useState(false);
   
-  // Load saved data when component mounts
   useEffect(() => {
     try {
+      // First check if session storage has any data
+      const sessionData = sessionStorage.getItem('allergiesFormData');
+      if (sessionData) {
+        (window as any).allergiesFormData = JSON.parse(sessionData);
+        console.log('Setting allergies form data from session storage:', JSON.parse(sessionData));
+        return;
+      }
+      
+      // Fall back to localStorage
       const savedProfileJson = localStorage.getItem('medicalProfile');
       if (savedProfileJson) {
         const savedProfile = JSON.parse(savedProfileJson);
         if (savedProfile && savedProfile.allergies) {
-          // Make the data available to the form via window object
           (window as any).allergiesFormData = savedProfile.allergies;
           console.log('Setting allergies form data in window object:', savedProfile.allergies);
+          
+          // Also save to session storage for better persistence
+          sessionStorage.setItem('allergiesFormData', JSON.stringify(savedProfile.allergies));
         }
       }
     } catch (error) {
       console.error('Error loading allergies profile data:', error);
     }
+  }, []);
+  
+  // Add event listener for page unload to save data
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      const currentFormData = (window as any).allergiesFormData;
+      if (currentFormData) {
+        sessionStorage.setItem('allergiesFormData', JSON.stringify(currentFormData));
+      }
+    };
+    
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
   }, []);
   
   const handleSave = () => {
@@ -62,6 +87,13 @@ const AllergiesSection = () => {
         
         localStorage.setItem('medicalProfile', JSON.stringify(updatedProfile));
         console.log('Saved updated profile:', updatedProfile);
+        
+        // Also update session storage
+        sessionStorage.setItem('allergiesFormData', JSON.stringify({
+          ...newFormData,
+          completed: true,
+          lastUpdated: new Date().toISOString()
+        }));
         
         if (changes.length > 0) {
           logChanges('allergies', changes);

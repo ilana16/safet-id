@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Save } from 'lucide-react';
@@ -10,17 +11,44 @@ const FunctionalSection = () => {
   
   useEffect(() => {
     try {
+      // First check if session storage has any data
+      const sessionData = sessionStorage.getItem('functionalStatusFormData');
+      if (sessionData) {
+        (window as any).functionalStatusFormData = JSON.parse(sessionData);
+        console.log('Setting functional status form data from session storage:', JSON.parse(sessionData));
+        return;
+      }
+      
+      // Fall back to localStorage
       const savedProfileJson = localStorage.getItem('medicalProfile');
       if (savedProfileJson) {
         const savedProfile = JSON.parse(savedProfileJson);
         if (savedProfile && savedProfile.functional) {
           (window as any).functionalStatusFormData = savedProfile.functional;
           console.log('Setting functional status form data in window object:', savedProfile.functional);
+          
+          // Also save to session storage for better persistence
+          sessionStorage.setItem('functionalStatusFormData', JSON.stringify(savedProfile.functional));
         }
       }
     } catch (error) {
       console.error('Error loading functional status data:', error);
     }
+  }, []);
+  
+  // Add event listener for page unload to save data
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      const currentFormData = (window as any).functionalStatusFormData;
+      if (currentFormData) {
+        sessionStorage.setItem('functionalStatusFormData', JSON.stringify(currentFormData));
+      }
+    };
+    
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
   }, []);
   
   const handleSave = () => {
@@ -62,6 +90,13 @@ const FunctionalSection = () => {
         
         localStorage.setItem('medicalProfile', JSON.stringify(updatedProfile));
         console.log('Saved updated profile:', updatedProfile);
+        
+        // Also update session storage
+        sessionStorage.setItem('functionalStatusFormData', JSON.stringify({
+          ...newFormData,
+          completed: true,
+          lastUpdated: new Date().toISOString()
+        }));
         
         if (changes.length > 0) {
           logChanges('functional', changes);

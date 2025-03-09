@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -13,6 +14,28 @@ const MentalSection = () => {
   
   useEffect(() => {
     try {
+      // First check if session storage has any data
+      const sessionData = sessionStorage.getItem('mentalHealthFormData');
+      if (sessionData) {
+        (window as any).mentalHealthFormData = JSON.parse(sessionData);
+        console.log('Setting mental health form data from session storage:', JSON.parse(sessionData));
+        
+        // Still check if the user has mental health history to determine if we should show this section
+        const savedProfileJson = localStorage.getItem('medicalProfile');
+        if (savedProfileJson) {
+          const savedProfile = JSON.parse(savedProfileJson);
+          if (savedProfile && savedProfile.history && savedProfile.history.hasMentalHealthHistory) {
+            setHasMentalHealthHistory(savedProfile.history.hasMentalHealthHistory);
+            if (savedProfile.history.hasMentalHealthHistory === 'no') {
+              navigate('/profile/functional');
+            }
+          }
+        }
+        
+        return;
+      }
+      
+      // Fall back to localStorage
       const savedProfileJson = localStorage.getItem('medicalProfile');
       if (!savedProfileJson) return;
       
@@ -28,11 +51,29 @@ const MentalSection = () => {
       if (savedProfile && savedProfile.mental) {
         (window as any).mentalHealthFormData = savedProfile.mental;
         console.log('Setting mental health form data in window object:', savedProfile.mental);
+        
+        // Also save to session storage for better persistence
+        sessionStorage.setItem('mentalHealthFormData', JSON.stringify(savedProfile.mental));
       }
     } catch (error) {
       console.error('Error loading mental health data:', error);
     }
   }, [navigate]);
+  
+  // Add event listener for page unload to save data
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      const currentFormData = (window as any).mentalHealthFormData;
+      if (currentFormData) {
+        sessionStorage.setItem('mentalHealthFormData', JSON.stringify(currentFormData));
+      }
+    };
+    
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, []);
   
   const handleSave = () => {
     setIsSaving(true);
@@ -73,6 +114,13 @@ const MentalSection = () => {
         
         localStorage.setItem('medicalProfile', JSON.stringify(updatedProfile));
         console.log('Saved updated profile:', updatedProfile);
+        
+        // Also update session storage
+        sessionStorage.setItem('mentalHealthFormData', JSON.stringify({
+          ...newFormData,
+          completed: true,
+          lastUpdated: new Date().toISOString()
+        }));
         
         if (changes.length > 0) {
           logChanges('mental', changes);
