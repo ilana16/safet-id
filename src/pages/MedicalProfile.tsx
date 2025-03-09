@@ -32,7 +32,7 @@ const MedicalProfile = () => {
   const [isSaving, setIsSaving] = useState(false);
   
   const pathParts = location.pathname.split('/');
-  const currentSection = pathParts[pathParts.length - 1];
+  const currentSection = pathParts[pathParts.length - 1] === 'profile' ? 'personal' : pathParts[pathParts.length - 1];
 
   // Load all profile data when component mounts or when location changes
   useEffect(() => {
@@ -56,9 +56,14 @@ const MedicalProfile = () => {
 
   const saveCurrentSectionData = () => {
     const formDataKey = getCurrentSectionWindowKey(currentSection);
+    console.log(`Attempting to save data for section: ${currentSection}, using key: ${formDataKey}`);
+    
     const currentFormData = (window as any)[formDataKey];
     
-    if (!currentFormData) return false;
+    if (!currentFormData) {
+      console.log(`No form data found for ${currentSection} with key ${formDataKey}`);
+      return false;
+    }
     
     console.log(`Auto-saving ${currentSection} data before tab change:`, currentFormData);
     setIsSaving(true);
@@ -111,6 +116,10 @@ const MedicalProfile = () => {
       
       localStorage.setItem('medicalProfile', JSON.stringify(updatedProfile));
       console.log('Auto-saved updated profile:', updatedProfile);
+      
+      // Update session storage
+      sessionStorage.setItem(formDataKey, JSON.stringify(currentFormData));
+      console.log(`Updated session storage for ${formDataKey}`);
       
       if (changes.length > 0) {
         logChanges(currentSection, changes);

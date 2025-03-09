@@ -14,9 +14,13 @@ const AllergiesSection = () => {
       // First check if session storage has any data
       const sessionData = sessionStorage.getItem('allergiesFormData');
       if (sessionData) {
-        (window as any).allergiesFormData = JSON.parse(sessionData);
-        console.log('Setting allergies form data from session storage:', JSON.parse(sessionData));
-        return;
+        try {
+          (window as any).allergiesFormData = JSON.parse(sessionData);
+          console.log('Setting allergies form data from session storage:', JSON.parse(sessionData));
+          return;
+        } catch (e) {
+          console.error('Error parsing session data:', e);
+        }
       }
       
       // Fall back to localStorage
@@ -42,6 +46,7 @@ const AllergiesSection = () => {
       const currentFormData = (window as any).allergiesFormData;
       if (currentFormData) {
         sessionStorage.setItem('allergiesFormData', JSON.stringify(currentFormData));
+        console.log('Saving allergies form data to session storage before unload:', currentFormData);
       }
     };
     

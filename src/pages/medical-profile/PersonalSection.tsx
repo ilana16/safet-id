@@ -15,9 +15,13 @@ const PersonalSection = () => {
       // First check if session storage has any data
       const sessionData = sessionStorage.getItem('personalFormData');
       if (sessionData) {
-        (window as any).personalFormData = JSON.parse(sessionData);
-        console.log('Setting personal form data from session storage:', JSON.parse(sessionData));
-        return;
+        try {
+          (window as any).personalFormData = JSON.parse(sessionData);
+          console.log('Setting personal form data from session storage:', JSON.parse(sessionData));
+          return;
+        } catch (e) {
+          console.error('Error parsing session data:', e);
+        }
       }
       
       // Fall back to localStorage
@@ -44,6 +48,7 @@ const PersonalSection = () => {
       const currentFormData = (window as any).personalFormData;
       if (currentFormData) {
         sessionStorage.setItem('personalFormData', JSON.stringify(currentFormData));
+        console.log('Saving personal form data to session storage before unload:', currentFormData);
       }
     };
     
@@ -69,15 +74,17 @@ const PersonalSection = () => {
       const changes: {field: string; oldValue: any; newValue: any}[] = [];
       
       // Track changes in basic form data
-      Object.entries(windowFormData.formData || {}).forEach(([key, value]) => {
-        if (existingSectionData.formData && existingSectionData.formData[key] !== value) {
-          changes.push({
-            field: key,
-            oldValue: existingSectionData.formData ? existingSectionData.formData[key] : undefined,
-            newValue: value
-          });
-        }
-      });
+      if (windowFormData.formData) {
+        Object.entries(windowFormData.formData || {}).forEach(([key, value]) => {
+          if (existingSectionData.formData && existingSectionData.formData[key] !== value) {
+            changes.push({
+              field: key,
+              oldValue: existingSectionData.formData ? existingSectionData.formData[key] : undefined,
+              newValue: value
+            });
+          }
+        });
+      }
       
       // Track unit preference changes
       if (existingSectionData.heightUnit !== windowFormData.heightUnit) {
