@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -5,7 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Trash2 } from 'lucide-react';
+import { PlusCircle, Trash2, Plus } from 'lucide-react';
 
 const MedicalProfileMentalHealthForm = () => {
   const [hasMentalHealthConditions, setHasMentalHealthConditions] = useState(false);
@@ -18,10 +19,11 @@ const MedicalProfileMentalHealthForm = () => {
     endDate: string;
     outcome: string;
   }>>([]);
-  const [otherMentalHealthCondition, setOtherMentalHealthCondition] = useState('');
+  const [mentalHealthConditions, setMentalHealthConditions] = useState<string[]>([]);
+  const [newMentalHealthCondition, setNewMentalHealthCondition] = useState('');
 
   // Handlers for treatment history
-  const addTreatment = () => {
+  const handleAddTreatment = () => {
     const newId = treatments.length > 0 
       ? Math.max(...treatments.map(t => t.id)) + 1 
       : 1;
@@ -44,6 +46,34 @@ const MedicalProfileMentalHealthForm = () => {
       t.id === id ? { ...t, [field]: value } : t
     ));
   };
+
+  const toggleMentalHealthCondition = (condition: string) => {
+    if (mentalHealthConditions.includes(condition)) {
+      setMentalHealthConditions(mentalHealthConditions.filter(c => c !== condition));
+    } else {
+      setMentalHealthConditions([...mentalHealthConditions, condition]);
+    }
+  };
+
+  const handleAddMentalHealthCondition = () => {
+    if (newMentalHealthCondition.trim() !== '') {
+      setMentalHealthConditions([...mentalHealthConditions, newMentalHealthCondition.trim()]);
+      setNewMentalHealthCondition('');
+    }
+  };
+
+  const commonMentalHealthConditions = [
+    "Depression",
+    "Anxiety",
+    "Bipolar Disorder",
+    "ADHD/ADD",
+    "OCD",
+    "PTSD",
+    "Schizophrenia",
+    "Eating Disorder",
+    "Substance Use Disorder",
+    "Autism Spectrum Disorder"
+  ];
 
   return (
     <div className="space-y-8">
@@ -173,7 +203,7 @@ const MedicalProfileMentalHealthForm = () => {
                 variant="outline"
                 size="sm"
                 className="text-safet-600 border-safet-200"
-                onClick={addTreatment}
+                onClick={handleAddTreatment}
               >
                 <PlusCircle className="mr-2 h-4 w-4" />
                 Add Treatment
@@ -280,21 +310,12 @@ const MedicalProfileMentalHealthForm = () => {
         <p className="text-sm text-gray-600 mb-4">Select any mental health conditions that apply:</p>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2 mb-4">
-          {[
-            "Depression",
-            "Anxiety",
-            "Bipolar Disorder",
-            "ADHD/ADD",
-            "OCD",
-            "PTSD",
-            "Schizophrenia",
-            "Eating Disorder",
-            "Substance Use Disorder",
-            "Autism Spectrum Disorder"
-          ].map((condition) => (
+          {commonMentalHealthConditions.map((condition) => (
             <div key={condition} className="flex items-center space-x-2">
               <Checkbox 
                 id={`mental-${condition}`} 
+                checked={mentalHealthConditions.includes(condition)}
+                onCheckedChange={() => toggleMentalHealthCondition(condition)}
               />
               <Label 
                 htmlFor={`mental-${condition}`} 
@@ -304,36 +325,39 @@ const MedicalProfileMentalHealthForm = () => {
               </Label>
             </div>
           ))}
-          
-          {/* Other option with text input */}
-          <div className="flex items-center space-x-2">
-            <Checkbox 
-              id="mental-other"
-              checked={otherMentalHealthCondition !== ''}
-              onCheckedChange={(checked) => {
-                if (!checked) setOtherMentalHealthCondition('');
-              }}
-            />
-            <Label 
-              htmlFor="mental-other" 
-              className="text-sm cursor-pointer"
-            >
-              Other
-            </Label>
-          </div>
         </div>
         
-        {/* Text input field that appears when "Other" is checked */}
-        {otherMentalHealthCondition !== '' || document.getElementById('mental-other')?.getAttribute('data-state') === 'checked' ? (
-          <div className="mb-4 pl-6">
-            <Input
-              placeholder="Please specify other mental health condition"
-              value={otherMentalHealthCondition}
-              onChange={(e) => setOtherMentalHealthCondition(e.target.value)}
-              className="max-w-md"
+        <div className="mt-4">
+          <Label htmlFor="mental-other-condition" className="text-sm">Other condition not listed:</Label>
+          <div className="flex gap-2 mt-1">
+            <Input 
+              id="mental-other-condition" 
+              value={newMentalHealthCondition}
+              onChange={(e) => setNewMentalHealthCondition(e.target.value)}
+              placeholder="Enter other mental health condition"
+              className="flex-grow"
             />
+            <Button 
+              type="button" 
+              onClick={handleAddMentalHealthCondition}
+              disabled={!newMentalHealthCondition.trim()}
+              size="sm"
+            >
+              <Plus className="h-4 w-4 mr-1" /> Add
+            </Button>
           </div>
-        ) : null}
+          
+          {mentalHealthConditions.filter(c => !commonMentalHealthConditions.includes(c)).length > 0 && (
+            <div className="mt-2 space-y-1">
+              <p className="text-sm font-medium text-gray-700">Added conditions:</p>
+              <ul className="text-sm pl-5 list-disc space-y-1">
+                {mentalHealthConditions.filter(c => !commonMentalHealthConditions.includes(c)).map((condition, index) => (
+                  <li key={index}>{condition}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
       </div>
       
       <div>
