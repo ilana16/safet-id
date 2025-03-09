@@ -79,7 +79,7 @@ const CulturalSection = () => {
 
   return (
     <div>
-      <MedicalProfileCulturalPreferencesForm initialData={(window as any).culturalPreferencesFormData} />
+      <MedicalProfileCulturalPreferencesForm />
       
       <div className="mt-8 flex justify-end gap-3">
         <Button 

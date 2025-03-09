@@ -82,7 +82,7 @@ const FunctionalSection = () => {
 
   return (
     <div>
-      <MedicalProfileFunctionalStatusForm initialData={(window as any).functionalStatusFormData} />
+      <MedicalProfileFunctionalStatusForm />
       
       <div className="mt-8 flex justify-end gap-3">
         <Button 

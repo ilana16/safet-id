@@ -102,7 +102,6 @@ const HistorySection = () => {
     <div>
       <MedicalProfileHistoryForm 
         onMentalHealthHistoryChange={handleMentalHealthHistoryChange}
-        initialData={(window as any).historyFormData}
       />
       
       <div className="mt-8 flex justify-end gap-3">

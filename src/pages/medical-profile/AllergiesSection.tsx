@@ -79,7 +79,7 @@ const AllergiesSection = () => {
 
   return (
     <div>
-      <MedicalProfileAllergiesForm initialData={(window as any).allergiesFormData} />
+      <MedicalProfileAllergiesForm />
       
       <div className="mt-8 flex justify-end gap-3">
         <Button 

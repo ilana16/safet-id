@@ -79,7 +79,7 @@ const PreventativeSection = () => {
 
   return (
     <div>
-      <MedicalProfilePreventativeCareForm initialData={(window as any).preventativeCareFormData} />
+      <MedicalProfilePreventativeCareForm />
       
       <div className="mt-8 flex justify-end gap-3">
         <Button 
