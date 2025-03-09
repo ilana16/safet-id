@@ -8,6 +8,7 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const sections = [
   { id: 'personal', label: 'Personal' },
+  { id: 'basic', label: 'Basic Information' },
   { id: 'history', label: 'Medical History' },
   { id: 'medications', label: 'Medications' },
   { id: 'allergies', label: 'Allergies' },

@@ -33,6 +33,7 @@ const MedicalProfileTab: React.FC<MedicalProfileTabProps> = ({ completionPercent
   // Mock data for last updated timestamps
   const lastUpdated = {
     personal: '2023-10-15T14:30:00Z',
+    basic: '2023-10-20T10:15:00Z',
     history: '2023-11-20T09:45:00Z',
     medications: '2023-12-05T16:20:00Z',
     allergies: '2024-01-10T11:15:00Z',
@@ -54,6 +55,7 @@ const MedicalProfileTab: React.FC<MedicalProfileTabProps> = ({ completionPercent
   // Mock data for section completion status
   const sectionStatus = {
     personal: 100,
+    basic: 90,
     history: 75,
     medications: 100,
     allergies: 60,
@@ -67,6 +69,14 @@ const MedicalProfileTab: React.FC<MedicalProfileTabProps> = ({ completionPercent
       link: '/profile/personal',
       status: sectionStatus.personal,
       lastUpdated: lastUpdated.personal,
+    },
+    {
+      id: 'basic',
+      title: 'Basic Information',
+      description: 'Height, weight, blood type, and other essential health metrics',
+      link: '/profile/basic',
+      status: sectionStatus.basic,
+      lastUpdated: lastUpdated.basic,
     },
     {
       id: 'history',
