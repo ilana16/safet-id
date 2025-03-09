@@ -20,10 +20,10 @@ const MedicalProfileCulturalPreferencesForm = () => {
 
   // Load saved data on component mount
   useEffect(() => {
-    const savedProfile = localStorage.getItem('medicalProfile');
-    
-    if (savedProfile) {
-      try {
+    try {
+      const savedProfile = localStorage.getItem('medicalProfile');
+      
+      if (savedProfile) {
         const profileData = JSON.parse(savedProfile);
         if (profileData && profileData.cultural) {
           const culturalData = profileData.cultural;
@@ -38,9 +38,9 @@ const MedicalProfileCulturalPreferencesForm = () => {
           setDietaryRestrictions(culturalData.dietaryRestrictions || '');
           setAdditionalNotes(culturalData.additionalNotes || '');
         }
-      } catch (error) {
-        console.error('Error loading cultural preferences data:', error);
       }
+    } catch (error) {
+      console.error('Error loading cultural preferences data:', error);
     }
   }, []);
 
