@@ -1,3 +1,4 @@
+
 // This is a simplified medication database for demo purposes
 // In a production app, this would connect to a proper API like drugs.com
 
@@ -15,10 +16,11 @@ export interface MedicationInfo {
     elderly?: string;
   };
   image?: string;
+  drugsComUrl?: string; // Added for linking to Drugs.com
 }
 
 // Sample medication database
-const medicationDatabase: Record<string, MedicationInfo> = {
+export const medicationDatabase: Record<string, MedicationInfo> = {
   "lisinopril": {
     name: "Lisinopril",
     genericName: "Lisinopril",
@@ -34,7 +36,8 @@ const medicationDatabase: Record<string, MedicationInfo> = {
     dosage: {
       adult: "Initial: 10mg once daily. Maintenance: 20-40mg once daily.",
       elderly: "Initial: 2.5-5mg once daily."
-    }
+    },
+    drugsComUrl: "https://www.drugs.com/lisinopril.html"
   },
   "metformin": {
     name: "Metformin",
@@ -51,7 +54,8 @@ const medicationDatabase: Record<string, MedicationInfo> = {
     dosage: {
       adult: "Initial: 500mg twice daily. Maximum: 2550mg per day in divided doses.",
       elderly: "Lower doses may be needed due to decreased kidney function."
-    }
+    },
+    drugsComUrl: "https://www.drugs.com/metformin.html"
   },
   "atorvastatin": {
     name: "Atorvastatin",
@@ -67,7 +71,8 @@ const medicationDatabase: Record<string, MedicationInfo> = {
     ],
     dosage: {
       adult: "Initial: 10-20mg once daily. Maintenance: 10-80mg once daily."
-    }
+    },
+    drugsComUrl: "https://www.drugs.com/atorvastatin.html"
   },
   "levothyroxine": {
     name: "Levothyroxine",
@@ -84,7 +89,8 @@ const medicationDatabase: Record<string, MedicationInfo> = {
     dosage: {
       adult: "Initial: 25-50mcg once daily. Adjusted based on lab results.",
       elderly: "Initial: 12.5-25mcg once daily."
-    }
+    },
+    drugsComUrl: "https://www.drugs.com/levothyroxine.html"
   },
   "amoxicillin": {
     name: "Amoxicillin",
@@ -101,7 +107,44 @@ const medicationDatabase: Record<string, MedicationInfo> = {
     dosage: {
       adult: "250-500mg every 8 hours or 500-875mg every 12 hours, depending on infection.",
       child: "20-90mg/kg/day divided into 2-3 doses, depending on infection and age."
-    }
+    },
+    drugsComUrl: "https://www.drugs.com/amoxicillin.html"
+  },
+  "amlodipine": {
+    name: "Amlodipine",
+    genericName: "Amlodipine Besylate",
+    description: "Amlodipine is a calcium channel blocker that dilates blood vessels and improves blood flow.",
+    usedFor: ["High blood pressure", "Coronary artery disease", "Angina (chest pain)"],
+    sideEffects: ["Swelling in ankles or feet", "Dizziness", "Flushing", "Headache", "Fatigue"],
+    interactions: ["Grapefruit juice", "Simvastatin", "Certain antifungal medications", "Cyclosporine"],
+    warnings: [
+      "May cause increased angina or heart attack with sudden discontinuation",
+      "Use with caution in severe liver disease",
+      "Monitor blood pressure regularly"
+    ],
+    dosage: {
+      adult: "Initial: 5mg once daily. Maximum: 10mg once daily.",
+      elderly: "Initial: 2.5mg once daily."
+    },
+    drugsComUrl: "https://www.drugs.com/amlodipine.html"
+  },
+  "hydrochlorothiazide": {
+    name: "Hydrochlorothiazide",
+    genericName: "Hydrochlorothiazide",
+    description: "Hydrochlorothiazide is a thiazide diuretic (water pill) that helps prevent your body from absorbing too much salt.",
+    usedFor: ["High blood pressure", "Fluid retention", "Edema", "Heart failure"],
+    sideEffects: ["Increased urination", "Low potassium levels", "Dizziness", "Increased blood sugar", "Increased cholesterol"],
+    interactions: ["Lithium", "Digoxin", "NSAIDs", "Diabetes medications"],
+    warnings: [
+      "Can cause electrolyte imbalances (particularly potassium)",
+      "Increased sun sensitivity",
+      "May affect blood sugar in diabetics"
+    ],
+    dosage: {
+      adult: "12.5-50mg once daily.",
+      elderly: "12.5-25mg once daily."
+    },
+    drugsComUrl: "https://www.drugs.com/hydrochlorothiazide.html"
   }
 };
 
