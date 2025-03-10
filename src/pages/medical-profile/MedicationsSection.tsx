@@ -1,7 +1,6 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Search, Save, PlusCircle, Info } from 'lucide-react';
+import { Search, Save, PlusCircle, Info, ChevronLeft } from 'lucide-react';
 import MedicalProfileMedicationsForm from '@/components/forms/MedicalProfileMedicationsForm';
 import { toast } from '@/lib/toast';
 import { logChanges } from '@/utils/changeLog';
@@ -11,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { searchMedications, getMedicationInfo, type MedicationInfo } from '@/utils/medicationData';
 import MedicationDetails from '@/components/medications/MedicationInfo';
 import { CommandDialog, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from '@/components/ui/command';
+import { Separator } from '@/components/ui/separator';
 
 const MedicationsSection = () => {
   const [isSaving, setIsSaving] = useState(false);
@@ -22,7 +22,6 @@ const MedicationsSection = () => {
   
   useEffect(() => {
     try {
-      // First check if session storage has any data
       const sessionData = sessionStorage.getItem('medicationsFormData');
       if (sessionData) {
         try {
@@ -35,7 +34,6 @@ const MedicationsSection = () => {
         }
       }
       
-      // Fall back to localStorage
       const savedProfileJson = localStorage.getItem('medicalProfile');
       if (savedProfileJson) {
         const savedProfile = JSON.parse(savedProfileJson);
@@ -43,7 +41,6 @@ const MedicationsSection = () => {
           (window as any).medicationsFormData = savedProfile.medications;
           console.log('Setting medications form data in window object:', savedProfile.medications);
           
-          // Also save to session storage for better persistence
           sessionStorage.setItem('medicationsFormData', JSON.stringify(savedProfile.medications));
         }
       }
@@ -52,7 +49,6 @@ const MedicationsSection = () => {
     }
   }, []);
   
-  // Add event listener for page unload to save data
   useEffect(() => {
     const handleBeforeUnload = () => {
       const currentFormData = (window as any).medicationsFormData;
@@ -68,7 +64,6 @@ const MedicationsSection = () => {
     };
   }, []);
   
-  // Save form data when component unmounts
   useEffect(() => {
     return () => {
       const currentFormData = (window as any).medicationsFormData;
@@ -119,7 +114,6 @@ const MedicationsSection = () => {
         localStorage.setItem('medicalProfile', JSON.stringify(updatedProfile));
         console.log('Saved updated profile:', updatedProfile);
         
-        // Also update session storage
         sessionStorage.setItem('medicationsFormData', JSON.stringify({
           ...newFormData,
           completed: true,
@@ -140,7 +134,6 @@ const MedicationsSection = () => {
     }
   };
 
-  // Handle medication search
   const handleSearch = () => {
     if (searchQuery.trim().length >= 2) {
       const results = searchMedications(searchQuery);
@@ -153,7 +146,6 @@ const MedicationsSection = () => {
     }
   };
 
-  // Handle selecting a medication from search results
   const handleSelectMedication = (medicationKey: string) => {
     const medicationInfo = getMedicationInfo(medicationKey);
     if (medicationInfo) {
@@ -163,7 +155,6 @@ const MedicationsSection = () => {
     }
   };
 
-  // Handle triggering the command dialog for quick search
   const handleCommandSearch = (value: string) => {
     setSearchQuery(value);
     if (value.trim().length >= 2) {
@@ -183,25 +174,35 @@ const MedicationsSection = () => {
         className="w-full"
       >
         <div className="flex justify-between items-center mb-6">
-          <TabsList>
-            <TabsTrigger value="my-medications">My Medications</TabsTrigger>
-            <TabsTrigger value="drug-info">Drug Information</TabsTrigger>
+          <TabsList className="bg-[#EFF5FB] border border-[#C8D7EC]">
+            <TabsTrigger 
+              value="my-medications" 
+              className="data-[state=active]:bg-[#1F4894] data-[state=active]:text-white"
+            >
+              My Medications
+            </TabsTrigger>
+            <TabsTrigger 
+              value="drug-info"
+              className="data-[state=active]:bg-[#1F4894] data-[state=active]:text-white"
+            >
+              Drug Information
+            </TabsTrigger>
           </TabsList>
           
           <div className="flex gap-2">
             <Button 
               variant="outline"
               onClick={() => setShowCommandDialog(true)}
-              className="flex items-center gap-2"
+              className="flex items-center gap-2 border-[#C8C8C9] bg-white text-[#333333] hover:bg-[#F6F6F7]"
             >
-              <Search className="h-4 w-4" />
+              <Search className="h-4 w-4 text-[#8E9196]" />
               Quick Search
             </Button>
             
             {activeTab === 'my-medications' && (
               <Button 
                 onClick={handleSave} 
-                className="bg-safet-500 hover:bg-safet-600"
+                className="bg-[#1F4894] hover:bg-[#15366D] text-white"
                 disabled={isSaving}
               >
                 {isSaving ? 'Saving...' : 'Save'}
@@ -217,7 +218,7 @@ const MedicationsSection = () => {
           <div className="mt-8 flex justify-end gap-3">
             <Button 
               onClick={handleSave} 
-              className="bg-safet-500 hover:bg-safet-600"
+              className="bg-[#1F4894] hover:bg-[#15366D] text-white"
               disabled={isSaving}
             >
               {isSaving ? 'Saving...' : 'Save'}
@@ -236,21 +237,20 @@ const MedicationsSection = () => {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                  className="pr-10"
+                  className="pr-10 border-[#C8C8C9] focus-visible:ring-[#1F4894] bg-white"
                 />
                 <Button
                   variant="ghost"
                   size="icon"
                   onClick={handleSearch}
-                  className="absolute right-0 top-0 h-full"
+                  className="absolute right-0 top-0 h-full text-[#8E9196] hover:text-[#1F4894]"
                 >
                   <Search className="h-4 w-4" />
                 </Button>
               </div>
               <Button 
-                variant="outline" 
                 onClick={() => setActiveTab('my-medications')}
-                className="whitespace-nowrap"
+                className="whitespace-nowrap bg-[#1F4894] hover:bg-[#15366D] text-white"
               >
                 <PlusCircle className="mr-2 h-4 w-4" />
                 Add to My Medications
@@ -258,22 +258,23 @@ const MedicationsSection = () => {
             </div>
             
             {searchResults.length > 0 && !selectedMedication && (
-              <Card className="p-4">
-                <h3 className="font-medium mb-3">Search Results</h3>
-                <ul className="space-y-2">
+              <Card className="p-4 border-[#C8C8C9]">
+                <h3 className="font-medium mb-2 text-[#1F4894]">Search Results</h3>
+                <Separator className="bg-[#C8C8C9] mb-3" />
+                <ul className="space-y-1">
                   {searchResults.map((result) => {
                     const info = getMedicationInfo(result);
                     return (
-                      <li key={result}>
+                      <li key={result} className="border-b border-[#F6F6F7] last:border-0">
                         <Button 
                           variant="ghost" 
                           onClick={() => handleSelectMedication(result)}
-                          className="w-full justify-start text-left hover:bg-gray-100"
+                          className="w-full justify-start text-left py-3 hover:bg-[#F6F6F7] text-[#333333]"
                         >
                           <div>
-                            <div className="font-medium">{info?.name}</div>
+                            <div className="font-medium text-[#1F4894]">{info?.name}</div>
                             {info?.genericName && info.genericName !== info.name && (
-                              <div className="text-sm text-gray-500">{info.genericName}</div>
+                              <div className="text-sm text-[#8E9196]">{info.genericName}</div>
                             )}
                           </div>
                         </Button>
@@ -285,19 +286,19 @@ const MedicationsSection = () => {
             )}
             
             {selectedMedication ? (
-              <div className="bg-white rounded-lg border border-gray-200 p-6">
+              <div className="bg-white rounded-lg border border-[#C8C8C9] p-6">
                 <div className="flex justify-between mb-6">
                   <Button 
                     variant="ghost" 
                     onClick={() => setSelectedMedication(null)}
-                    className="text-gray-500"
+                    className="text-[#1F4894] hover:bg-[#EFF5FB] flex items-center"
                   >
-                    ← Back to results
+                    <ChevronLeft className="h-4 w-4 mr-1" />
+                    Back to results
                   </Button>
                   <Button 
-                    variant="outline" 
                     onClick={() => setActiveTab('my-medications')}
-                    className="flex items-center gap-2"
+                    className="flex items-center gap-2 bg-[#1F4894] hover:bg-[#15366D] text-white"
                   >
                     <PlusCircle className="h-4 w-4" />
                     Add to My Medications
@@ -307,10 +308,12 @@ const MedicationsSection = () => {
               </div>
             ) : (
               !searchResults.length && (
-                <div className="text-center py-12 bg-gray-50 rounded-lg border border-gray-200">
-                  <Info className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-gray-700 mb-2">Find Drug Information</h3>
-                  <p className="text-gray-500 max-w-md mx-auto">
+                <div className="text-center py-12 bg-[#F6F6F7] rounded-lg border border-[#C8C8C9]">
+                  <div className="bg-[#EFF5FB] w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Info className="h-8 w-8 text-[#1F4894]" />
+                  </div>
+                  <h3 className="text-lg font-medium text-[#1F4894] mb-2">Find Drug Information</h3>
+                  <p className="text-[#8E9196] max-w-md mx-auto">
                     Search for medications to view detailed information about dosage, 
                     side effects, interactions, and more.
                   </p>
@@ -326,6 +329,7 @@ const MedicationsSection = () => {
           placeholder="Search medications..." 
           value={searchQuery}
           onValueChange={handleCommandSearch}
+          className="border-b border-[#C8C8C9]"
         />
         <CommandList>
           <CommandEmpty>No medications found.</CommandEmpty>
@@ -336,11 +340,13 @@ const MedicationsSection = () => {
                 <CommandItem 
                   key={result}
                   onSelect={() => handleSelectMedication(result)}
+                  className="hover:bg-[#EFF5FB] aria-selected:bg-[#EFF5FB]"
                 >
+                  <Search className="h-4 w-4 mr-2 text-[#8E9196]" />
                   <div>
-                    <div>{info?.name}</div>
+                    <div className="text-[#1F4894]">{info?.name}</div>
                     {info?.genericName && info.genericName !== info.name && (
-                      <div className="text-sm text-gray-500">{info.genericName}</div>
+                      <div className="text-sm text-[#8E9196]">{info.genericName}</div>
                     )}
                   </div>
                 </CommandItem>
