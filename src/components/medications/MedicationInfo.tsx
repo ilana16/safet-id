@@ -1,16 +1,16 @@
 
 import React from 'react';
-import { MedicationInfo } from '@/utils/medicationData';
+import type { MedicationInfo as MedicationInfoType } from '@/utils/medicationData';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertTriangle } from 'lucide-react';
 
-interface MedicationInfoProps {
-  medication: MedicationInfo;
+interface MedicationDetailsProps {
+  medication: MedicationInfoType;
 }
 
-const MedicationInfo: React.FC<MedicationInfoProps> = ({ medication }) => {
+const MedicationDetails: React.FC<MedicationDetailsProps> = ({ medication }) => {
   return (
     <div className="space-y-6">
       <div>
@@ -80,4 +80,4 @@ const MedicationInfo: React.FC<MedicationInfoProps> = ({ medication }) => {
   );
 };
 
-export default MedicationInfo;
+export default MedicationDetails;

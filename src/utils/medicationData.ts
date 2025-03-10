@@ -1,8 +1,7 @@
-
 // This is a simplified medication database for demo purposes
 // In a production app, this would connect to a proper API like drugs.com
 
-interface MedicationInfo {
+export interface MedicationInfo {
   name: string;
   genericName?: string;
   description: string;
@@ -123,5 +122,3 @@ export const searchMedications = (query: string): string[] => {
 export const getMedicationInfo = (medicationKey: string): MedicationInfo | null => {
   return medicationDatabase[medicationKey.toLowerCase()] || null;
 };
-
-export type { MedicationInfo };

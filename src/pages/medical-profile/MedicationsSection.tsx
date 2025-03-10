@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { searchMedications, getMedicationInfo, type MedicationInfo } from '@/utils/medicationData';
-import MedicationInfo from '@/components/medications/MedicationInfo';
+import MedicationDetails from '@/components/medications/MedicationInfo';
 import { CommandDialog, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from '@/components/ui/command';
 
 const MedicationsSection = () => {
@@ -303,7 +303,7 @@ const MedicationsSection = () => {
                     Add to My Medications
                   </Button>
                 </div>
-                <MedicationInfo medication={selectedMedication} />
+                <MedicationDetails medication={selectedMedication} />
               </div>
             ) : (
               !searchResults.length && (
