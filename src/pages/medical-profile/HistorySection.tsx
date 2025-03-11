@@ -16,6 +16,12 @@ const HistorySection = () => {
     try {
       console.log('Loading medical history data');
       
+      // Create default data structure for history section
+      const defaultData = {
+        hasMentalHealthHistory: 'no',
+        lastUpdated: new Date().toISOString()
+      };
+      
       // First check if localStorage has data (source of truth)
       const savedProfileJson = localStorage.getItem('medicalProfile');
       let localData = null;
@@ -50,7 +56,7 @@ const HistorySection = () => {
       }
       
       // Determine which data is more recent and use that
-      let dataToUse = null;
+      let dataToUse = defaultData;
       
       if (localData && sessionParsed) {
         const localTime = new Date(localData.lastUpdated || 0).getTime();
@@ -64,7 +70,11 @@ const HistorySection = () => {
           setHasMentalHealthHistory(dataToUse.hasMentalHealthHistory);
         }
       } else {
-        dataToUse = localData || sessionParsed || { hasMentalHealthHistory: hasMentalHealthHistory };
+        dataToUse = localData || sessionParsed || defaultData;
+        
+        if (dataToUse.hasMentalHealthHistory) {
+          setHasMentalHealthHistory(dataToUse.hasMentalHealthHistory);
+        }
       }
       
       // Set the data in window object for the form to use
@@ -74,7 +84,20 @@ const HistorySection = () => {
       // Update session storage to match
       sessionStorage.setItem('historyFormData', JSON.stringify(dataToUse));
       
+      // Also ensure localStorage has the latest data
+      if (!localData || (sessionParsed && new Date(sessionParsed.lastUpdated) > new Date(localData.lastUpdated))) {
+        const savedProfile = savedProfileJson ? JSON.parse(savedProfileJson) : {};
+        localStorage.setItem('medicalProfile', JSON.stringify({
+          ...savedProfile,
+          history: dataToUse
+        }));
+        console.log('Updated localStorage with most recent history data');
+      }
+      
       setIsLoaded(true);
+      
+      // Force a re-render of the form component
+      window.dispatchEvent(new CustomEvent('historyDataLoaded'));
     } catch (error) {
       console.error('Error loading medical history data:', error);
       setIsLoaded(true); // Still show the form even if there's an error
@@ -83,20 +106,28 @@ const HistorySection = () => {
   
   // Initial load
   useEffect(() => {
-    loadData();
+    // Add a small delay to ensure DOM is ready
+    setTimeout(() => {
+      loadData();
+    }, 50);
     
     // Listen for navigation changes to reload data
     const handleNavChange = () => {
       console.log('Navigation change detected, reloading medical history data');
-      loadData();
+      // Add a small delay to ensure state is ready
+      setTimeout(() => {
+        loadData();
+      }, 50);
     };
     
     window.addEventListener('navigationChange', handleNavChange);
     window.addEventListener('popstate', handleNavChange);
+    window.addEventListener('historyDataRequest', handleNavChange);
     
     return () => {
       window.removeEventListener('navigationChange', handleNavChange);
       window.removeEventListener('popstate', handleNavChange);
+      window.removeEventListener('historyDataRequest', handleNavChange);
     };
   }, []);
   
@@ -168,6 +199,11 @@ const HistorySection = () => {
           lastUpdated: new Date().toISOString()
         }
       }));
+      
+      // Propagate change to other components
+      window.dispatchEvent(new CustomEvent('mentalHealthHistoryChanged', { 
+        detail: { value }
+      }));
     } catch (error) {
       console.error('Error saving mental health history to localStorage:', error);
     }
@@ -225,6 +261,11 @@ const HistorySection = () => {
         
         setIsSaving(false);
         toast.success('Medical history saved successfully');
+        
+        // Propagate change to other components
+        window.dispatchEvent(new CustomEvent('mentalHealthHistoryChanged', { 
+          detail: { value: hasMentalHealthHistory }
+        }));
       }, 500);
     } catch (error) {
       console.error('Error saving medical history:', error);

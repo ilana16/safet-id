@@ -15,6 +15,13 @@ const AllergiesSection = () => {
     try {
       console.log('Loading allergies data');
       
+      // Create default data structure for allergies section
+      const defaultData = {
+        allergies: '[]',
+        noKnownAllergies: 'false',
+        lastUpdated: new Date().toISOString()
+      };
+      
       // First check if localStorage has data (source of truth)
       const savedProfileJson = localStorage.getItem('medicalProfile');
       let localData = null;
@@ -41,7 +48,7 @@ const AllergiesSection = () => {
       }
       
       // Determine which data is more recent and use that
-      let dataToUse = null;
+      let dataToUse = defaultData;
       
       if (localData && sessionParsed) {
         const localTime = new Date(localData.lastUpdated || 0).getTime();
@@ -50,7 +57,7 @@ const AllergiesSection = () => {
         dataToUse = localTime >= sessionTime ? localData : sessionParsed;
         console.log('Using more recent data, timestamp comparison:', { localTime, sessionTime });
       } else {
-        dataToUse = localData || sessionParsed || {};
+        dataToUse = localData || sessionParsed || defaultData;
       }
       
       // Set the data in window object for the form to use
@@ -60,28 +67,50 @@ const AllergiesSection = () => {
       // Update session storage to match
       sessionStorage.setItem('allergiesFormData', JSON.stringify(dataToUse));
       
+      // Also ensure localStorage has the latest data
+      if (!localData || (sessionParsed && new Date(sessionParsed.lastUpdated) > new Date(localData.lastUpdated))) {
+        const savedProfile = savedProfileJson ? JSON.parse(savedProfileJson) : {};
+        localStorage.setItem('medicalProfile', JSON.stringify({
+          ...savedProfile,
+          allergies: dataToUse
+        }));
+        console.log('Updated localStorage with most recent allergies data');
+      }
+      
       setIsLoaded(true);
+      
+      // Force a re-render of the form component
+      window.dispatchEvent(new CustomEvent('allergiesDataLoaded'));
     } catch (error) {
       console.error('Error loading allergies data:', error);
+      setIsLoaded(true); // Still show the form even if there's an error
     }
   };
   
   // Initial load
   useEffect(() => {
-    loadData();
+    // Add a small delay to ensure DOM is ready
+    setTimeout(() => {
+      loadData();
+    }, 50);
     
     // Listen for navigation changes to reload data
     const handleNavChange = () => {
       console.log('Navigation change detected, reloading allergies data');
-      loadData();
+      // Add a small delay to ensure state is ready
+      setTimeout(() => {
+        loadData();
+      }, 50);
     };
     
     window.addEventListener('navigationChange', handleNavChange);
     window.addEventListener('popstate', handleNavChange);
+    window.addEventListener('allergiesDataRequest', handleNavChange);
     
     return () => {
       window.removeEventListener('navigationChange', handleNavChange);
       window.removeEventListener('popstate', handleNavChange);
+      window.removeEventListener('allergiesDataRequest', handleNavChange);
     };
   }, []);
   
@@ -90,11 +119,18 @@ const AllergiesSection = () => {
     const saveData = () => {
       const currentFormData = (window as any).allergiesFormData;
       if (currentFormData) {
-        sessionStorage.setItem('allergiesFormData', JSON.stringify({
+        // Ensure allergies is a string if it's an array
+        if (Array.isArray(currentFormData.allergies)) {
+          currentFormData.allergies = JSON.stringify(currentFormData.allergies);
+        }
+        
+        const dataToSave = {
           ...currentFormData,
           lastUpdated: new Date().toISOString()
-        }));
-        console.log('Saving allergies data on unmount/unload');
+        };
+        
+        sessionStorage.setItem('allergiesFormData', JSON.stringify(dataToSave));
+        console.log('Saving allergies data on unmount/unload', dataToSave);
         
         // Also save to localStorage for persistence
         try {
@@ -103,10 +139,7 @@ const AllergiesSection = () => {
           
           localStorage.setItem('medicalProfile', JSON.stringify({
             ...savedProfile,
-            allergies: {
-              ...currentFormData,
-              lastUpdated: new Date().toISOString()
-            }
+            allergies: dataToSave
           }));
         } catch (error) {
           console.error('Error saving to localStorage:', error);
@@ -134,6 +167,11 @@ const AllergiesSection = () => {
       
       let newFormData = (window as any).allergiesFormData || {};
       
+      // Ensure allergies is a string if it's an array
+      if (Array.isArray(newFormData.allergies)) {
+        newFormData.allergies = JSON.stringify(newFormData.allergies);
+      }
+      
       console.log('Saving allergies form data:', newFormData);
       
       const changes: {field: string; oldValue: any; newValue: any}[] = [];
@@ -150,25 +188,21 @@ const AllergiesSection = () => {
       
       setTimeout(() => {
         const currentTimestamp = new Date().toISOString();
-        const updatedProfile = {
-          ...existingProfile,
-          allergies: {
-            ...newFormData,
-            completed: true,
-            lastUpdated: currentTimestamp
-          }
-        };
-        
-        localStorage.setItem('medicalProfile', JSON.stringify(updatedProfile));
-        console.log('Saved updated profile:', updatedProfile);
-        
-        // Also update session storage and window object
         const updatedFormData = {
           ...newFormData,
           completed: true,
           lastUpdated: currentTimestamp
         };
         
+        const updatedProfile = {
+          ...existingProfile,
+          allergies: updatedFormData
+        };
+        
+        localStorage.setItem('medicalProfile', JSON.stringify(updatedProfile));
+        console.log('Saved updated profile:', updatedProfile);
+        
+        // Also update session storage and window object
         sessionStorage.setItem('allergiesFormData', JSON.stringify(updatedFormData));
         (window as any).allergiesFormData = updatedFormData;
         

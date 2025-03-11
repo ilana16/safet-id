@@ -1,5 +1,6 @@
 
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useLocation, useNavigationType } from 'react-router-dom';
+import { useEffect } from 'react';
 import Index from './pages/Index';
 import Dashboard from './pages/Dashboard';
 import NotFound from './pages/NotFound';
@@ -24,10 +25,34 @@ import CulturalSection from './pages/medical-profile/CulturalSection';
 import PreventativeSection from './pages/medical-profile/PreventativeSection';
 import ImmuneSection from './pages/medical-profile/ImmuneSection';
 
+// This component watches for navigation changes and triggers events
+function NavigationTracker() {
+  const location = useLocation();
+  const navigationType = useNavigationType();
+
+  useEffect(() => {
+    // Dispatch a custom event when navigation happens
+    console.log('Navigation change detected, dispatching navigationChange event');
+    window.dispatchEvent(new Event('navigationChange'));
+    
+    // If we navigate to a section, dispatch a specific event for that section
+    const pathParts = location.pathname.split('/');
+    const currentSection = pathParts[pathParts.length - 1];
+    
+    if (currentSection && currentSection !== 'profile') {
+      console.log(`Dispatching ${currentSection}DataRequest event`);
+      window.dispatchEvent(new Event(`${currentSection}DataRequest`));
+    }
+  }, [location, navigationType]);
+
+  return null;
+}
+
 function App() {
   return (
     <>
       <Router>
+        <NavigationTracker />
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/register" element={<Register />} />
