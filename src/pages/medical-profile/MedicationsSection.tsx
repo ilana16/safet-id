@@ -1,7 +1,6 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Save, PlusCircle, Info, ChevronLeft, BookOpen, Shield, Pill, Search, AlertTriangle } from 'lucide-react';
+import { Save, PlusCircle, Info, ChevronLeft, BookOpen, Shield, Pill, Search, AlertTriangle, CheckCircle, X } from 'lucide-react';
 import MedicalProfileMedicationsForm from '@/components/forms/MedicalProfileMedicationsForm';
 import { toast } from '@/lib/toast';
 import { logChanges } from '@/utils/changeLog';
@@ -14,6 +13,7 @@ import { Separator } from '@/components/ui/separator';
 import { searchDrugsCom, getDrugsComInfo } from '@/utils/drugsComApi';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Textarea } from '@/components/ui/textarea';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface Medication {
   id: string;
@@ -31,6 +31,7 @@ const MedicationsSection = () => {
   const [showCommandDialog, setShowCommandDialog] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState("search");
   
   useEffect(() => {
     try {
@@ -172,6 +173,7 @@ const MedicationsSection = () => {
       const medicationInfo = await getDrugsComInfo(medicationKey);
       if (medicationInfo) {
         setSelectedMedication(medicationInfo);
+        setActiveTab("details");
         setShowCommandDialog(false);
       } else {
         toast.error('Medication information not found');
@@ -201,166 +203,188 @@ const MedicationsSection = () => {
     }
   };
 
+  const addToMyMedications = () => {
+    if (selectedMedication) {
+      toast.success(`Added ${selectedMedication.name} to your medications list`);
+      setActiveTab("myMeds");
+    }
+  };
+
   return (
-    <div className="space-y-8">
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-[#1A3C70]">My Medications</h2>
-        <div className="flex gap-2">
-          <Button 
-            variant="outline"
-            onClick={() => setShowCommandDialog(true)}
-            className="flex items-center gap-2 border-[#C8C8C9] bg-white text-[#333333] hover:bg-[#F6F6F7]"
-          >
-            <Search className="h-4 w-4 text-[#8E9196]" />
-            Quick Search
-          </Button>
-          
+    <div className="max-w-[1200px] mx-auto">
+      <div className="bg-[#2855A1] text-white p-4 md:p-6 rounded-t-md">
+        <div className="flex justify-between items-center">
+          <h1 className="text-2xl font-bold">Medications & Supplements</h1>
           <Button 
             onClick={handleSave} 
-            className="bg-[#1A3C70] hover:bg-[#15366D] text-white"
+            className="bg-[#1DA2BC] hover:bg-[#1790A7] text-white"
             disabled={isSaving}
           >
-            {isSaving ? 'Saving...' : 'Save'}
+            {isSaving ? 'Saving...' : 'Save Changes'}
             {!isSaving && <Save className="ml-2 h-4 w-4" />}
           </Button>
         </div>
       </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        {/* Left column (form and alerts) */}
-        <div className="lg:col-span-7 space-y-6">
-          <Card className="p-6 border-[#DCE8F7] bg-white">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="bg-[#1A3C70] p-2 rounded-full">
-                <Pill className="h-5 w-5 text-white" />
+      
+      <div className="bg-[#EBF2FA] border-b border-[#D1DEE8] p-4">
+        <div className="flex flex-col md:flex-row gap-2 items-center">
+          <div className="relative w-full md:max-w-xl">
+            <Input
+              type="search"
+              placeholder="Search for a drug, supplement, or vitamin..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+              className="border-[#9CBADE] bg-white pr-10 h-12 text-base shadow-sm"
+            />
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleSearch}
+              disabled={isSearching}
+              className="absolute right-1 top-1/2 -translate-y-1/2 text-[#2855A1] hover:text-[#1A3C70] hover:bg-transparent"
+            >
+              {isSearching ? 
+                <div className="h-5 w-5 border-2 border-t-transparent border-[#2855A1] rounded-full animate-spin"></div> : 
+                <Search className="h-5 w-5" />
+              }
+            </Button>
+          </div>
+          <Button 
+            variant="ghost"
+            onClick={() => setShowCommandDialog(true)}
+            className="text-[#2855A1] hover:text-[#1A3C70] hover:bg-[#D9E5F2]"
+          >
+            Advanced Search
+          </Button>
+        </div>
+      </div>
+      
+      <div className="bg-white border border-t-0 border-[#D1DEE8] rounded-b-md">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <div className="border-b border-[#D1DEE8]">
+            <TabsList className="bg-[#F5F9FD] w-full justify-start rounded-none border-b border-[#D1DEE8] h-auto px-4">
+              <TabsTrigger 
+                value="search"
+                className="py-3 px-4 text-[#2855A1] data-[state=active]:text-[#1A3C70] data-[state=active]:bg-white data-[state=active]:shadow-none data-[state=active]:border-t-2 data-[state=active]:border-t-[#2855A1] data-[state=active]:border-l data-[state=active]:border-r data-[state=active]:border-[#D1DEE8] data-[state=active]:rounded-b-none data-[state=active]:font-medium data-[state=inactive]:bg-transparent"
+              >
+                Search Results
+              </TabsTrigger>
+              <TabsTrigger 
+                value="details"
+                className="py-3 px-4 text-[#2855A1] data-[state=active]:text-[#1A3C70] data-[state=active]:bg-white data-[state=active]:shadow-none data-[state=active]:border-t-2 data-[state=active]:border-t-[#2855A1] data-[state=active]:border-l data-[state=active]:border-r data-[state=active]:border-[#D1DEE8] data-[state=active]:rounded-b-none data-[state=active]:font-medium data-[state=inactive]:bg-transparent"
+                disabled={!selectedMedication}
+              >
+                Drug Information
+              </TabsTrigger>
+              <TabsTrigger 
+                value="myMeds"
+                className="py-3 px-4 text-[#2855A1] data-[state=active]:text-[#1A3C70] data-[state=active]:bg-white data-[state=active]:shadow-none data-[state=active]:border-t-2 data-[state=active]:border-t-[#2855A1] data-[state=active]:border-l data-[state=active]:border-r data-[state=active]:border-[#D1DEE8] data-[state=active]:rounded-b-none data-[state=active]:font-medium data-[state=inactive]:bg-transparent"
+              >
+                My Medications
+              </TabsTrigger>
+            </TabsList>
+          </div>
+          
+          <TabsContent value="search" className="p-6 focus-visible:outline-none">
+            {searchResults.length > 0 ? (
+              <div>
+                <h2 className="text-xl font-medium text-[#2855A1] mb-4">Search Results</h2>
+                <div className="divide-y divide-[#E6EDF5]">
+                  {searchResults.map((result) => (
+                    <div key={result} className="py-3 first:pt-0">
+                      <button 
+                        onClick={() => handleSelectMedication(result)}
+                        disabled={isLoading}
+                        className="w-full text-left py-2 px-3 rounded hover:bg-[#F5F9FD] flex items-center gap-3 transition-colors"
+                      >
+                        {isLoading ? (
+                          <div className="flex items-center">
+                            <div className="h-4 w-4 border-2 border-t-transparent border-[#2855A1] rounded-full animate-spin mr-2"></div>
+                            <span>Loading...</span>
+                          </div>
+                        ) : (
+                          <>
+                            <Pill className="h-5 w-5 text-[#2855A1]" />
+                            <div>
+                              <span className="font-medium text-[#2855A1] capitalize block">{result}</span>
+                              <span className="text-[#6B7280] text-sm">Click for detailed information</span>
+                            </div>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  ))}
+                </div>
               </div>
-              <h3 className="text-xl font-semibold text-[#1A3C70]">My Medications</h3>
+            ) : searchQuery.length > 0 ? (
+              <div className="text-center py-8">
+                <div className="bg-[#F5F9FD] inline-flex rounded-full p-3 mb-3">
+                  <Search className="h-6 w-6 text-[#6B7280]" />
+                </div>
+                <h3 className="text-lg font-medium text-[#2855A1]">No medications found</h3>
+                <p className="text-[#6B7280] mt-1">Try a different search term</p>
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <div className="bg-[#F5F9FD] inline-flex rounded-full p-3 mb-3">
+                  <Search className="h-6 w-6 text-[#6B7280]" />
+                </div>
+                <h3 className="text-lg font-medium text-[#2855A1]">Search for medications</h3>
+                <p className="text-[#6B7280] mt-1">Enter a drug name to see information and add to your list</p>
+              </div>
+            )}
+          </TabsContent>
+          
+          <TabsContent value="details" className="focus-visible:outline-none">
+            {selectedMedication && (
+              <div className="p-6">
+                <div className="flex justify-between items-start mb-6">
+                  <div>
+                    <h2 className="text-2xl font-bold text-[#2855A1]">{selectedMedication.name}</h2>
+                    {selectedMedication.genericName && selectedMedication.genericName !== selectedMedication.name && (
+                      <p className="text-[#6B7280] mt-1">Generic name: <span className="font-medium">{selectedMedication.genericName}</span></p>
+                    )}
+                  </div>
+                  <Button 
+                    onClick={addToMyMedications}
+                    className="bg-[#1DA2BC] hover:bg-[#1790A7] text-white flex items-center gap-2"
+                  >
+                    <PlusCircle className="h-4 w-4" />
+                    Add to My Medications
+                  </Button>
+                </div>
+                
+                <MedicationDetails medication={selectedMedication} />
+              </div>
+            )}
+          </TabsContent>
+          
+          <TabsContent value="myMeds" className="p-6 focus-visible:outline-none">
+            <div className="mb-6 flex items-center justify-between">
+              <h2 className="text-xl font-medium text-[#2855A1]">My Medications</h2>
+              <Button 
+                onClick={handleSave} 
+                className="bg-[#1DA2BC] hover:bg-[#1790A7] text-white"
+                disabled={isSaving}
+              >
+                {isSaving ? 'Saving...' : 'Save Changes'}
+                {!isSaving && <Save className="ml-2 h-4 w-4" />}
+              </Button>
             </div>
-
-            <Alert className="mb-6 bg-[#FFFBF2] border-[#FFECC7]">
+            
+            <Alert className="mb-6 bg-[#FFF8E6] border-[#FFECC7]">
               <AlertTriangle className="h-4 w-4 text-[#ED9121]" />
               <AlertTitle className="text-[#8A6D3B]">Important</AlertTitle>
               <AlertDescription className="text-[#8A6D3B]">
-                Keep your medication list up to date and share it with your healthcare providers.
+                Keep your medication list up to date and share it with your healthcare providers. 
+                You can search for and add medications using the search tab.
               </AlertDescription>
             </Alert>
             
             <MedicalProfileMedicationsForm />
-            
-            <div className="mt-8 flex justify-end gap-3">
-              <Button 
-                onClick={handleSave} 
-                className="bg-[#1A3C70] hover:bg-[#15366D] text-white"
-                disabled={isSaving}
-              >
-                {isSaving ? 'Saving...' : 'Save'}
-                {!isSaving && <Save className="ml-2 h-4 w-4" />}
-              </Button>
-            </div>
-          </Card>
-        </div>
-
-        {/* Right column (drug information) */}
-        <div className="lg:col-span-5 space-y-6">
-          <Card className="p-6 border-[#DCE8F7] bg-[#F0F6FE]">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="bg-[#1A3C70] p-2 rounded-full">
-                <BookOpen className="h-5 w-5 text-white" />
-              </div>
-              <h3 className="text-xl font-semibold text-[#1A3C70]">Drug Information Lookup</h3>
-            </div>
-            
-            <Alert className="bg-white border-[#DCE8F7] mb-4">
-              <Info className="h-4 w-4 text-[#1A3C70]" />
-              <AlertTitle className="text-[#1A3C70]">Look up medication information</AlertTitle>
-              <AlertDescription className="text-[#666666]">
-                Search for medications to view detailed information from Drugs.com including dosage, side effects, interactions, and more.
-              </AlertDescription>
-            </Alert>
-            
-            <div className="flex gap-2">
-              <div className="relative flex-1">
-                <Input
-                  type="search"
-                  placeholder="Search for a medication..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                  className="pr-10 border-[#C8D7EC] focus-visible:ring-[#1A3C70] bg-white"
-                />
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={handleSearch}
-                  disabled={isSearching}
-                  className="absolute right-0 top-0 h-full text-[#8E9196] hover:text-[#1A3C70]"
-                >
-                  {isSearching ? 
-                    <div className="h-4 w-4 border-2 border-t-transparent border-[#8E9196] rounded-full animate-spin"></div> : 
-                    <Search className="h-4 w-4" />
-                  }
-                </Button>
-              </div>
-            </div>
-            
-            {searchResults.length > 0 && !selectedMedication && (
-              <Card className="p-4 border-[#DCE8F7] mt-4 bg-white">
-                <h3 className="font-medium mb-2 text-[#1A3C70]">Search Results</h3>
-                <Separator className="bg-[#DCE8F7] mb-3" />
-                <ul className="space-y-1 divide-y divide-[#F0F6FE]">
-                  {searchResults.map((result) => (
-                    <li key={result}>
-                      <Button 
-                        variant="ghost" 
-                        onClick={() => handleSelectMedication(result)}
-                        disabled={isLoading}
-                        className="w-full justify-start text-left py-3 hover:bg-[#F0F6FE] text-[#333333]"
-                      >
-                        {isLoading ? (
-                          <div className="flex items-center">
-                            <div className="h-4 w-4 border-2 border-t-transparent border-[#1A3C70] rounded-full animate-spin mr-2"></div>
-                            <span>Loading...</span>
-                          </div>
-                        ) : (
-                          <div className="flex items-center">
-                            <Pill className="h-4 w-4 mr-2 text-[#1A3C70]" />
-                            <span className="font-medium text-[#1A3C70] capitalize">{result}</span>
-                          </div>
-                        )}
-                      </Button>
-                    </li>
-                  ))}
-                </ul>
-              </Card>
-            )}
-          </Card>
-
-          {selectedMedication && (
-            <div className="bg-white rounded-lg border border-[#DCE8F7] p-6">
-              <div className="flex justify-between mb-6">
-                <Button 
-                  variant="outline" 
-                  onClick={() => setSelectedMedication(null)}
-                  className="text-[#1A3C70] border-[#C8D7EC] hover:bg-[#F0F6FE] flex items-center"
-                >
-                  <ChevronLeft className="h-4 w-4 mr-1" />
-                  Back to search
-                </Button>
-                <Button 
-                  onClick={() => {
-                    toast.info("Functionality to add medication to your list would be implemented here");
-                    setSelectedMedication(null);
-                  }}
-                  className="flex items-center gap-2 bg-[#1A3C70] hover:bg-[#15366D] text-white"
-                >
-                  <PlusCircle className="h-4 w-4" />
-                  Add to My Medications
-                </Button>
-              </div>
-              <MedicationDetails medication={selectedMedication} />
-            </div>
-          )}
-        </div>
+          </TabsContent>
+        </Tabs>
       </div>
       
       <CommandDialog open={showCommandDialog} onOpenChange={setShowCommandDialog}>
@@ -368,13 +392,13 @@ const MedicationsSection = () => {
           placeholder="Search medications..." 
           value={searchQuery}
           onValueChange={handleCommandSearch}
-          className="border-b border-[#DCE8F7]"
+          className="border-b border-[#D1DEE8]"
         />
         <CommandList>
           <CommandEmpty>
             {isSearching ? (
               <div className="flex justify-center py-6">
-                <div className="h-6 w-6 border-2 border-t-transparent border-[#1A3C70] rounded-full animate-spin"></div>
+                <div className="h-6 w-6 border-2 border-t-transparent border-[#2855A1] rounded-full animate-spin"></div>
               </div>
             ) : (
               "No medications found."
@@ -385,10 +409,10 @@ const MedicationsSection = () => {
               <CommandItem 
                 key={result}
                 onSelect={() => handleSelectMedication(result)}
-                className="hover:bg-[#F0F6FE] aria-selected:bg-[#F0F6FE]"
+                className="hover:bg-[#F5F9FD] aria-selected:bg-[#F5F9FD]"
                 disabled={isLoading}
               >
-                <Pill className="h-4 w-4 mr-2 text-[#1A3C70]" />
+                <Pill className="h-4 w-4 mr-2 text-[#2855A1]" />
                 <div className="capitalize">{result}</div>
               </CommandItem>
             ))}
