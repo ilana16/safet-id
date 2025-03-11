@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { ExternalLink, Search, Plus, Info, AlertTriangle } from 'lucide-react';
+import { ExternalLink, Search, Plus } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -10,7 +10,7 @@ import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { toast } from '@/lib/toast';
 import MedicationDetails from '@/components/medications/MedicationInfo';
-import { searchDrugInfo, searchDrugsCom, getDrugsComInfo } from '@/utils/drugsComApi';
+import { searchMedications, getMedicationInfo } from '@/utils/medicationData';
 import { MedicationInfo as MedicationInfoType } from '@/utils/medicationData';
 
 const MedicationsSection = () => {
@@ -24,7 +24,7 @@ const MedicationsSection = () => {
   const [activeTab, setActiveTab] = useState('search');
   
   // Handle searching medications
-  const handleSearch = async () => {
+  const handleSearch = () => {
     if (!searchTerm.trim()) {
       toast.error('Please enter a medication name to search');
       return;
@@ -35,38 +35,40 @@ const MedicationsSection = () => {
     setSearchResults([]);
 
     try {
-      const results = await searchDrugsCom(searchTerm);
+      // Use the local medication database for searching
+      const results = searchMedications(searchTerm);
       setSearchResults(results);
       if (results.length === 0) {
         setError(`No medications found for "${searchTerm}"`);
       }
+      setIsSearching(false);
     } catch (err) {
       console.error('Error searching medications:', err);
       setError(`Error searching for "${searchTerm}". Please try again.`);
-    } finally {
       setIsSearching(false);
     }
   };
 
   // Handle medication selection
-  const handleSelectMedication = async (medication: string) => {
+  const handleSelectMedication = (medication: string) => {
     setSelectedMedication(medication);
     setIsLoadingInfo(true);
     setMedicationInfo(null);
     setError(null);
     
     try {
-      const info = await getDrugsComInfo(medication);
+      // Get medication details from the local database
+      const info = getMedicationInfo(medication);
       setMedicationInfo(info);
       if (!info) {
         setError(`No detailed information found for "${medication}"`);
       } else {
         setActiveTab('info');
       }
+      setIsLoadingInfo(false);
     } catch (err) {
       console.error('Error fetching medication info:', err);
       setError(`Error retrieving details for "${medication}". Please try again.`);
-    } finally {
       setIsLoadingInfo(false);
     }
   };
@@ -131,7 +133,6 @@ const MedicationsSection = () => {
             
             {error && (
               <Alert variant="destructive">
-                <AlertTriangle className="h-4 w-4" />
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
             )}
@@ -147,7 +148,6 @@ const MedicationsSection = () => {
                           <p className="font-medium text-safet-700 capitalize">{medication}</p>
                           <p className="text-sm text-gray-500">Click for more information</p>
                         </div>
-                        <Info className="h-5 w-5 text-safet-500" />
                       </CardContent>
                     </Card>
                   ))}
