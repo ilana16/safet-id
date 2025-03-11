@@ -5,121 +5,52 @@ import { Save } from 'lucide-react';
 import MedicalProfileSocialHistoryForm from '@/components/forms/MedicalProfileSocialHistoryForm';
 import { toast } from '@/lib/toast';
 import { logChanges } from '@/utils/changeLog';
+import { loadSectionData, saveSectionData, MEDICAL_DATA_CHANGE_EVENT } from '@/utils/medicalProfileService';
 
 const SocialSection = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
   
   // Load data on initial render and whenever navigation occurs
-  const loadData = () => {
-    try {
-      console.log('Loading social history data');
-      
-      // First check if localStorage has data (source of truth)
-      const savedProfileJson = localStorage.getItem('medicalProfile');
-      let localData = null;
-      
-      if (savedProfileJson) {
-        const savedProfile = JSON.parse(savedProfileJson);
-        if (savedProfile && savedProfile.social) {
-          localData = savedProfile.social;
-          console.log('Found social history in localStorage:', localData);
-        }
-      }
-      
-      // Also check sessionStorage
-      const sessionData = sessionStorage.getItem('socialHistoryFormData');
-      let sessionParsed = null;
-      
-      if (sessionData) {
-        try {
-          sessionParsed = JSON.parse(sessionData);
-          console.log('Found social history in sessionStorage:', sessionParsed);
-        } catch (e) {
-          console.error('Error parsing social history session data:', e);
-        }
-      }
-      
-      // Determine which data is more recent and use that
-      let dataToUse = null;
-      
-      if (localData && sessionParsed) {
-        const localTime = new Date(localData.lastUpdated || 0).getTime();
-        const sessionTime = new Date(sessionParsed.lastUpdated || 0).getTime();
-        
-        dataToUse = localTime >= sessionTime ? localData : sessionParsed;
-        console.log('Using more recent data, timestamp comparison:', { localTime, sessionTime });
-      } else {
-        dataToUse = localData || sessionParsed || {};
-      }
-      
-      // Set the data in window object for the form to use
-      (window as any).socialHistoryFormData = dataToUse;
-      console.log('Setting social history data in window object:', dataToUse);
-      
-      // Update session storage to match
-      sessionStorage.setItem('socialHistoryFormData', JSON.stringify(dataToUse));
-      
-      setIsLoaded(true);
-    } catch (error) {
-      console.error('Error loading social history data:', error);
-      setIsLoaded(true); // Still show the form even if there's an error
-    }
-  };
-  
-  // Initial load
   useEffect(() => {
-    loadData();
+    const loadSocialData = () => {
+      try {
+        console.log('Loading social history data');
+        const socialData = loadSectionData('social');
+        setIsLoaded(true);
+        
+        // Trigger a UI refresh
+        window.dispatchEvent(new CustomEvent('socialDataLoaded'));
+      } catch (error) {
+        console.error('Error loading social history data:', error);
+        setIsLoaded(true); // Still show the form even if there's an error
+      }
+    };
     
-    // Listen for navigation changes to reload data
+    loadSocialData();
+    
+    // Listen for navigation changes and data requests
     const handleNavChange = () => {
       console.log('Navigation change detected, reloading social history data');
-      loadData();
+      loadSocialData();
+    };
+    
+    const handleDataChange = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      if (customEvent.detail?.section === 'social') {
+        console.log('Social history data changed externally, reloading');
+        loadSocialData();
+      }
     };
     
     window.addEventListener('navigationChange', handleNavChange);
-    window.addEventListener('popstate', handleNavChange);
+    window.addEventListener('socialDataRequest', handleNavChange);
+    window.addEventListener(MEDICAL_DATA_CHANGE_EVENT, handleDataChange);
     
     return () => {
       window.removeEventListener('navigationChange', handleNavChange);
-      window.removeEventListener('popstate', handleNavChange);
-    };
-  }, []);
-  
-  // Save form data when component unmounts or before unload
-  useEffect(() => {
-    const saveData = () => {
-      const currentFormData = (window as any).socialHistoryFormData;
-      if (currentFormData) {
-        const dataWithTimestamp = {
-          ...currentFormData,
-          lastUpdated: new Date().toISOString()
-        };
-        sessionStorage.setItem('socialHistoryFormData', JSON.stringify(dataWithTimestamp));
-        console.log('Saving social history data on unmount/unload');
-        
-        // Also save to localStorage for persistence
-        try {
-          const savedProfileJson = localStorage.getItem('medicalProfile');
-          const savedProfile = savedProfileJson ? JSON.parse(savedProfileJson) : {};
-          
-          localStorage.setItem('medicalProfile', JSON.stringify({
-            ...savedProfile,
-            social: dataWithTimestamp
-          }));
-        } catch (error) {
-          console.error('Error saving to localStorage:', error);
-        }
-      }
-    };
-    
-    const handleBeforeUnload = () => saveData();
-    
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    
-    return () => {
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-      saveData();
+      window.removeEventListener('socialDataRequest', handleNavChange);
+      window.removeEventListener(MEDICAL_DATA_CHANGE_EVENT, handleDataChange);
     };
   }, []);
   
@@ -127,48 +58,34 @@ const SocialSection = () => {
     setIsSaving(true);
     
     try {
-      const existingProfileJson = localStorage.getItem('medicalProfile');
-      const existingProfile = existingProfileJson ? JSON.parse(existingProfileJson) : {};
-      const existingSectionData = existingProfile.social || {};
-      
-      let newFormData = (window as any).socialHistoryFormData || {};
+      // Get the current form data from window object
+      const newFormData = (window as any).socialHistoryFormData || {};
       
       console.log('Saving social history form data:', newFormData);
       
-      const changes: {field: string; oldValue: any; newValue: any}[] = [];
+      // Save the data
+      const saved = saveSectionData('social', newFormData);
       
-      Object.keys(newFormData).forEach(key => {
-        const oldValue = existingSectionData[key];
-        const newValue = newFormData[key];
+      if (saved) {
+        // Log changes for audit trail
+        const savedProfileJson = localStorage.getItem('medicalProfile');
+        const existingProfile = savedProfileJson ? JSON.parse(savedProfileJson) : {};
+        const existingSectionData = existingProfile.social || {};
         
-        if (JSON.stringify(oldValue) !== JSON.stringify(newValue)) {
-          changes.push({
-            field: key,
-            oldValue: oldValue,
-            newValue: newValue
-          });
-        }
-      });
-      
-      setTimeout(() => {
-        const currentTimestamp = new Date().toISOString();
-        const updatedFormData = {
-          ...newFormData,
-          completed: true,
-          lastUpdated: currentTimestamp
-        };
+        const changes: {field: string; oldValue: any; newValue: any}[] = [];
         
-        const updatedProfile = {
-          ...existingProfile,
-          social: updatedFormData
-        };
-        
-        localStorage.setItem('medicalProfile', JSON.stringify(updatedProfile));
-        console.log('Saved updated profile:', updatedProfile);
-        
-        // Also update session storage and window object
-        sessionStorage.setItem('socialHistoryFormData', JSON.stringify(updatedFormData));
-        (window as any).socialHistoryFormData = updatedFormData;
+        Object.keys(newFormData).forEach(key => {
+          const oldValue = existingSectionData[key];
+          const newValue = newFormData[key];
+          
+          if (JSON.stringify(oldValue) !== JSON.stringify(newValue)) {
+            changes.push({
+              field: key,
+              oldValue: oldValue,
+              newValue: newValue
+            });
+          }
+        });
         
         if (changes.length > 0) {
           logChanges('social', changes);
@@ -176,7 +93,10 @@ const SocialSection = () => {
         
         setIsSaving(false);
         toast.success('Social history saved successfully');
-      }, 500);
+      } else {
+        setIsSaving(false);
+        toast.error('Error saving social history');
+      }
     } catch (error) {
       console.error('Error saving social history:', error);
       setIsSaving(false);

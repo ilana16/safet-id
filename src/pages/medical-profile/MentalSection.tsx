@@ -6,151 +6,102 @@ import { Save } from 'lucide-react';
 import MedicalProfileMentalHealthForm from '@/components/forms/MedicalProfileMentalHealthForm';
 import { toast } from '@/lib/toast';
 import { logChanges } from '@/utils/changeLog';
+import { loadSectionData, saveSectionData, MEDICAL_DATA_CHANGE_EVENT } from '@/utils/medicalProfileService';
 
 const MentalSection = () => {
   const navigate = useNavigate();
   const [isSaving, setIsSaving] = useState(false);
+  const [isLoaded, setIsLoaded] = useState(false);
   const [hasMentalHealthHistory, setHasMentalHealthHistory] = useState('no');
   
+  // Load data on initial render and whenever navigation occurs
   useEffect(() => {
-    try {
-      // First check if session storage has any data
-      const sessionData = sessionStorage.getItem('mentalHealthFormData');
-      if (sessionData) {
-        try {
-          const parsedData = JSON.parse(sessionData);
-          (window as any).mentalHealthFormData = parsedData;
-          console.log('Setting mental health form data from session storage:', parsedData);
-          
-          // Still check if the user has mental health history to determine if we should show this section
-          const savedProfileJson = localStorage.getItem('medicalProfile');
-          if (savedProfileJson) {
-            const savedProfile = JSON.parse(savedProfileJson);
-            if (savedProfile && savedProfile.history && savedProfile.history.hasMentalHealthHistory) {
-              setHasMentalHealthHistory(savedProfile.history.hasMentalHealthHistory);
-              if (savedProfile.history.hasMentalHealthHistory === 'no') {
-                navigate('/profile/functional');
-              }
+    const loadMentalData = () => {
+      try {
+        console.log('Loading mental health data');
+        const mentalData = loadSectionData('mental');
+        
+        // Check if the user has mental health history to determine if we should show this section
+        const savedProfileJson = localStorage.getItem('medicalProfile');
+        if (savedProfileJson) {
+          const savedProfile = JSON.parse(savedProfileJson);
+          if (savedProfile && savedProfile.history && savedProfile.history.hasMentalHealthHistory) {
+            setHasMentalHealthHistory(savedProfile.history.hasMentalHealthHistory);
+            if (savedProfile.history.hasMentalHealthHistory === 'no') {
+              navigate('/profile/functional');
             }
           }
-          
-          return;
-        } catch (e) {
-          console.error('Error parsing session data:', e);
         }
-      }
-      
-      // Fall back to localStorage
-      const savedProfileJson = localStorage.getItem('medicalProfile');
-      if (!savedProfileJson) return;
-      
-      const savedProfile = JSON.parse(savedProfileJson);
-      
-      if (savedProfile && savedProfile.history && savedProfile.history.hasMentalHealthHistory) {
-        setHasMentalHealthHistory(savedProfile.history.hasMentalHealthHistory);
-        if (savedProfile.history.hasMentalHealthHistory === 'no') {
-          navigate('/profile/functional');
-        }
-      }
-      
-      if (savedProfile && savedProfile.mental) {
-        (window as any).mentalHealthFormData = savedProfile.mental;
-        console.log('Setting mental health form data in window object:', savedProfile.mental);
         
-        // Also save to session storage for better persistence
-        sessionStorage.setItem('mentalHealthFormData', JSON.stringify(savedProfile.mental));
+        setIsLoaded(true);
+        
+        // Trigger a UI refresh
+        window.dispatchEvent(new CustomEvent('mentalDataLoaded'));
+      } catch (error) {
+        console.error('Error loading mental health data:', error);
+        setIsLoaded(true); // Still show the form even if there's an error
       }
-    } catch (error) {
-      console.error('Error loading mental health data:', error);
-    }
+    };
+    
+    loadMentalData();
+    
+    // Listen for navigation changes and data requests
+    const handleNavChange = () => {
+      console.log('Navigation change detected, reloading mental health data');
+      loadMentalData();
+    };
+    
+    const handleDataChange = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      if (customEvent.detail?.section === 'mental') {
+        console.log('Mental health data changed externally, reloading');
+        loadMentalData();
+      }
+    };
+    
+    window.addEventListener('navigationChange', handleNavChange);
+    window.addEventListener('mentalDataRequest', handleNavChange);
+    window.addEventListener(MEDICAL_DATA_CHANGE_EVENT, handleDataChange);
+    
+    return () => {
+      window.removeEventListener('navigationChange', handleNavChange);
+      window.removeEventListener('mentalDataRequest', handleNavChange);
+      window.removeEventListener(MEDICAL_DATA_CHANGE_EVENT, handleDataChange);
+    };
   }, [navigate]);
-  
-  // Save form data periodically with auto-save
-  useEffect(() => {
-    const autoSaveInterval = setInterval(() => {
-      const currentFormData = (window as any).mentalHealthFormData;
-      if (currentFormData) {
-        sessionStorage.setItem('mentalHealthFormData', JSON.stringify(currentFormData));
-        console.log('Auto-saved mental health data to session storage:', currentFormData);
-      }
-    }, 30000); // Auto-save every 30 seconds
-    
-    return () => {
-      clearInterval(autoSaveInterval);
-    };
-  }, []);
-  
-  // Add event listener for page unload to save data
-  useEffect(() => {
-    const handleBeforeUnload = () => {
-      const currentFormData = (window as any).mentalHealthFormData;
-      if (currentFormData) {
-        sessionStorage.setItem('mentalHealthFormData', JSON.stringify(currentFormData));
-        console.log('Saving mental health form data to session storage before unload:', currentFormData);
-      }
-    };
-    
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    return () => {
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-    };
-  }, []);
-  
-  // Save form data when component unmounts
-  useEffect(() => {
-    return () => {
-      const currentFormData = (window as any).mentalHealthFormData;
-      if (currentFormData) {
-        sessionStorage.setItem('mentalHealthFormData', JSON.stringify(currentFormData));
-        console.log('Saving mental health form data to session storage on unmount:', currentFormData);
-      }
-    };
-  }, []);
   
   const handleSave = () => {
     setIsSaving(true);
     
     try {
-      const existingProfileJson = localStorage.getItem('medicalProfile');
-      const existingProfile = existingProfileJson ? JSON.parse(existingProfileJson) : {};
-      const existingSectionData = existingProfile.mental || {};
-      
-      let newFormData = (window as any).mentalHealthFormData || {};
+      // Get the current form data from window object
+      const newFormData = (window as any).mentalHealthFormData || {};
       
       console.log('Saving mental health form data:', newFormData);
       
-      const changes: {field: string; oldValue: any; newValue: any}[] = [];
+      // Save the data
+      const saved = saveSectionData('mental', newFormData);
       
-      Object.keys(newFormData).forEach(key => {
-        const oldValue = existingSectionData[key];
-        const newValue = newFormData[key];
+      if (saved) {
+        // Log changes for audit trail
+        const savedProfileJson = localStorage.getItem('medicalProfile');
+        const existingProfile = savedProfileJson ? JSON.parse(savedProfileJson) : {};
+        const existingSectionData = existingProfile.mental || {};
         
-        if (JSON.stringify(oldValue) !== JSON.stringify(newValue)) {
-          changes.push({
-            field: key,
-            oldValue: oldValue,
-            newValue: newValue
-          });
-        }
-      });
-      
-      setTimeout(() => {
-        const updatedProfile = {
-          ...existingProfile,
-          mental: {
-            ...newFormData,
-            completed: true
+        const changes: {field: string; oldValue: any; newValue: any}[] = [];
+        
+        Object.keys(newFormData).forEach(key => {
+          const oldValue = existingSectionData[key];
+          const newValue = newFormData[key];
+          
+          if (JSON.stringify(oldValue) !== JSON.stringify(newValue)) {
+            changes.push({
+              field: key,
+              oldValue: oldValue,
+              newValue: newValue
+            });
           }
-        };
-        
-        localStorage.setItem('medicalProfile', JSON.stringify(updatedProfile));
-        console.log('Saved updated profile:', updatedProfile);
-        
-        // Also update session storage
-        sessionStorage.setItem('mentalHealthFormData', JSON.stringify({
-          ...newFormData,
-          completed: true
-        }));
+        });
         
         if (changes.length > 0) {
           logChanges('mental', changes);
@@ -158,7 +109,10 @@ const MentalSection = () => {
         
         setIsSaving(false);
         toast.success('Mental health information saved successfully');
-      }, 500);
+      } else {
+        setIsSaving(false);
+        toast.error('Error saving mental health information');
+      }
     } catch (error) {
       console.error('Error saving mental health information:', error);
       setIsSaving(false);
@@ -183,7 +137,7 @@ const MentalSection = () => {
         </Button>
       </div>
       
-      <MedicalProfileMentalHealthForm />
+      {isLoaded && <MedicalProfileMentalHealthForm />}
       
       <div className="mt-8 flex justify-end gap-3">
         <Button 

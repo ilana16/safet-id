@@ -5,81 +5,52 @@ import { Save } from 'lucide-react';
 import MedicalProfileReproductiveHistoryForm from '@/components/forms/MedicalProfileReproductiveHistoryForm';
 import { toast } from '@/lib/toast';
 import { logChanges } from '@/utils/changeLog';
+import { loadSectionData, saveSectionData, MEDICAL_DATA_CHANGE_EVENT } from '@/utils/medicalProfileService';
 
 const ReproductiveSection = () => {
   const [isSaving, setIsSaving] = useState(false);
+  const [isLoaded, setIsLoaded] = useState(false);
   
+  // Load data on initial render and whenever navigation occurs
   useEffect(() => {
-    try {
-      // First check if session storage has any data
-      const sessionData = sessionStorage.getItem('reproductiveHistoryFormData');
-      if (sessionData) {
-        try {
-          const parsedData = JSON.parse(sessionData);
-          (window as any).reproductiveHistoryFormData = parsedData;
-          console.log('Setting reproductive history form data from session storage:', parsedData);
-          return;
-        } catch (e) {
-          console.error('Error parsing session data:', e);
-        }
-      }
-      
-      // Fall back to localStorage
-      const savedProfileJson = localStorage.getItem('medicalProfile');
-      if (savedProfileJson) {
-        const savedProfile = JSON.parse(savedProfileJson);
-        if (savedProfile && savedProfile.reproductive) {
-          (window as any).reproductiveHistoryFormData = savedProfile.reproductive;
-          console.log('Setting reproductive history form data in window object:', savedProfile.reproductive);
-          
-          // Also save to session storage for better persistence
-          sessionStorage.setItem('reproductiveHistoryFormData', JSON.stringify(savedProfile.reproductive));
-        }
-      }
-    } catch (error) {
-      console.error('Error loading reproductive history data:', error);
-    }
-  }, []);
-  
-  // Save form data periodically with auto-save
-  useEffect(() => {
-    const autoSaveInterval = setInterval(() => {
-      const currentFormData = (window as any).reproductiveHistoryFormData;
-      if (currentFormData) {
-        sessionStorage.setItem('reproductiveHistoryFormData', JSON.stringify(currentFormData));
-        console.log('Auto-saved reproductive history data to session storage:', currentFormData);
-      }
-    }, 30000); // Auto-save every 30 seconds
-    
-    return () => {
-      clearInterval(autoSaveInterval);
-    };
-  }, []);
-  
-  // Add event listener for page unload to save data
-  useEffect(() => {
-    const handleBeforeUnload = () => {
-      const currentFormData = (window as any).reproductiveHistoryFormData;
-      if (currentFormData) {
-        sessionStorage.setItem('reproductiveHistoryFormData', JSON.stringify(currentFormData));
-        console.log('Saving reproductive history form data to session storage before unload:', currentFormData);
+    const loadReproductiveData = () => {
+      try {
+        console.log('Loading reproductive history data');
+        const reproductiveData = loadSectionData('reproductive');
+        setIsLoaded(true);
+        
+        // Trigger a UI refresh
+        window.dispatchEvent(new CustomEvent('reproductiveDataLoaded'));
+      } catch (error) {
+        console.error('Error loading reproductive history data:', error);
+        setIsLoaded(true); // Still show the form even if there's an error
       }
     };
     
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    return () => {
-      window.removeEventListener('beforeunload', handleBeforeUnload);
+    loadReproductiveData();
+    
+    // Listen for navigation changes and data requests
+    const handleNavChange = () => {
+      console.log('Navigation change detected, reloading reproductive history data');
+      loadReproductiveData();
     };
-  }, []);
-  
-  // Save form data when component unmounts
-  useEffect(() => {
-    return () => {
-      const currentFormData = (window as any).reproductiveHistoryFormData;
-      if (currentFormData) {
-        sessionStorage.setItem('reproductiveHistoryFormData', JSON.stringify(currentFormData));
-        console.log('Saving reproductive history form data to session storage on unmount:', currentFormData);
+    
+    const handleDataChange = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      if (customEvent.detail?.section === 'reproductive') {
+        console.log('Reproductive history data changed externally, reloading');
+        loadReproductiveData();
       }
+    };
+    
+    window.addEventListener('navigationChange', handleNavChange);
+    window.addEventListener('reproductiveDataRequest', handleNavChange);
+    window.addEventListener(MEDICAL_DATA_CHANGE_EVENT, handleDataChange);
+    
+    return () => {
+      window.removeEventListener('navigationChange', handleNavChange);
+      window.removeEventListener('reproductiveDataRequest', handleNavChange);
+      window.removeEventListener(MEDICAL_DATA_CHANGE_EVENT, handleDataChange);
     };
   }, []);
   
@@ -87,46 +58,34 @@ const ReproductiveSection = () => {
     setIsSaving(true);
     
     try {
-      const existingProfileJson = localStorage.getItem('medicalProfile');
-      const existingProfile = existingProfileJson ? JSON.parse(existingProfileJson) : {};
-      const existingSectionData = existingProfile.reproductive || {};
-      
-      let newFormData = (window as any).reproductiveHistoryFormData || {};
+      // Get the current form data from window object
+      const newFormData = (window as any).reproductiveHistoryFormData || {};
       
       console.log('Saving reproductive history form data:', newFormData);
       
-      const changes: {field: string; oldValue: any; newValue: any}[] = [];
+      // Save the data
+      const saved = saveSectionData('reproductive', newFormData);
       
-      Object.keys(newFormData).forEach(key => {
-        const oldValue = existingSectionData[key];
-        const newValue = newFormData[key];
+      if (saved) {
+        // Log changes for audit trail
+        const savedProfileJson = localStorage.getItem('medicalProfile');
+        const existingProfile = savedProfileJson ? JSON.parse(savedProfileJson) : {};
+        const existingSectionData = existingProfile.reproductive || {};
         
-        if (JSON.stringify(oldValue) !== JSON.stringify(newValue)) {
-          changes.push({
-            field: key,
-            oldValue: oldValue,
-            newValue: newValue
-          });
-        }
-      });
-      
-      setTimeout(() => {
-        const updatedProfile = {
-          ...existingProfile,
-          reproductive: {
-            ...newFormData,
-            completed: true
+        const changes: {field: string; oldValue: any; newValue: any}[] = [];
+        
+        Object.keys(newFormData).forEach(key => {
+          const oldValue = existingSectionData[key];
+          const newValue = newFormData[key];
+          
+          if (JSON.stringify(oldValue) !== JSON.stringify(newValue)) {
+            changes.push({
+              field: key,
+              oldValue: oldValue,
+              newValue: newValue
+            });
           }
-        };
-        
-        localStorage.setItem('medicalProfile', JSON.stringify(updatedProfile));
-        console.log('Saved updated profile:', updatedProfile);
-        
-        // Also update session storage
-        sessionStorage.setItem('reproductiveHistoryFormData', JSON.stringify({
-          ...newFormData,
-          completed: true
-        }));
+        });
         
         if (changes.length > 0) {
           logChanges('reproductive', changes);
@@ -134,7 +93,10 @@ const ReproductiveSection = () => {
         
         setIsSaving(false);
         toast.success('Reproductive history saved successfully');
-      }, 500);
+      } else {
+        setIsSaving(false);
+        toast.error('Error saving reproductive history');
+      }
     } catch (error) {
       console.error('Error saving reproductive history:', error);
       setIsSaving(false);
@@ -155,7 +117,7 @@ const ReproductiveSection = () => {
         </Button>
       </div>
       
-      <MedicalProfileReproductiveHistoryForm />
+      {isLoaded && <MedicalProfileReproductiveHistoryForm />}
       
       <div className="mt-8 flex justify-end gap-3">
         <Button 
