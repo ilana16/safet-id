@@ -93,8 +93,8 @@ const getMedicationInfoLocal = (medicationKey: string): MedicationInfo | null =>
     genericName: `Generic ${medicationKey}`,
     description: `This is a simulated entry for ${medicationKey}. In a production environment, this would contain actual drug information from a comprehensive database.`,
     drugsComUrl: `https://www.drugs.com/search.php?searchterm=${encodeURIComponent(medicationKey)}`,
-    usedFor: ["Simulated condition 1", "Simulated condition 2"],
     drugClass: "Not specified (demo data)",
+    usedFor: ["Simulated condition 1", "Simulated condition 2"],
     dosage: {
       adult: "Consult your doctor for proper dosage information.",
       child: "Not recommended for children without medical supervision.",

@@ -1,204 +1,116 @@
 
-// This is a simplified medication database for demo purposes
-// In a production app, this would connect to a proper API like drugs.com
-
 export interface MedicationInfo {
   name: string;
   genericName?: string;
   description: string;
-  usedFor: string[];
-  sideEffects: string[];
-  interactions: string[];
-  warnings: string[];
-  drugClass?: string; // Added drugClass property
+  drugsComUrl?: string;
+  drugClass?: string;
+  usedFor?: string[];
   dosage: {
     adult: string;
     child?: string;
     elderly?: string;
-    frequency?: string; // Added frequency property
+    frequency?: string;
   };
-  image?: string;
-  drugsComUrl?: string; // Added for linking to Drugs.com
+  sideEffects?: string[];
+  warnings?: string[];
+  interactions?: string[];
 }
 
-// Sample medication database
+// Mock database for the demo
 export const medicationDatabase: Record<string, MedicationInfo> = {
-  "lisinopril": {
+  lisinopril: {
     name: "Lisinopril",
     genericName: "Lisinopril",
-    description: "Lisinopril is an ACE inhibitor that is used to treat high blood pressure (hypertension) and heart failure.",
-    usedFor: ["High blood pressure", "Heart failure", "Improving survival after heart attacks"],
-    sideEffects: ["Dry cough", "Dizziness", "Headache", "Fatigue", "Nausea"],
-    interactions: ["Potassium supplements", "Potassium-sparing diuretics", "NSAIDs", "Lithium"],
-    warnings: [
-      "May cause harm to an unborn baby",
-      "Can cause angioedema (swelling of face, lips, throat)",
-      "May cause kidney problems"
-    ],
+    drugClass: "ACE Inhibitor",
+    description: "Lisinopril is used to treat high blood pressure (hypertension) and heart failure. It belongs to a class of drugs known as ACE inhibitors, which work by relaxing blood vessels.",
+    drugsComUrl: "https://www.drugs.com/lisinopril.html",
+    usedFor: ["Hypertension", "Heart Failure", "Post-Heart Attack Recovery", "Diabetic Kidney Disease"],
     dosage: {
-      adult: "Initial: 10mg once daily. Maintenance: 20-40mg once daily.",
-      elderly: "Initial: 2.5-5mg once daily."
+      adult: "Initial: 10 mg once daily. Maintenance: 20-40 mg once daily.",
+      child: "For children 6 years and older: Starting dose based on weight, usually 0.07 mg per kg of body weight once daily.",
+      elderly: "Initial: 2.5-5 mg once daily. Adjust based on response.",
+      frequency: "Once daily"
     },
-    drugsComUrl: "https://www.drugs.com/lisinopril.html"
+    sideEffects: [
+      "Dizziness",
+      "Headache",
+      "Dry cough",
+      "Low blood pressure",
+      "Increased potassium levels",
+      "Fatigue"
+    ],
+    warnings: [
+      "May cause harm or death to an unborn baby. Stop taking this medicine and tell your doctor right away if you become pregnant.",
+      "May cause angioedema (swelling of face, lips, tongue, throat). Seek emergency medical attention if you have difficulty breathing or swallowing.",
+      "May cause kidney problems, especially in people with kidney disease, heart failure, or taking certain medications."
+    ],
+    interactions: [
+      "NSAIDs (like ibuprofen, naproxen) may reduce the blood pressure-lowering effect of lisinopril",
+      "Potassium supplements or salt substitutes may increase potassium levels in your blood",
+      "Lithium levels may increase when taken with lisinopril"
+    ]
   },
-  "metformin": {
+  metformin: {
     name: "Metformin",
     genericName: "Metformin Hydrochloride",
-    description: "Metformin is a biguanide medication used to treat type 2 diabetes mellitus.",
-    usedFor: ["Type 2 diabetes", "Insulin resistance", "PCOS (off-label)"],
-    sideEffects: ["Nausea", "Diarrhea", "Stomach pain", "Metallic taste", "Vitamin B12 deficiency"],
-    interactions: ["Contrast dyes", "Certain diabetes medications", "Alcohol"],
-    warnings: [
-      "Can cause lactic acidosis (rare but serious)",
-      "Should be temporarily stopped before surgery or certain medical tests",
-      "Not for patients with kidney disease"
-    ],
+    drugClass: "Biguanide Antidiabetic",
+    description: "Metformin is used to treat type 2 diabetes. It works by decreasing glucose production in the liver and increasing insulin sensitivity in tissues.",
+    drugsComUrl: "https://www.drugs.com/metformin.html",
+    usedFor: ["Type 2 Diabetes", "Insulin Resistance", "Polycystic Ovary Syndrome (PCOS)"],
     dosage: {
-      adult: "Initial: 500mg twice daily. Maximum: 2550mg per day in divided doses.",
-      elderly: "Lower doses may be needed due to decreased kidney function."
+      adult: "Initial: 500 mg twice daily or 850 mg once daily with meals. Maintenance: 2000-2550 mg daily in divided doses.",
+      elderly: "Start at lower doses and titrate slowly. Monitor kidney function regularly.",
+      frequency: "Usually taken with meals 2-3 times daily"
     },
-    drugsComUrl: "https://www.drugs.com/metformin.html"
+    sideEffects: [
+      "Nausea",
+      "Vomiting",
+      "Diarrhea",
+      "Stomach pain",
+      "Metallic taste",
+      "Decreased vitamin B12 levels"
+    ],
+    warnings: [
+      "Lactic acidosis: A rare but serious side effect. Seek emergency medical attention if you experience unusual muscle pain, difficulty breathing, stomach pain, or unusual tiredness.",
+      "Not recommended for patients with severe kidney disease.",
+      "Should be temporarily discontinued before radiological studies using iodinated contrast materials."
+    ],
+    interactions: [
+      "Carbonic anhydrase inhibitors (such as topiramate) may increase the risk of lactic acidosis",
+      "Cimetidine may increase metformin levels",
+      "Alcohol may increase the risk of lactic acidosis and low blood sugar"
+    ]
   },
-  "atorvastatin": {
+  atorvastatin: {
     name: "Atorvastatin",
     genericName: "Atorvastatin Calcium",
-    description: "Atorvastatin is a statin medication used to prevent cardiovascular disease and treat high cholesterol levels.",
-    usedFor: ["High cholesterol", "Prevention of cardiovascular disease", "Stroke prevention"],
-    sideEffects: ["Muscle pain", "Joint pain", "Digestive problems", "Increased blood sugar"],
-    interactions: ["Certain antibiotics", "Antifungal medications", "Other cholesterol medications", "Grapefruit juice"],
-    warnings: [
-      "Can cause liver problems",
-      "May cause muscle damage (rhabdomyolysis)",
-      "Should be used with caution in people with diabetes"
-    ],
+    drugClass: "HMG-CoA Reductase Inhibitor (Statin)",
+    description: "Atorvastatin is used to lower blood cholesterol and reduce the risk of cardiovascular disease. It works by blocking an enzyme that produces cholesterol in the liver.",
+    drugsComUrl: "https://www.drugs.com/atorvastatin.html",
+    usedFor: ["High Cholesterol", "Prevention of Heart Disease", "Stroke Prevention", "Heart Attack Prevention"],
     dosage: {
-      adult: "Initial: 10-20mg once daily. Maintenance: 10-80mg once daily."
+      adult: "Initial: 10-20 mg once daily. Maintenance: 10-80 mg once daily.",
+      elderly: "Use with caution, starting at lower doses.",
+      frequency: "Once daily, can be taken at any time of day"
     },
-    drugsComUrl: "https://www.drugs.com/atorvastatin.html"
-  },
-  "levothyroxine": {
-    name: "Levothyroxine",
-    genericName: "Levothyroxine Sodium",
-    description: "Levothyroxine is a thyroid hormone used to treat hypothyroidism.",
-    usedFor: ["Hypothyroidism", "Thyroid hormone replacement", "Thyroid cancer (as adjunct)"],
-    sideEffects: ["Headache", "Insomnia", "Nervousness", "Sweating", "Changes in appetite"],
-    interactions: ["Calcium supplements", "Iron supplements", "Antacids", "Certain seizure medications"],
-    warnings: [
-      "Not for weight loss",
-      "May worsen heart disease",
-      "Dose adjustments may be needed during pregnancy"
+    sideEffects: [
+      "Muscle pain or weakness",
+      "Joint pain",
+      "Diarrhea",
+      "Nausea",
+      "Elevated liver enzymes",
+      "Headache"
     ],
-    dosage: {
-      adult: "Initial: 25-50mcg once daily. Adjusted based on lab results.",
-      elderly: "Initial: 12.5-25mcg once daily."
-    },
-    drugsComUrl: "https://www.drugs.com/levothyroxine.html"
-  },
-  "amoxicillin": {
-    name: "Amoxicillin",
-    genericName: "Amoxicillin Trihydrate",
-    description: "Amoxicillin is a penicillin antibiotic used to treat bacterial infections.",
-    usedFor: ["Respiratory infections", "Ear infections", "Urinary tract infections", "Skin infections"],
-    sideEffects: ["Diarrhea", "Nausea", "Vomiting", "Rash"],
-    interactions: ["Probenecid", "Certain blood thinners", "Other antibiotics"],
     warnings: [
-      "May cause allergic reactions in penicillin-sensitive individuals",
-      "Can lead to antibiotic resistance if misused",
-      "May reduce effectiveness of birth control pills"
+      "May cause liver damage. Your doctor will monitor liver function while taking this medication.",
+      "May cause muscle problems (myopathy or rhabdomyolysis). Report any unusual muscle pain, tenderness, or weakness to your doctor.",
+      "Pregnancy Category X: Do not use during pregnancy."
     ],
-    dosage: {
-      adult: "250-500mg every 8 hours or 500-875mg every 12 hours, depending on infection.",
-      child: "20-90mg/kg/day divided into 2-3 doses, depending on infection and age."
-    },
-    drugsComUrl: "https://www.drugs.com/amoxicillin.html"
-  },
-  "amlodipine": {
-    name: "Amlodipine",
-    genericName: "Amlodipine Besylate",
-    description: "Amlodipine is a calcium channel blocker that dilates blood vessels and improves blood flow.",
-    usedFor: ["High blood pressure", "Coronary artery disease", "Angina (chest pain)"],
-    sideEffects: ["Swelling in ankles or feet", "Dizziness", "Flushing", "Headache", "Fatigue"],
-    interactions: ["Grapefruit juice", "Simvastatin", "Certain antifungal medications", "Cyclosporine"],
-    warnings: [
-      "May cause increased angina or heart attack with sudden discontinuation",
-      "Use with caution in severe liver disease",
-      "Monitor blood pressure regularly"
-    ],
-    dosage: {
-      adult: "Initial: 5mg once daily. Maximum: 10mg once daily.",
-      elderly: "Initial: 2.5mg once daily."
-    },
-    drugsComUrl: "https://www.drugs.com/amlodipine.html"
-  },
-  "hydrochlorothiazide": {
-    name: "Hydrochlorothiazide",
-    genericName: "Hydrochlorothiazide",
-    description: "Hydrochlorothiazide is a thiazide diuretic (water pill) that helps prevent your body from absorbing too much salt.",
-    usedFor: ["High blood pressure", "Fluid retention", "Edema", "Heart failure"],
-    sideEffects: ["Increased urination", "Low potassium levels", "Dizziness", "Increased blood sugar", "Increased cholesterol"],
-    interactions: ["Lithium", "Digoxin", "NSAIDs", "Diabetes medications"],
-    warnings: [
-      "Can cause electrolyte imbalances (particularly potassium)",
-      "Increased sun sensitivity",
-      "May affect blood sugar in diabetics"
-    ],
-    dosage: {
-      adult: "12.5-50mg once daily.",
-      elderly: "12.5-25mg once daily."
-    },
-    drugsComUrl: "https://www.drugs.com/hydrochlorothiazide.html"
-  },
-  "aspirin": {
-    name: "Aspirin",
-    genericName: "Acetylsalicylic Acid",
-    description: "Aspirin is a nonsteroidal anti-inflammatory drug (NSAID) used to treat pain, fever, and inflammation.",
-    usedFor: ["Pain relief", "Fever reduction", "Anti-inflammatory", "Heart attack prevention"],
-    sideEffects: ["Stomach upset", "Heartburn", "Nausea", "Stomach bleeding", "Tinnitus (ringing in ears)"],
-    interactions: ["Blood thinners", "Other NSAIDs", "Corticosteroids", "Some antidepressants"],
-    warnings: [
-      "Can cause stomach bleeding",
-      "Should not be given to children (risk of Reye's syndrome)",
-      "Not recommended during pregnancy"
-    ],
-    dosage: {
-      adult: "325-650mg every 4-6 hours as needed for pain. 81-325mg daily for heart attack prevention."
-    },
-    drugsComUrl: "https://www.drugs.com/aspirin.html"
-  },
-  "ibuprofen": {
-    name: "Ibuprofen",
-    genericName: "Ibuprofen",
-    description: "Ibuprofen is a nonsteroidal anti-inflammatory drug (NSAID) used to reduce fever and treat pain or inflammation.",
-    usedFor: ["Pain relief", "Fever reduction", "Inflammation", "Menstrual cramps"],
-    sideEffects: ["Stomach pain", "Heartburn", "Dizziness", "Mild headache", "Nausea"],
-    interactions: ["Aspirin", "Blood pressure medications", "Diuretics", "Blood thinners"],
-    warnings: [
-      "Increased risk of heart attack and stroke",
-      "Can cause stomach bleeding",
-      "May cause kidney problems with long-term use"
-    ],
-    dosage: {
-      adult: "200-400mg every 4-6 hours as needed, not to exceed 3200mg per day.",
-      child: "Varies by weight and age."
-    },
-    drugsComUrl: "https://www.drugs.com/ibuprofen.html"
+    interactions: [
+      "Grapefruit juice may increase atorvastatin levels",
+      "Certain antibiotics and antifungals may increase the risk of muscle problems",
+      "Cyclosporine, fibrates, and niacin may increase the risk of myopathy"
+    ]
   }
-};
-
-// Function to search medications
-export const searchMedications = (query: string): string[] => {
-  if (!query || query.length < 2) return [];
-  
-  const normalizedQuery = query.toLowerCase();
-  return Object.keys(medicationDatabase).filter(key => 
-    key.toLowerCase().includes(normalizedQuery) || 
-    medicationDatabase[key].name.toLowerCase().includes(normalizedQuery) ||
-    (medicationDatabase[key].genericName && 
-     medicationDatabase[key].genericName!.toLowerCase().includes(normalizedQuery))
-  );
-};
-
-// Function to get medication details
-export const getMedicationInfo = (medicationKey: string): MedicationInfo | null => {
-  return medicationDatabase[medicationKey.toLowerCase()] || null;
 };
