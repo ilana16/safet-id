@@ -15,11 +15,9 @@ interface MedicationDetailsProps {
 const MedicationDetails: React.FC<MedicationDetailsProps> = ({ medication }) => {
   return (
     <div className="space-y-6">
-      {/* Drugs.com style medication sections */}
-      
       {/* Overview Section */}
       <div className="bg-white border border-[#D1DEE8] rounded-md overflow-hidden">
-        <div className="bg-[#2855A1] text-white px-5 py-3 font-medium">
+        <div className="bg-safet-600 text-white px-5 py-3 font-medium">
           Overview
         </div>
         <div className="p-5">
@@ -31,7 +29,7 @@ const MedicationDetails: React.FC<MedicationDetailsProps> = ({ medication }) => 
                 href={medication.drugsComUrl} 
                 target="_blank" 
                 rel="noopener noreferrer"
-                className="inline-flex items-center text-[#2855A1] hover:underline"
+                className="inline-flex items-center text-safet-600 hover:underline"
               >
                 <ExternalLink className="h-4 w-4 mr-1" />
                 View full information on Drugs.com
@@ -43,13 +41,13 @@ const MedicationDetails: React.FC<MedicationDetailsProps> = ({ medication }) => 
 
       {/* Uses Section */}
       <div className="bg-white border border-[#D1DEE8] rounded-md overflow-hidden">
-        <div className="bg-[#2855A1] text-white px-5 py-3 font-medium">
+        <div className="bg-safet-600 text-white px-5 py-3 font-medium">
           Medical Uses
         </div>
         <div className="p-5">
           <div className="flex flex-wrap gap-2 mb-3">
             {medication.usedFor.map((use, index) => (
-              <Badge key={index} className="bg-[#EBF2FA] text-[#2855A1] border-[#9CBADE] hover:bg-[#D9E5F2]">
+              <Badge key={index} className="bg-[#EBF2FA] text-safet-600 border-safet-200 hover:bg-safet-100">
                 {use}
               </Badge>
             ))}
@@ -62,27 +60,27 @@ const MedicationDetails: React.FC<MedicationDetailsProps> = ({ medication }) => 
 
       {/* Dosage Information */}
       <div className="bg-white border border-[#D1DEE8] rounded-md overflow-hidden">
-        <div className="bg-[#2855A1] text-white px-5 py-3 font-medium">
+        <div className="bg-safet-600 text-white px-5 py-3 font-medium">
           Dosage Information
         </div>
         <div className="p-5 space-y-3">
           <div className="bg-[#F5F9FD] p-4 rounded border border-[#D1DEE8]">
             <p className="mb-2">
-              <span className="font-medium text-[#2855A1]">Adult:</span> {medication.dosage.adult}
+              <span className="font-medium text-safet-600">Adult:</span> {medication.dosage.adult}
             </p>
             {medication.dosage.child && (
               <p className="mb-2">
-                <span className="font-medium text-[#2855A1]">Children:</span> {medication.dosage.child}
+                <span className="font-medium text-safet-600">Children:</span> {medication.dosage.child}
               </p>
             )}
             {medication.dosage.elderly && (
               <p>
-                <span className="font-medium text-[#2855A1]">Elderly:</span> {medication.dosage.elderly}
+                <span className="font-medium text-safet-600">Elderly:</span> {medication.dosage.elderly}
               </p>
             )}
           </div>
-          <Alert className="bg-[#EBF2FA] border-[#9CBADE]">
-            <Info className="h-4 w-4 text-[#2855A1]" />
+          <Alert className="bg-[#EBF2FA] border-safet-200">
+            <Info className="h-4 w-4 text-safet-600" />
             <AlertDescription className="text-[#666666]">
               Dosage information provided for educational purposes only. Follow your doctor's specific instructions.
             </AlertDescription>
@@ -92,7 +90,7 @@ const MedicationDetails: React.FC<MedicationDetailsProps> = ({ medication }) => 
 
       {/* Side Effects */}
       <div className="bg-white border border-[#D1DEE8] rounded-md overflow-hidden">
-        <div className="bg-[#2855A1] text-white px-5 py-3 font-medium">
+        <div className="bg-safet-600 text-white px-5 py-3 font-medium">
           Side Effects
         </div>
         <div className="p-5">
@@ -153,9 +151,9 @@ const MedicationDetails: React.FC<MedicationDetailsProps> = ({ medication }) => 
       {/* Disclaimer */}
       <div className="bg-[#F5F9FD] p-5 border border-[#D1DEE8] rounded-md text-[#666666] text-sm">
         <div className="flex items-start">
-          <Info className="h-5 w-5 mr-2 text-[#2855A1] mt-0.5 flex-shrink-0" />
+          <Info className="h-5 w-5 mr-2 text-safet-600 mt-0.5 flex-shrink-0" />
           <div>
-            <p className="font-medium text-[#2855A1]">Disclaimer:</p>
+            <p className="font-medium text-safet-600">Disclaimer:</p>
             <p className="mt-1">
               This information is for educational purposes only and is not intended as medical advice. 
               Consult your healthcare provider before taking any medication.
@@ -167,7 +165,7 @@ const MedicationDetails: React.FC<MedicationDetailsProps> = ({ medication }) => 
                   href={medication.drugsComUrl} 
                   target="_blank" 
                   rel="noopener noreferrer"
-                  className="text-[#2855A1] hover:underline"
+                  className="text-safet-600 hover:underline"
                 >
                   Drugs.com
                 </a>

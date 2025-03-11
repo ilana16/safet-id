@@ -212,12 +212,12 @@ const MedicationsSection = () => {
 
   return (
     <div className="max-w-[1200px] mx-auto">
-      <div className="bg-[#2855A1] text-white p-4 md:p-6 rounded-t-md">
+      <div className="bg-safet-600 text-white p-4 md:p-6 rounded-t-md">
         <div className="flex justify-between items-center">
           <h1 className="text-2xl font-bold">Medications & Supplements</h1>
           <Button 
             onClick={handleSave} 
-            className="bg-[#1DA2BC] hover:bg-[#1790A7] text-white"
+            className="bg-safet-800 hover:bg-safet-900 text-white"
             disabled={isSaving}
           >
             {isSaving ? 'Saving...' : 'Save Changes'}
@@ -235,17 +235,17 @@ const MedicationsSection = () => {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-              className="border-[#9CBADE] bg-white pr-10 h-12 text-base shadow-sm"
+              className="border-safet-200 bg-white pr-10 h-12 text-base shadow-sm"
             />
             <Button
               variant="ghost"
               size="icon"
               onClick={handleSearch}
               disabled={isSearching}
-              className="absolute right-1 top-1/2 -translate-y-1/2 text-[#2855A1] hover:text-[#1A3C70] hover:bg-transparent"
+              className="absolute right-1 top-1/2 -translate-y-1/2 text-safet-600 hover:text-safet-800 hover:bg-transparent"
             >
               {isSearching ? 
-                <div className="h-5 w-5 border-2 border-t-transparent border-[#2855A1] rounded-full animate-spin"></div> : 
+                <div className="h-5 w-5 border-2 border-t-transparent border-safet-600 rounded-full animate-spin"></div> : 
                 <Search className="h-5 w-5" />
               }
             </Button>
@@ -253,7 +253,7 @@ const MedicationsSection = () => {
           <Button 
             variant="ghost"
             onClick={() => setShowCommandDialog(true)}
-            className="text-[#2855A1] hover:text-[#1A3C70] hover:bg-[#D9E5F2]"
+            className="text-safet-600 hover:text-safet-800 hover:bg-safet-100"
           >
             Advanced Search
           </Button>
@@ -266,20 +266,20 @@ const MedicationsSection = () => {
             <TabsList className="bg-[#F5F9FD] w-full justify-start rounded-none border-b border-[#D1DEE8] h-auto px-4">
               <TabsTrigger 
                 value="search"
-                className="py-3 px-4 text-[#2855A1] data-[state=active]:text-[#1A3C70] data-[state=active]:bg-white data-[state=active]:shadow-none data-[state=active]:border-t-2 data-[state=active]:border-t-[#2855A1] data-[state=active]:border-l data-[state=active]:border-r data-[state=active]:border-[#D1DEE8] data-[state=active]:rounded-b-none data-[state=active]:font-medium data-[state=inactive]:bg-transparent"
+                className="py-3 px-4 text-safet-600 data-[state=active]:text-safet-800 data-[state=active]:bg-white data-[state=active]:shadow-none data-[state=active]:border-t-2 data-[state=active]:border-t-safet-600 data-[state=active]:border-l data-[state=active]:border-r data-[state=active]:border-[#D1DEE8] data-[state=active]:rounded-b-none data-[state=active]:font-medium data-[state=inactive]:bg-transparent"
               >
                 Search Results
               </TabsTrigger>
               <TabsTrigger 
                 value="details"
-                className="py-3 px-4 text-[#2855A1] data-[state=active]:text-[#1A3C70] data-[state=active]:bg-white data-[state=active]:shadow-none data-[state=active]:border-t-2 data-[state=active]:border-t-[#2855A1] data-[state=active]:border-l data-[state=active]:border-r data-[state=active]:border-[#D1DEE8] data-[state=active]:rounded-b-none data-[state=active]:font-medium data-[state=inactive]:bg-transparent"
+                className="py-3 px-4 text-safet-600 data-[state=active]:text-safet-800 data-[state=active]:bg-white data-[state=active]:shadow-none data-[state=active]:border-t-2 data-[state=active]:border-t-safet-600 data-[state=active]:border-l data-[state=active]:border-r data-[state=active]:border-[#D1DEE8] data-[state=active]:rounded-b-none data-[state=active]:font-medium data-[state=inactive]:bg-transparent"
                 disabled={!selectedMedication}
               >
                 Drug Information
               </TabsTrigger>
               <TabsTrigger 
                 value="myMeds"
-                className="py-3 px-4 text-[#2855A1] data-[state=active]:text-[#1A3C70] data-[state=active]:bg-white data-[state=active]:shadow-none data-[state=active]:border-t-2 data-[state=active]:border-t-[#2855A1] data-[state=active]:border-l data-[state=active]:border-r data-[state=active]:border-[#D1DEE8] data-[state=active]:rounded-b-none data-[state=active]:font-medium data-[state=inactive]:bg-transparent"
+                className="py-3 px-4 text-safet-600 data-[state=active]:text-safet-800 data-[state=active]:bg-white data-[state=active]:shadow-none data-[state=active]:border-t-2 data-[state=active]:border-t-safet-600 data-[state=active]:border-l data-[state=active]:border-r data-[state=active]:border-[#D1DEE8] data-[state=active]:rounded-b-none data-[state=active]:font-medium data-[state=inactive]:bg-transparent"
               >
                 My Medications
               </TabsTrigger>
@@ -289,7 +289,7 @@ const MedicationsSection = () => {
           <TabsContent value="search" className="p-6 focus-visible:outline-none">
             {searchResults.length > 0 ? (
               <div>
-                <h2 className="text-xl font-medium text-[#2855A1] mb-4">Search Results</h2>
+                <h2 className="text-xl font-medium text-safet-600 mb-4">Search Results</h2>
                 <div className="divide-y divide-[#E6EDF5]">
                   {searchResults.map((result) => (
                     <div key={result} className="py-3 first:pt-0">
@@ -300,14 +300,14 @@ const MedicationsSection = () => {
                       >
                         {isLoading ? (
                           <div className="flex items-center">
-                            <div className="h-4 w-4 border-2 border-t-transparent border-[#2855A1] rounded-full animate-spin mr-2"></div>
+                            <div className="h-4 w-4 border-2 border-t-transparent border-safet-600 rounded-full animate-spin mr-2"></div>
                             <span>Loading...</span>
                           </div>
                         ) : (
                           <>
-                            <Pill className="h-5 w-5 text-[#2855A1]" />
+                            <Pill className="h-5 w-5 text-safet-600" />
                             <div>
-                              <span className="font-medium text-[#2855A1] capitalize block">{result}</span>
+                              <span className="font-medium text-safet-600 capitalize block">{result}</span>
                               <span className="text-[#6B7280] text-sm">Click for detailed information</span>
                             </div>
                           </>
@@ -322,7 +322,7 @@ const MedicationsSection = () => {
                 <div className="bg-[#F5F9FD] inline-flex rounded-full p-3 mb-3">
                   <Search className="h-6 w-6 text-[#6B7280]" />
                 </div>
-                <h3 className="text-lg font-medium text-[#2855A1]">No medications found</h3>
+                <h3 className="text-lg font-medium text-safet-600">No medications found</h3>
                 <p className="text-[#6B7280] mt-1">Try a different search term</p>
               </div>
             ) : (
@@ -330,7 +330,7 @@ const MedicationsSection = () => {
                 <div className="bg-[#F5F9FD] inline-flex rounded-full p-3 mb-3">
                   <Search className="h-6 w-6 text-[#6B7280]" />
                 </div>
-                <h3 className="text-lg font-medium text-[#2855A1]">Search for medications</h3>
+                <h3 className="text-lg font-medium text-safet-600">Search for medications</h3>
                 <p className="text-[#6B7280] mt-1">Enter a drug name to see information and add to your list</p>
               </div>
             )}
@@ -341,14 +341,14 @@ const MedicationsSection = () => {
               <div className="p-6">
                 <div className="flex justify-between items-start mb-6">
                   <div>
-                    <h2 className="text-2xl font-bold text-[#2855A1]">{selectedMedication.name}</h2>
+                    <h2 className="text-2xl font-bold text-safet-600">{selectedMedication.name}</h2>
                     {selectedMedication.genericName && selectedMedication.genericName !== selectedMedication.name && (
                       <p className="text-[#6B7280] mt-1">Generic name: <span className="font-medium">{selectedMedication.genericName}</span></p>
                     )}
                   </div>
                   <Button 
                     onClick={addToMyMedications}
-                    className="bg-[#1DA2BC] hover:bg-[#1790A7] text-white flex items-center gap-2"
+                    className="bg-safet-600 hover:bg-safet-700 text-white flex items-center gap-2"
                   >
                     <PlusCircle className="h-4 w-4" />
                     Add to My Medications
@@ -362,10 +362,10 @@ const MedicationsSection = () => {
           
           <TabsContent value="myMeds" className="p-6 focus-visible:outline-none">
             <div className="mb-6 flex items-center justify-between">
-              <h2 className="text-xl font-medium text-[#2855A1]">My Medications</h2>
+              <h2 className="text-xl font-medium text-safet-600">My Medications</h2>
               <Button 
                 onClick={handleSave} 
-                className="bg-[#1DA2BC] hover:bg-[#1790A7] text-white"
+                className="bg-safet-600 hover:bg-safet-700 text-white"
                 disabled={isSaving}
               >
                 {isSaving ? 'Saving...' : 'Save Changes'}
@@ -398,7 +398,7 @@ const MedicationsSection = () => {
           <CommandEmpty>
             {isSearching ? (
               <div className="flex justify-center py-6">
-                <div className="h-6 w-6 border-2 border-t-transparent border-[#2855A1] rounded-full animate-spin"></div>
+                <div className="h-6 w-6 border-2 border-t-transparent border-safet-600 rounded-full animate-spin"></div>
               </div>
             ) : (
               "No medications found."
@@ -412,7 +412,7 @@ const MedicationsSection = () => {
                 className="hover:bg-[#F5F9FD] aria-selected:bg-[#F5F9FD]"
                 disabled={isLoading}
               >
-                <Pill className="h-4 w-4 mr-2 text-[#2855A1]" />
+                <Pill className="h-4 w-4 mr-2 text-safet-600" />
                 <div className="capitalize">{result}</div>
               </CommandItem>
             ))}
