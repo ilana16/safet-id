@@ -82,23 +82,38 @@ const PersonalSection = () => {
       
       const changes: {field: string; oldValue: any; newValue: any}[] = [];
       
-      Object.entries(newFormData).forEach(([key, value]) => {
-        if (existingSectionData[key] !== value) {
+      // For personal section, we need to handle nested objects like formData, emergencyContacts, etc.
+      Object.keys(newFormData).forEach(key => {
+        const oldValue = existingSectionData[key];
+        const newValue = newFormData[key];
+        
+        // For objects, compare stringified versions
+        if (typeof newValue === 'object' && newValue !== null) {
+          if (JSON.stringify(oldValue) !== JSON.stringify(newValue)) {
+            changes.push({
+              field: key,
+              oldValue: oldValue,
+              newValue: newValue
+            });
+          }
+        } else if (oldValue !== newValue) {
+          // For primitive values
           changes.push({
             field: key,
-            oldValue: existingSectionData[key],
-            newValue: value
+            oldValue: oldValue,
+            newValue: newValue
           });
         }
       });
       
       setTimeout(() => {
+        const saveTimestamp = new Date().toISOString();
         const updatedProfile = {
           ...existingProfile,
           personal: {
             ...newFormData,
             completed: true,
-            lastUpdated: new Date().toISOString()
+            lastUpdated: saveTimestamp
           }
         };
         
@@ -109,7 +124,7 @@ const PersonalSection = () => {
         sessionStorage.setItem('personalFormData', JSON.stringify({
           ...newFormData,
           completed: true,
-          lastUpdated: new Date().toISOString()
+          lastUpdated: saveTimestamp
         }));
         
         if (changes.length > 0) {
