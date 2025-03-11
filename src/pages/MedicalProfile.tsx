@@ -1,9 +1,8 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import PageLayout from '@/components/layout/PageLayout';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft } from 'lucide-react';
+import { ChevronLeft, Save } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from '@/lib/toast';
 import { logChanges } from '@/utils/changeLog';
@@ -30,6 +29,7 @@ const MedicalProfile = () => {
   const [hasMentalHealthHistory, setHasMentalHealthHistory] = useState('no');
   const [profileData, setProfileData] = useState({});
   const [isSaving, setIsSaving] = useState(false);
+  const [lastSaved, setLastSaved] = useState<{[key: string]: string | null}>({});
   
   const pathParts = location.pathname.split('/');
   const currentSection = pathParts[pathParts.length - 1] === 'profile' ? 'personal' : pathParts[pathParts.length - 1];
@@ -37,14 +37,29 @@ const MedicalProfile = () => {
   // Load all profile data when component mounts or when location changes
   useEffect(() => {
     try {
+      // Always attempt to load the most up-to-date data for the current section
+      loadCurrentSectionData();
+      
+      // Load the full profile data for the sidebar status
       const savedProfileJson = localStorage.getItem('medicalProfile');
       if (!savedProfileJson) return;
       
       const savedProfile = JSON.parse(savedProfileJson);
-      console.log('Loaded profile data for all sections:', savedProfile);
+      console.log('Loaded full profile data:', savedProfile);
       
       // Store all sections data
       setProfileData(savedProfile);
+      
+      // Capture last saved timestamps for all sections
+      const newLastSaved: {[key: string]: string | null} = {};
+      
+      Object.entries(savedProfile).forEach(([sectionKey, sectionData]: [string, any]) => {
+        if (sectionData && sectionData.lastUpdated) {
+          newLastSaved[sectionKey] = sectionData.lastUpdated;
+        }
+      });
+      
+      setLastSaved(newLastSaved);
       
       if (savedProfile && savedProfile.history && savedProfile.history.hasMentalHealthHistory) {
         setHasMentalHealthHistory(savedProfile.history.hasMentalHealthHistory);
@@ -54,24 +69,82 @@ const MedicalProfile = () => {
     }
   }, [location.pathname]);
 
+  const loadCurrentSectionData = () => {
+    try {
+      // First check if there's more up-to-date data in session storage
+      const sessionKey = `${currentSection}FormData`;
+      const sessionData = sessionStorage.getItem(sessionKey);
+      
+      if (sessionData) {
+        try {
+          const parsedData = JSON.parse(sessionData);
+          console.log(`Loaded ${currentSection} data from session storage:`, parsedData);
+          
+          // Set window data
+          const windowKey = getCurrentSectionWindowKey(currentSection);
+          if (windowKey) {
+            console.log(`Setting ${windowKey} data from session storage`);
+            (window as any)[windowKey] = parsedData;
+          }
+          
+          // Update last saved time if available
+          if (parsedData.lastUpdated) {
+            setLastSaved(prev => ({...prev, [currentSection]: parsedData.lastUpdated}));
+          }
+          
+          return;
+        } catch (e) {
+          console.error(`Error parsing session data for ${currentSection}:`, e);
+        }
+      }
+      
+      // If no session data, check local storage
+      const savedProfileJson = localStorage.getItem('medicalProfile');
+      if (!savedProfileJson) return;
+      
+      const savedProfile = JSON.parse(savedProfileJson);
+      if (savedProfile && savedProfile[currentSection]) {
+        console.log(`Loaded ${currentSection} data from localStorage:`, savedProfile[currentSection]);
+        
+        // Set window data
+        const windowKey = getCurrentSectionWindowKey(currentSection);
+        if (windowKey) {
+          console.log(`Setting ${windowKey} data from localStorage`);
+          (window as any)[windowKey] = savedProfile[currentSection];
+          
+          // Also update session storage for better persistence
+          sessionStorage.setItem(sessionKey, JSON.stringify(savedProfile[currentSection]));
+        }
+        
+        // Update last saved time if available
+        if (savedProfile[currentSection].lastUpdated) {
+          setLastSaved(prev => ({...prev, [currentSection]: savedProfile[currentSection].lastUpdated}));
+        }
+      }
+    } catch (error) {
+      console.error(`Error loading data for ${currentSection}:`, error);
+    }
+  };
+
   // Update window object with the current section's form data to make it available for the forms
   useEffect(() => {
-    if (Object.keys(profileData).length === 0) return;
+    // Initial load handled by loadCurrentSectionData on location change
     
-    const currentSectionData = (profileData as any)[currentSection];
-    if (!currentSectionData) return;
+    // Save data to session storage periodically for auto-recovery
+    const autoSaveInterval = setInterval(() => {
+      const windowKey = getCurrentSectionWindowKey(currentSection);
+      if (windowKey && (window as any)[windowKey]) {
+        const sessionKey = `${currentSection}FormData`;
+        const currentData = (window as any)[windowKey];
+        sessionStorage.setItem(sessionKey, JSON.stringify(currentData));
+        console.log(`Auto-saved ${currentSection} data to session storage:`, currentData);
+      }
+    }, 30000); // Auto-save every 30 seconds
     
-    const formDataKey = getCurrentSectionWindowKey(currentSection);
-    
-    console.log(`Setting ${currentSection} form data in window object:`, currentSectionData);
-    
-    // Set the data in the window object
-    (window as any)[formDataKey] = { ...currentSectionData };
-    
-    // Additionally save to sessionStorage for persistence during page refreshes
-    sessionStorage.setItem(formDataKey, JSON.stringify(currentSectionData));
-    
-  }, [currentSection, profileData]);
+    return () => {
+      clearInterval(autoSaveInterval);
+    };
+  }, [currentSection]);
 
   const saveCurrentSectionData = () => {
     const formDataKey = getCurrentSectionWindowKey(currentSection);
@@ -128,11 +201,13 @@ const MedicalProfile = () => {
         });
       }
       
+      const saveTimestamp = new Date().toISOString();
+      
       const updatedProfile = {
         ...existingProfile,
         [currentSection]: {
           ...currentFormData,
-          lastUpdated: new Date().toISOString()
+          lastUpdated: saveTimestamp
         }
       };
       
@@ -140,8 +215,14 @@ const MedicalProfile = () => {
       console.log('Auto-saved updated profile:', updatedProfile);
       
       // Update session storage
-      sessionStorage.setItem(formDataKey, JSON.stringify(currentFormData));
+      sessionStorage.setItem(formDataKey, JSON.stringify({
+        ...currentFormData,
+        lastUpdated: saveTimestamp
+      }));
       console.log(`Updated session storage for ${formDataKey}`);
+      
+      // Update last saved timestamp
+      setLastSaved(prev => ({...prev, [currentSection]: saveTimestamp}));
       
       if (changes.length > 0) {
         logChanges(currentSection, changes);
@@ -192,6 +273,48 @@ const MedicalProfile = () => {
     return sectionObj ? sectionObj.label : 'Section';
   };
 
+  // Format the last saved timestamp for display
+  const formatLastSaved = (timestamp: string | null) => {
+    if (!timestamp) return null;
+    
+    try {
+      const date = new Date(timestamp);
+      
+      // If the date is invalid, return null
+      if (isNaN(date.getTime())) return null;
+      
+      // If it's today, just show the time
+      const now = new Date();
+      const isToday = date.getDate() === now.getDate() && 
+                     date.getMonth() === now.getMonth() && 
+                     date.getFullYear() === now.getFullYear();
+      
+      if (isToday) {
+        return `Today at ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+      }
+      
+      // If it's yesterday
+      const yesterday = new Date(now);
+      yesterday.setDate(now.getDate() - 1);
+      const isYesterday = date.getDate() === yesterday.getDate() && 
+                         date.getMonth() === yesterday.getMonth() && 
+                         date.getFullYear() === yesterday.getFullYear();
+      
+      if (isYesterday) {
+        return `Yesterday at ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+      }
+      
+      // Otherwise show the full date
+      return date.toLocaleDateString([], { 
+        month: 'short', 
+        day: 'numeric' 
+      });
+    } catch (e) {
+      console.error('Error formatting timestamp:', e);
+      return null;
+    }
+  };
+
   // Listen for beforeunload event to save data when leaving the page
   useEffect(() => {
     const handleBeforeUnload = () => {
@@ -221,9 +344,28 @@ const MedicalProfile = () => {
           <h1 className="text-2xl font-bold text-gray-900">
             Medical Profile
           </h1>
-          <p className="text-gray-600 mt-1">
-            Update your comprehensive medical information with our new section-by-section editor
-          </p>
+          <div className="flex justify-between items-center">
+            <p className="text-gray-600 mt-1">
+              Update your comprehensive medical information with our new section-by-section editor
+            </p>
+            <div className="flex items-center">
+              <Button
+                onClick={saveCurrentSectionData}
+                variant="outline"
+                size="sm"
+                className="flex items-center gap-1 text-xs"
+                disabled={isSaving}
+              >
+                {isSaving ? 'Saving...' : 'Save'}
+                {!isSaving && <Save className="h-3 w-3" />}
+              </Button>
+              {lastSaved[currentSection] && (
+                <p className="text-xs text-gray-500 ml-2">
+                  Last saved: {formatLastSaved(lastSaved[currentSection])}
+                </p>
+              )}
+            </div>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -245,7 +387,14 @@ const MedicalProfile = () => {
                       value={section.id}
                       className="w-full justify-start text-left px-4 py-3 border-l-2 border-transparent data-[state=active]:border-l-safet-500 data-[state=active]:bg-safet-50 data-[state=active]:text-safet-700"
                     >
-                      {section.label}
+                      <div className="flex justify-between w-full items-center">
+                        <span>{section.label}</span>
+                        {lastSaved[section.id] && (
+                          <span className="text-xs text-gray-500 ml-1">
+                            {formatLastSaved(lastSaved[section.id])}
+                          </span>
+                        )}
+                      </div>
                     </TabsTrigger>
                   ))
                 }

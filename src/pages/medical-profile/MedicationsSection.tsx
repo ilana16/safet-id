@@ -32,6 +32,7 @@ const MedicationsSection = () => {
   const [isSearching, setIsSearching] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("search");
+  const [lastSaved, setLastSaved] = useState<string | null>(null);
   
   useEffect(() => {
     try {
@@ -41,6 +42,11 @@ const MedicationsSection = () => {
           const parsedData = JSON.parse(sessionData);
           (window as any).medicationsFormData = parsedData;
           console.log('Setting medications form data from session storage:', parsedData);
+          
+          if (parsedData.lastUpdated) {
+            setLastSaved(parsedData.lastUpdated);
+          }
+          
           return;
         } catch (e) {
           console.error('Error parsing session data:', e);
@@ -54,6 +60,10 @@ const MedicationsSection = () => {
           (window as any).medicationsFormData = savedProfile.medications;
           console.log('Setting medications form data in window object:', savedProfile.medications);
           
+          if (savedProfile.medications.lastUpdated) {
+            setLastSaved(savedProfile.medications.lastUpdated);
+          }
+          
           sessionStorage.setItem('medicationsFormData', JSON.stringify(savedProfile.medications));
         }
       }
@@ -63,27 +73,39 @@ const MedicationsSection = () => {
   }, []);
   
   useEffect(() => {
+    const autoSaveInterval = setInterval(() => {
+      const currentFormData = (window as any).medicationsFormData;
+      if (currentFormData) {
+        sessionStorage.setItem('medicationsFormData', JSON.stringify({
+          ...currentFormData,
+          lastUpdated: new Date().toISOString()
+        }));
+        console.log('Auto-saving medications form data to session storage:', currentFormData);
+      }
+    }, 30000);
+    
+    return () => {
+      clearInterval(autoSaveInterval);
+    };
+  }, []);
+  
+  useEffect(() => {
     const handleBeforeUnload = () => {
       const currentFormData = (window as any).medicationsFormData;
       if (currentFormData) {
-        sessionStorage.setItem('medicationsFormData', JSON.stringify(currentFormData));
-        console.log('Saving medications form data to session storage before unload:', currentFormData);
+        const saveData = {
+          ...currentFormData,
+          lastUpdated: new Date().toISOString()
+        };
+        sessionStorage.setItem('medicationsFormData', JSON.stringify(saveData));
+        console.log('Saving medications form data to session storage before unload:', saveData);
       }
     };
     
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
-    };
-  }, []);
-  
-  useEffect(() => {
-    return () => {
-      const currentFormData = (window as any).medicationsFormData;
-      if (currentFormData) {
-        sessionStorage.setItem('medicationsFormData', JSON.stringify(currentFormData));
-        console.log('Saving medications form data to session storage on unmount:', currentFormData);
-      }
+      handleBeforeUnload();
     };
   }, []);
   
@@ -114,23 +136,27 @@ const MedicationsSection = () => {
         }
       });
       
+      const saveTimestamp = new Date().toISOString();
+      
       setTimeout(() => {
         const updatedProfile = {
           ...existingProfile,
           medications: {
             ...newFormData,
             completed: true,
-            lastUpdated: new Date().toISOString()
+            lastUpdated: saveTimestamp
           }
         };
         
         localStorage.setItem('medicalProfile', JSON.stringify(updatedProfile));
         console.log('Saved updated profile:', updatedProfile);
         
+        setLastSaved(saveTimestamp);
+        
         sessionStorage.setItem('medicationsFormData', JSON.stringify({
           ...newFormData,
           completed: true,
-          lastUpdated: new Date().toISOString()
+          lastUpdated: saveTimestamp
         }));
         
         if (changes.length > 0) {
@@ -144,6 +170,47 @@ const MedicationsSection = () => {
       console.error('Error saving medications information:', error);
       setIsSaving(false);
       toast.error('Error saving medications information');
+    }
+  };
+
+  const formatLastSaved = (timestamp: string | null) => {
+    if (!timestamp) return null;
+    
+    try {
+      const date = new Date(timestamp);
+      
+      if (isNaN(date.getTime())) return null;
+      
+      const now = new Date();
+      const isToday = date.getDate() === now.getDate() && 
+                     date.getMonth() === now.getMonth() && 
+                     date.getFullYear() === now.getFullYear();
+      
+      if (isToday) {
+        return `Today at ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+      }
+      
+      const yesterday = new Date(now);
+      yesterday.setDate(now.getDate() - 1);
+      const isYesterday = date.getDate() === yesterday.getDate() && 
+                         date.getMonth() === yesterday.getMonth() && 
+                         date.getFullYear() === yesterday.getFullYear();
+      
+      if (isYesterday) {
+        return `Yesterday at ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+      }
+      
+      return date.toLocaleDateString([], { 
+        year: 'numeric', 
+        month: 'short', 
+        day: 'numeric' 
+      }) + ' at ' + date.toLocaleTimeString([], { 
+        hour: '2-digit', 
+        minute: '2-digit' 
+      });
+    } catch (e) {
+      console.error('Error formatting timestamp:', e);
+      return null;
     }
   };
 
@@ -215,15 +282,27 @@ const MedicationsSection = () => {
       <div className="bg-safet-600 text-white p-4 md:p-6 rounded-t-md">
         <div className="flex justify-between items-center">
           <h1 className="text-2xl font-bold">Medications & Supplements</h1>
-          <Button 
-            onClick={handleSave} 
-            className="bg-safet-800 hover:bg-safet-900 text-white"
-            disabled={isSaving}
-          >
-            {isSaving ? 'Saving...' : 'Save Changes'}
-            {!isSaving && <Save className="ml-2 h-4 w-4" />}
-          </Button>
+          <div className="flex items-center gap-2">
+            {lastSaved && (
+              <p className="text-xs text-safet-100 hidden md:block">
+                Last saved: {formatLastSaved(lastSaved)}
+              </p>
+            )}
+            <Button 
+              onClick={handleSave} 
+              className="bg-safet-800 hover:bg-safet-900 text-white"
+              disabled={isSaving}
+            >
+              {isSaving ? 'Saving...' : 'Save Changes'}
+              {!isSaving && <Save className="ml-2 h-4 w-4" />}
+            </Button>
+          </div>
         </div>
+        {lastSaved && (
+          <p className="text-xs text-safet-100 mt-2 md:hidden">
+            Last saved: {formatLastSaved(lastSaved)}
+          </p>
+        )}
       </div>
       
       <div className="bg-[#EBF2FA] border-b border-[#D1DEE8] p-4">

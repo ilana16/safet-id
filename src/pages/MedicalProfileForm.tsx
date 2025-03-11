@@ -25,11 +25,33 @@ const MedicalProfileForm = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [hasMentalHealthHistory, setHasMentalHealthHistory] = useState('no');
   const [formData, setFormData] = useState<any>({});
+  const [lastSaved, setLastSaved] = useState<string | null>(null);
   
   const currentSection = section || 'personal';
 
   useEffect(() => {
     try {
+      const sessionKey = `${currentSection}FormData`;
+      const sessionData = sessionStorage.getItem(sessionKey);
+      
+      if (sessionData) {
+        const parsedData = JSON.parse(sessionData);
+        console.log(`Loaded ${currentSection} data from session storage:`, parsedData);
+        
+        const windowKey = getWindowKeyForSection(currentSection);
+        if (windowKey) {
+          (window as any)[windowKey] = parsedData;
+        }
+        
+        setFormData(parsedData);
+        
+        if (parsedData.lastUpdated) {
+          setLastSaved(parsedData.lastUpdated);
+        }
+        
+        return;
+      }
+      
       const savedProfileJson = localStorage.getItem('medicalProfile');
       if (!savedProfileJson) return;
       
@@ -42,14 +64,59 @@ const MedicalProfileForm = () => {
       
       if (savedProfile && savedProfile[currentSection]) {
         setFormData(savedProfile[currentSection]);
+        
+        const windowKey = getWindowKeyForSection(currentSection);
+        if (windowKey) {
+          (window as any)[windowKey] = savedProfile[currentSection];
+          
+          sessionStorage.setItem(sessionKey, JSON.stringify(savedProfile[currentSection]));
+        }
+        
+        if (savedProfile[currentSection].lastUpdated) {
+          setLastSaved(savedProfile[currentSection].lastUpdated);
+        }
       } else {
         setFormData({});
       }
     } catch (error) {
-      console.error('Error loading medical profile data:', error);
+      console.error(`Error loading ${currentSection} data:`, error);
       setFormData({});
     }
   }, [currentSection]);
+
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      const windowKey = getWindowKeyForSection(currentSection);
+      if (windowKey && (window as any)[windowKey]) {
+        const sessionKey = `${currentSection}FormData`;
+        sessionStorage.setItem(sessionKey, JSON.stringify((window as any)[windowKey]));
+        console.log(`Saved ${currentSection} data to session storage before unload:`, (window as any)[windowKey]);
+      }
+    };
+    
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      handleBeforeUnload();
+    };
+  }, [currentSection]);
+
+  const getWindowKeyForSection = (section: string): string => {
+    switch (section) {
+      case 'personal': return 'personalFormData';
+      case 'history': return 'historyFormData';
+      case 'medications': return 'medicationsFormData';
+      case 'allergies': return 'allergiesFormData';
+      case 'social': return 'socialHistoryFormData';
+      case 'reproductive': return 'reproductiveHistoryFormData';
+      case 'mental': return 'mentalHealthFormData';
+      case 'functional': return 'functionalStatusFormData';
+      case 'cultural': return 'culturalPreferencesFormData';
+      case 'preventative': return 'preventativeCareFormData';
+      default: return '';
+    }
+  };
 
   const handleSave = () => {
     setIsSaving(true);
@@ -60,28 +127,10 @@ const MedicalProfileForm = () => {
       const existingSectionData = existingProfile[currentSection] || {};
       
       let newFormData: any = {};
+      const windowKey = getWindowKeyForSection(currentSection);
       
-      if (currentSection === 'medications' && (window as any).medicationsFormData) {
-        newFormData = (window as any).medicationsFormData;
-      } else if (currentSection === 'cultural' && (window as any).culturalPreferencesFormData) {
-        newFormData = (window as any).culturalPreferencesFormData;
-      } else if (currentSection === 'preventative' && (window as any).preventativeCareFormData) {
-        newFormData = (window as any).preventativeCareFormData;
-      } else if (currentSection === 'social' && (window as any).socialHistoryFormData) {
-        newFormData = (window as any).socialHistoryFormData;
-      } else if (currentSection === 'functional' && (window as any).functionalStatusFormData) {
-        newFormData = (window as any).functionalStatusFormData;
-      } else if (currentSection === 'reproductive' && (window as any).reproductiveHistoryFormData) {
-        newFormData = (window as any).reproductiveHistoryFormData;
-      } else if (currentSection === 'mental' && (window as any).mentalHealthFormData) {
-        newFormData = (window as any).mentalHealthFormData;
-      } else if (currentSection === 'allergies' && (window as any).allergiesFormData) {
-        newFormData = (window as any).allergiesFormData;
-      } else if (currentSection === 'history' && (window as any).historyFormData) {
-        newFormData = (window as any).historyFormData;
-        newFormData.hasMentalHealthHistory = hasMentalHealthHistory;
-      } else if (currentSection === 'personal' && (window as any).personalFormData) {
-        newFormData = (window as any).personalFormData;
+      if (windowKey && (window as any)[windowKey]) {
+        newFormData = (window as any)[windowKey];
       } else {
         const formElements = document.querySelectorAll('input, select, textarea');
         
@@ -130,13 +179,15 @@ const MedicalProfileForm = () => {
       const additionalData = currentSection === 'history' ? 
         { hasMentalHealthHistory } : {};
       
+      const saveTimestamp = new Date().toISOString();
+      
       setTimeout(() => {
         const updatedProfile = {
           ...existingProfile,
           [currentSection]: {
             ...newFormData,
             completed: true,
-            lastUpdated: new Date().toISOString(),
+            lastUpdated: saveTimestamp,
             ...additionalData
           }
         };
@@ -144,11 +195,20 @@ const MedicalProfileForm = () => {
         localStorage.setItem('medicalProfile', JSON.stringify(updatedProfile));
         console.log('Saved updated profile:', updatedProfile);
         
+        const sessionKey = `${currentSection}FormData`;
+        sessionStorage.setItem(sessionKey, JSON.stringify({
+          ...newFormData,
+          completed: true,
+          lastUpdated: saveTimestamp,
+          ...additionalData
+        }));
+        
         if (changes.length > 0) {
           logChanges(currentSection, changes);
         }
         
         setIsSaving(false);
+        setLastSaved(saveTimestamp);
         toast.success('Medical information saved successfully');
         
         if (currentSection === 'preventative') {
@@ -241,6 +301,47 @@ const MedicalProfileForm = () => {
     }
   };
 
+  const formatLastSaved = (timestamp: string | null) => {
+    if (!timestamp) return null;
+    
+    try {
+      const date = new Date(timestamp);
+      
+      if (isNaN(date.getTime())) return null;
+      
+      const now = new Date();
+      const isToday = date.getDate() === now.getDate() && 
+                     date.getMonth() === now.getMonth() && 
+                     date.getFullYear() === now.getFullYear();
+      
+      if (isToday) {
+        return `Today at ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+      }
+      
+      const yesterday = new Date(now);
+      yesterday.setDate(now.getDate() - 1);
+      const isYesterday = date.getDate() === yesterday.getDate() && 
+                         date.getMonth() === yesterday.getMonth() && 
+                         date.getFullYear() === yesterday.getFullYear();
+      
+      if (isYesterday) {
+        return `Yesterday at ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+      }
+      
+      return date.toLocaleDateString([], { 
+        year: 'numeric', 
+        month: 'short', 
+        day: 'numeric' 
+      }) + ' at ' + date.toLocaleTimeString([], { 
+        hour: '2-digit', 
+        minute: '2-digit' 
+      });
+    } catch (e) {
+      console.error('Error formatting timestamp:', e);
+      return null;
+    }
+  };
+
   return (
     <PageLayout className="bg-gray-50">
       <div className="max-w-3xl mx-auto px-4 py-8">
@@ -267,43 +368,60 @@ const MedicalProfileForm = () => {
           <h1 className="text-2xl font-bold text-gray-900">
             {getSectionTitle()}
           </h1>
-          <p className="text-gray-600 mt-1">
-            Update your medical information
-          </p>
+          <div className="flex justify-between items-center">
+            <p className="text-gray-600 mt-1">
+              Update your medical information
+            </p>
+            {lastSaved && (
+              <p className="text-xs text-gray-500 mt-1">
+                Last saved: {formatLastSaved(lastSaved)}
+              </p>
+            )}
+          </div>
         </div>
         
         <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
           {renderForm()}
           
-          <div className="mt-8 flex justify-end gap-3">
-            {currentSection !== 'personal' && (
+          <div className="mt-8 flex items-center justify-between">
+            <div>
+              {lastSaved && (
+                <p className="text-xs text-gray-500">
+                  Last saved: {formatLastSaved(lastSaved)}
+                </p>
+              )}
+            </div>
+            
+            <div className="flex gap-3">
+              {currentSection !== 'personal' && (
+                <Button 
+                  variant="outline"
+                  onClick={() => {
+                    const sections: SectionType[] = [
+                      'personal', 'history', 'medications', 'allergies', 'social',
+                      'reproductive', 'mental', 'functional', 'cultural', 'preventative'
+                    ];
+                    const currentIndex = sections.indexOf(currentSection as SectionType);
+                    
+                    if (currentSection === 'functional' && hasMentalHealthHistory === 'no' && currentIndex > 1) {
+                      navigate(`/profile/edit/${sections[currentIndex - 2]}`);
+                    } else if (currentIndex > 0) {
+                      navigate(`/profile/edit/${sections[currentIndex - 1]}`);
+                    }
+                  }}
+                >
+                  Previous
+                </Button>
+              )}
               <Button 
-                variant="outline"
-                onClick={() => {
-                  const sections: SectionType[] = [
-                    'personal', 'history', 'medications', 'allergies', 'social',
-                    'reproductive', 'mental', 'functional', 'cultural', 'preventative'
-                  ];
-                  const currentIndex = sections.indexOf(currentSection as SectionType);
-                  
-                  if (currentSection === 'functional' && hasMentalHealthHistory === 'no' && currentIndex > 1) {
-                    navigate(`/profile/edit/${sections[currentIndex - 2]}`);
-                  } else if (currentIndex > 0) {
-                    navigate(`/profile/edit/${sections[currentIndex - 1]}`);
-                  }
-                }}
+                onClick={handleSave} 
+                className="bg-safet-500 hover:bg-safet-600"
+                disabled={isSaving}
               >
-                Previous
+                {isSaving ? 'Saving...' : currentSection === 'preventative' ? 'Complete Profile' : 'Save & Continue'}
+                {!isSaving && <Save className="ml-2 h-4 w-4" />}
               </Button>
-            )}
-            <Button 
-              onClick={handleSave} 
-              className="bg-safet-500 hover:bg-safet-600"
-              disabled={isSaving}
-            >
-              {isSaving ? 'Saving...' : currentSection === 'preventative' ? 'Complete Profile' : 'Save & Continue'}
-              {!isSaving && <Save className="ml-2 h-4 w-4" />}
-            </Button>
+            </div>
           </div>
         </div>
       </div>
