@@ -1,9 +1,8 @@
-
 import React, { useState, useEffect } from 'react';
 import { searchDrugsCom, getDrugsComInfo } from '@/utils/drugsComApi';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Search, ArrowRight, Loader2, PillIcon, TabletDecorative, ExternalLink } from 'lucide-react';
+import { Search, ArrowRight, Loader2, PillIcon, Pill, ExternalLink } from 'lucide-react';
 import MedicationInfo from './MedicationInfo';
 import { MedicationInfo as MedicationInfoType } from '@/utils/medicationData';
 import { Card } from '@/components/ui/card';
@@ -18,7 +17,6 @@ const DrugInfoLookup: React.FC = () => {
   const [isSearching, setIsSearching] = useState(false);
   const [history, setHistory] = useState<string[]>([]);
   
-  // Load search history from local storage
   useEffect(() => {
     const savedHistory = localStorage.getItem('medicationSearchHistory');
     if (savedHistory) {
@@ -30,24 +28,19 @@ const DrugInfoLookup: React.FC = () => {
     }
   }, []);
   
-  // Save search history to local storage
   const saveHistory = (medication: string) => {
     let newHistory = [...history];
     
-    // Remove if already exists
     newHistory = newHistory.filter(item => item !== medication);
     
-    // Add to beginning
     newHistory.unshift(medication);
     
-    // Limit to 5 items
     newHistory = newHistory.slice(0, 5);
     
     setHistory(newHistory);
     localStorage.setItem('medicationSearchHistory', JSON.stringify(newHistory));
   };
 
-  // Handle search input change
   const handleSearchChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setQuery(value);
@@ -67,7 +60,6 @@ const DrugInfoLookup: React.FC = () => {
     }
   };
 
-  // Handle search form submission
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     if (query.length < 2) return;
@@ -78,7 +70,6 @@ const DrugInfoLookup: React.FC = () => {
       const results = await searchDrugsCom(query);
       setSearchResults(results);
       
-      // If we get only one exact match, select it
       if (results.length === 1 && results[0].toLowerCase() === query.toLowerCase()) {
         await selectMedication(results[0]);
       }
@@ -89,7 +80,6 @@ const DrugInfoLookup: React.FC = () => {
     }
   };
 
-  // Handle medication selection
   const selectMedication = async (medication: string) => {
     setSelectedMedication(medication);
     setIsLoading(true);
@@ -107,7 +97,6 @@ const DrugInfoLookup: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Search section */}
       <div className="bg-white border border-[#D1DEE8] rounded-md overflow-hidden">
         <div className="bg-safet-600 text-white px-5 py-3 font-medium">
           Search Medications Database
@@ -124,7 +113,6 @@ const DrugInfoLookup: React.FC = () => {
               />
               <Search className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
               
-              {/* Search results dropdown */}
               {searchResults.length > 0 && query.length >= 2 && !medicationInfo && (
                 <div className="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-auto">
                   <ul className="py-1">
@@ -138,7 +126,7 @@ const DrugInfoLookup: React.FC = () => {
                           setSearchResults([]);
                         }}
                       >
-                        <TabletDecorative className="h-4 w-4 text-safet-500 mr-2" />
+                        <Pill className="h-4 w-4 text-safet-500 mr-2" />
                         {result}
                       </li>
                     ))}
@@ -156,7 +144,6 @@ const DrugInfoLookup: React.FC = () => {
             </Button>
           </form>
           
-          {/* Recent searches */}
           {history.length > 0 && !medicationInfo && (
             <div className="mt-4">
               <p className="text-sm text-gray-500 mb-2">Recent searches:</p>
@@ -177,7 +164,6 @@ const DrugInfoLookup: React.FC = () => {
             </div>
           )}
           
-          {/* Popular medications */}
           {!query && !medicationInfo && (
             <div className="mt-6">
               <h3 className="text-sm font-medium text-gray-500 mb-2">Popular medications:</h3>
@@ -204,7 +190,6 @@ const DrugInfoLookup: React.FC = () => {
         </div>
       </div>
       
-      {/* Loading indicator */}
       {isLoading && (
         <div className="flex justify-center p-8">
           <div className="flex items-center space-x-2">
@@ -214,7 +199,6 @@ const DrugInfoLookup: React.FC = () => {
         </div>
       )}
       
-      {/* Medication information display */}
       {medicationInfo && (
         <div>
           <div className="flex justify-between items-center mb-4">

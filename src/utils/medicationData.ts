@@ -10,10 +10,12 @@ export interface MedicationInfo {
   sideEffects: string[];
   interactions: string[];
   warnings: string[];
+  drugClass?: string; // Added drugClass property
   dosage: {
     adult: string;
     child?: string;
     elderly?: string;
+    frequency?: string; // Added frequency property
   };
   image?: string;
   drugsComUrl?: string; // Added for linking to Drugs.com

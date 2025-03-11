@@ -4,7 +4,7 @@ import type { MedicationInfo as MedicationInfoType } from '@/utils/medicationDat
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertTriangle, Info, ExternalLink, CheckCircle2, ShieldAlert, PlusCircle, TabletDecorative, Clock, BadgePlus } from 'lucide-react';
+import { AlertTriangle, Info, ExternalLink, CheckCircle2, ShieldAlert, PlusCircle, Pill, Clock, BadgePlus } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -73,7 +73,7 @@ const MedicationInfo: React.FC<MedicationDetailsProps> = ({ medication }) => {
               </div>
               
               <div className="flex items-center mt-6 text-safet-600">
-                <TabletDecorative className="h-5 w-5 mr-2" />
+                <Pill className="h-5 w-5 mr-2" />
                 <span className="font-medium">Medication Class:</span>
                 <span className="ml-2">{medication.drugClass || "Not specified"}</span>
               </div>

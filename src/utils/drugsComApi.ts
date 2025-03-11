@@ -98,7 +98,8 @@ const getMedicationInfoLocal = (medicationKey: string): MedicationInfo | null =>
     dosage: {
       adult: "Consult your doctor for proper dosage information.",
       child: "Not recommended for children without medical supervision.",
-      elderly: "May require dosage adjustment. Consult your doctor."
+      elderly: "May require dosage adjustment. Consult your doctor.",
+      frequency: "As directed by your doctor"
     },
     sideEffects: [
       "Headache",
