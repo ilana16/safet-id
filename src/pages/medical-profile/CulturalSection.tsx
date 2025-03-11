@@ -18,58 +18,42 @@ const CulturalSection = () => {
           const parsedData = JSON.parse(sessionData);
           (window as any).culturalPreferencesFormData = parsedData;
           console.log('Setting cultural preferences form data from session storage:', parsedData);
-          return;
         } catch (e) {
           console.error('Error parsing session data:', e);
         }
       }
       
-      // Fall back to localStorage
+      // Also load from localStorage to ensure data consistency
       const savedProfileJson = localStorage.getItem('medicalProfile');
       if (savedProfileJson) {
         const savedProfile = JSON.parse(savedProfileJson);
         if (savedProfile && savedProfile.cultural) {
-          (window as any).culturalPreferencesFormData = savedProfile.cultural;
-          console.log('Setting cultural preferences form data in window object:', savedProfile.cultural);
+          // If session storage data is older than localStorage data, update it
+          const localData = savedProfile.cultural;
           
-          // Also save to session storage for better persistence
-          sessionStorage.setItem('culturalPreferencesFormData', JSON.stringify(savedProfile.cultural));
+          if (sessionData) {
+            const sessionParsed = JSON.parse(sessionData);
+            const sessionTime = new Date(sessionParsed.lastUpdated || 0).getTime();
+            const localTime = new Date(localData.lastUpdated || 0).getTime();
+            
+            if (localTime > sessionTime) {
+              (window as any).culturalPreferencesFormData = localData;
+              sessionStorage.setItem('culturalPreferencesFormData', JSON.stringify(localData));
+              console.log('Updated session storage with newer data from localStorage');
+            }
+          } else {
+            (window as any).culturalPreferencesFormData = localData;
+            sessionStorage.setItem('culturalPreferencesFormData', JSON.stringify(localData));
+          }
         }
       }
+      
+      // Dispatch a custom event to notify the form component to reload data
+      window.dispatchEvent(new Event('navigationChange'));
+      
     } catch (error) {
       console.error('Error loading cultural preferences data:', error);
     }
-  }, []);
-  
-  // Save form data periodically with auto-save
-  useEffect(() => {
-    const autoSaveInterval = setInterval(() => {
-      const currentFormData = (window as any).culturalPreferencesFormData;
-      if (currentFormData) {
-        sessionStorage.setItem('culturalPreferencesFormData', JSON.stringify(currentFormData));
-        console.log('Auto-saved cultural preferences data to session storage:', currentFormData);
-      }
-    }, 30000); // Auto-save every 30 seconds
-    
-    return () => {
-      clearInterval(autoSaveInterval);
-    };
-  }, []);
-  
-  // Add event listener for page unload to save data
-  useEffect(() => {
-    const handleBeforeUnload = () => {
-      const currentFormData = (window as any).culturalPreferencesFormData;
-      if (currentFormData) {
-        sessionStorage.setItem('culturalPreferencesFormData', JSON.stringify(currentFormData));
-        console.log('Saving cultural preferences form data to session storage before unload:', currentFormData);
-      }
-    };
-    
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    return () => {
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-    };
   }, []);
   
   // Save form data when component unmounts
@@ -79,6 +63,19 @@ const CulturalSection = () => {
       if (currentFormData) {
         sessionStorage.setItem('culturalPreferencesFormData', JSON.stringify(currentFormData));
         console.log('Saving cultural preferences form data to session storage on unmount:', currentFormData);
+        
+        // Also save directly to localStorage for persistence
+        try {
+          const savedProfileJson = localStorage.getItem('medicalProfile');
+          const savedProfile = savedProfileJson ? JSON.parse(savedProfileJson) : {};
+          
+          localStorage.setItem('medicalProfile', JSON.stringify({
+            ...savedProfile,
+            cultural: currentFormData
+          }));
+        } catch (error) {
+          console.error('Error saving to localStorage on unmount:', error);
+        }
       }
     };
   }, []);
@@ -112,7 +109,8 @@ const CulturalSection = () => {
           ...existingProfile,
           cultural: {
             ...newFormData,
-            completed: true
+            completed: true,
+            lastUpdated: new Date().toISOString()
           }
         };
         
@@ -122,7 +120,8 @@ const CulturalSection = () => {
         // Also update session storage
         sessionStorage.setItem('culturalPreferencesFormData', JSON.stringify({
           ...newFormData,
-          completed: true
+          completed: true,
+          lastUpdated: new Date().toISOString()
         }));
         
         if (changes.length > 0) {

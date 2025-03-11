@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -24,8 +25,23 @@ const MedicalProfileCulturalPreferencesForm = () => {
     const loadSavedData = () => {
       try {
         console.log('Loading cultural preferences data...');
-        const savedProfileJson = localStorage.getItem('medicalProfile');
         
+        // First try to load from sessionStorage for faster access
+        const sessionData = sessionStorage.getItem('culturalPreferencesFormData');
+        if (sessionData) {
+          const parsedData = JSON.parse(sessionData);
+          populateFormData(parsedData);
+          console.log('Loaded cultural preferences from sessionStorage:', parsedData);
+          
+          // Update window object for other components to access
+          (window as any).culturalPreferencesFormData = parsedData;
+          
+          setDataLoaded(true);
+          return;
+        }
+        
+        // Fall back to localStorage if sessionStorage is empty
+        const savedProfileJson = localStorage.getItem('medicalProfile');
         if (savedProfileJson) {
           const savedProfile = JSON.parse(savedProfileJson);
           
@@ -45,6 +61,7 @@ const MedicalProfileCulturalPreferencesForm = () => {
         setDataLoaded(true);
       } catch (error) {
         console.error('Error loading cultural preferences data:', error);
+        setDataLoaded(true); // Still set data loaded to true to prevent issues
       }
     };
 
@@ -66,12 +83,16 @@ const MedicalProfileCulturalPreferencesForm = () => {
     // Load data when component mounts
     loadSavedData();
     
-    // Update when browser history changes (navigation between tabs)
+    // Add event listener for navigation changes
     window.addEventListener('popstate', loadSavedData);
+    
+    // Add event listener for custom navigation events
+    window.addEventListener('navigationChange', loadSavedData);
     
     // Return cleanup function
     return () => {
       window.removeEventListener('popstate', loadSavedData);
+      window.removeEventListener('navigationChange', loadSavedData);
     };
   }, []);
 
@@ -125,6 +146,9 @@ const MedicalProfileCulturalPreferencesForm = () => {
     
     return () => {
       clearTimeout(autoSaveTimer);
+      
+      // Final save on unmount
+      saveToLocalStorage();
     };
   }, [
     dataLoaded,

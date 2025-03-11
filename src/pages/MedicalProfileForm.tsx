@@ -29,69 +29,129 @@ const MedicalProfileForm = () => {
   
   const currentSection = section || 'personal';
 
+  // This effect runs whenever the section changes
   useEffect(() => {
     try {
+      console.log(`Section changed to: ${currentSection}`);
       const sessionKey = `${currentSection}FormData`;
-      const sessionData = sessionStorage.getItem(sessionKey);
       
+      // When section changes, load the relevant data
+      loadSectionData(currentSection);
+      
+      // Trigger a custom navigation event for form components to reload
+      window.dispatchEvent(new Event('navigationChange'));
+      
+    } catch (error) {
+      console.error(`Error handling section change for ${currentSection}:`, error);
+    }
+  }, [currentSection]);
+  
+  // Load data for a specific section
+  const loadSectionData = (sectionName: string) => {
+    try {
+      console.log(`Loading data for section: ${sectionName}`);
+      const sessionKey = `${sectionName}FormData`;
+      
+      // First try sessionStorage for quicker access
+      const sessionData = sessionStorage.getItem(sessionKey);
       if (sessionData) {
-        const parsedData = JSON.parse(sessionData);
-        console.log(`Loaded ${currentSection} data from session storage:`, parsedData);
-        
-        const windowKey = getWindowKeyForSection(currentSection);
-        if (windowKey) {
-          (window as any)[windowKey] = parsedData;
+        try {
+          const parsedData = JSON.parse(sessionData);
+          console.log(`Loaded ${sectionName} data from session storage:`, parsedData);
+          
+          const windowKey = getWindowKeyForSection(sectionName);
+          if (windowKey) {
+            (window as any)[windowKey] = parsedData;
+          }
+          
+          if (sectionName === 'history' && parsedData.hasMentalHealthHistory) {
+            setHasMentalHealthHistory(parsedData.hasMentalHealthHistory);
+          }
+          
+          setFormData(parsedData);
+          return;
+        } catch (e) {
+          console.error('Error parsing session data:', e);
         }
-        
-        setFormData(parsedData);
-        return;
       }
       
+      // Fall back to localStorage
       const savedProfileJson = localStorage.getItem('medicalProfile');
       if (!savedProfileJson) return;
       
       const savedProfile = JSON.parse(savedProfileJson);
-      console.log('Loaded profile data:', savedProfile);
+      console.log('Loaded profile data from localStorage:', savedProfile);
       
       if (savedProfile && savedProfile.history && savedProfile.history.hasMentalHealthHistory) {
         setHasMentalHealthHistory(savedProfile.history.hasMentalHealthHistory);
       }
       
-      if (savedProfile && savedProfile[currentSection]) {
-        setFormData(savedProfile[currentSection]);
+      if (savedProfile && savedProfile[sectionName]) {
+        const sectionData = savedProfile[sectionName];
         
-        const windowKey = getWindowKeyForSection(currentSection);
+        setFormData(sectionData);
+        console.log(`Loaded ${sectionName} data from localStorage:`, sectionData);
+        
+        const windowKey = getWindowKeyForSection(sectionName);
         if (windowKey) {
-          (window as any)[windowKey] = savedProfile[currentSection];
+          (window as any)[windowKey] = sectionData;
           
-          sessionStorage.setItem(sessionKey, JSON.stringify(savedProfile[currentSection]));
+          // Update sessionStorage with localStorage data
+          sessionStorage.setItem(sessionKey, JSON.stringify(sectionData));
+          console.log(`Updated sessionStorage for ${sectionName} with localStorage data`);
         }
       } else {
         setFormData({});
       }
     } catch (error) {
-      console.error(`Error loading ${currentSection} data:`, error);
+      console.error(`Error loading ${sectionName} data:`, error);
       setFormData({});
     }
-  }, [currentSection]);
+  };
 
+  // Save current section data before unloading or unmounting
   useEffect(() => {
     const handleBeforeUnload = () => {
-      const windowKey = getWindowKeyForSection(currentSection);
-      if (windowKey && (window as any)[windowKey]) {
-        const sessionKey = `${currentSection}FormData`;
-        sessionStorage.setItem(sessionKey, JSON.stringify((window as any)[windowKey]));
-        console.log(`Saved ${currentSection} data to session storage before unload:`, (window as any)[windowKey]);
-      }
+      saveCurrentSectionData();
     };
     
     window.addEventListener('beforeunload', handleBeforeUnload);
     
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
-      handleBeforeUnload();
+      saveCurrentSectionData();
     };
   }, [currentSection]);
+  
+  // Save the current section's data to both sessionStorage and localStorage
+  const saveCurrentSectionData = () => {
+    try {
+      const windowKey = getWindowKeyForSection(currentSection);
+      if (windowKey && (window as any)[windowKey]) {
+        const currentData = (window as any)[windowKey];
+        const sessionKey = `${currentSection}FormData`;
+        
+        // Save to sessionStorage
+        sessionStorage.setItem(sessionKey, JSON.stringify(currentData));
+        console.log(`Saved ${currentSection} data to session storage:`, currentData);
+        
+        // Also save to localStorage for persistence
+        const savedProfileJson = localStorage.getItem('medicalProfile');
+        const savedProfile = savedProfileJson ? JSON.parse(savedProfileJson) : {};
+        
+        localStorage.setItem('medicalProfile', JSON.stringify({
+          ...savedProfile,
+          [currentSection]: {
+            ...currentData,
+            lastUpdated: new Date().toISOString()
+          }
+        }));
+        console.log(`Saved ${currentSection} data to localStorage`);
+      }
+    } catch (error) {
+      console.error(`Error saving ${currentSection} data:`, error);
+    }
+  };
 
   const getWindowKeyForSection = (section: string): string => {
     switch (section) {
@@ -113,6 +173,9 @@ const MedicalProfileForm = () => {
     setIsSaving(true);
     
     try {
+      // Save current section data first
+      saveCurrentSectionData();
+      
       const existingProfileJson = localStorage.getItem('medicalProfile');
       const existingProfile = existingProfileJson ? JSON.parse(existingProfileJson) : {};
       const existingSectionData = existingProfile[currentSection] || {};
@@ -176,6 +239,7 @@ const MedicalProfileForm = () => {
           [currentSection]: {
             ...newFormData,
             completed: true,
+            lastUpdated: new Date().toISOString(),
             ...additionalData
           }
         };
@@ -187,6 +251,7 @@ const MedicalProfileForm = () => {
         sessionStorage.setItem(sessionKey, JSON.stringify({
           ...newFormData,
           completed: true,
+          lastUpdated: new Date().toISOString(),
           ...additionalData
         }));
         
@@ -294,7 +359,10 @@ const MedicalProfileForm = () => {
           <div className="flex justify-between items-center mb-4">
             <Button 
               variant="ghost" 
-              onClick={() => navigate('/dashboard')} 
+              onClick={() => {
+                saveCurrentSectionData(); // Save data before navigation
+                navigate('/dashboard');
+              }} 
             >
               <ChevronLeft className="mr-2 h-4 w-4" />
               Back to Dashboard
@@ -332,6 +400,8 @@ const MedicalProfileForm = () => {
                 <Button 
                   variant="outline"
                   onClick={() => {
+                    saveCurrentSectionData(); // Save data before navigation
+                    
                     const sections: SectionType[] = [
                       'personal', 'history', 'medications', 'allergies', 'social',
                       'reproductive', 'mental', 'functional', 'cultural', 'preventative'
