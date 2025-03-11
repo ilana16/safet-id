@@ -6,6 +6,7 @@ import MedicalProfileMedicationsForm from '@/components/forms/MedicalProfileMedi
 import { toast } from '@/lib/toast';
 import { logChanges } from '@/utils/changeLog';
 import { useFieldPersistence } from '@/hooks/useFieldPersistence';
+import DrugInfoLookup from '@/components/medications/DrugInfoLookup';
 
 // Define the type for medications data
 interface MedicationsData {
@@ -64,6 +65,7 @@ const initialMedicationsData: MedicationsData = {
 const MedicationsSection = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
+  const [showDrugLookup, setShowDrugLookup] = useState(false);
   
   // Use the useFieldPersistence hook for medications data
   const [medicationsData, updateMedicationsData, saveMedicationsData] = useFieldPersistence<MedicationsData>(
@@ -126,9 +128,20 @@ const MedicationsSection = () => {
     }
   };
 
+  const handleToggleDrugLookup = () => {
+    setShowDrugLookup(prev => !prev);
+  };
+
   return (
     <div>
-      <div className="flex justify-end mb-6">
+      <div className="flex justify-between mb-6">
+        <Button 
+          onClick={handleToggleDrugLookup} 
+          variant="outline"
+          className="border-safet-200 text-safet-600"
+        >
+          {showDrugLookup ? 'Hide Medication Lookup' : 'Show Medication Lookup'}
+        </Button>
         <Button 
           onClick={handleSave} 
           className="bg-safet-500 hover:bg-safet-600"
@@ -138,6 +151,12 @@ const MedicationsSection = () => {
           {!isSaving && <Save className="ml-2 h-4 w-4" />}
         </Button>
       </div>
+      
+      {showDrugLookup && (
+        <div className="mb-6">
+          <DrugInfoLookup />
+        </div>
+      )}
       
       {isLoaded && <MedicalProfileMedicationsForm />}
       
