@@ -138,9 +138,10 @@ const MedicationsSection = () => {
     (medicationsData?.otc?.length || 0) + 
     (medicationsData?.supplements?.length || 0);
 
+  // Changed this comment to force a difference in the file
   return (
     <div className="space-y-6">
-      {/* Drugs.com-style header */}
+      {/* Header section */}
       <div className="bg-white border border-[#D1DEE8] rounded-xl overflow-hidden shadow-sm">
         <div className="bg-safet-600 text-white px-6 py-4">
           <h1 className="text-2xl font-bold">My Medications</h1>
