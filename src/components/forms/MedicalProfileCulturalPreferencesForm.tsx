@@ -134,7 +134,7 @@ const MedicalProfileCulturalPreferencesForm = () => {
                     <SelectValue placeholder="Select religious affiliation" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Prefer not to say</SelectItem>
+                    <SelectItem value="none">Prefer not to say</SelectItem>
                     <SelectItem value="christianity">Christianity</SelectItem>
                     <SelectItem value="islam">Islam</SelectItem>
                     <SelectItem value="hinduism">Hinduism</SelectItem>
