@@ -10,15 +10,18 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { TabsContent, Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
+import MedicalProfileMedicationsForm from '@/components/forms/MedicalProfileMedicationsForm';
 
 // Define the type for medications data
 interface MedicationsData {
-  medications: any[];
+  prescriptions: any[];
+  otc: any[];
+  supplements: any[];
   [key: string]: any;
 }
 
 const initialMedicationsData: MedicationsData = {
-  medications: [{
+  prescriptions: [{
     id: `med_${Date.now()}`,
     name: '',
     totalDosage: '',
@@ -28,7 +31,35 @@ const initialMedicationsData: MedicationsData = {
     form: '',
     customForm: '',
     withFood: 'with',
-    prescriptionType: '',
+    prescriptionType: 'prescription',
+    brandName: '',
+    reason: '',
+    doseTimes: [{ id: `time_${Date.now()}`, time: '' }]
+  }],
+  otc: [{
+    id: `otc_${Date.now()}`,
+    name: '',
+    totalDosage: '',
+    unit: '',
+    pillsPerDose: '',
+    dosagePerPill: '',
+    form: '',
+    customForm: '',
+    withFood: 'with',
+    brandName: '',
+    reason: '',
+    doseTimes: [{ id: `time_${Date.now()}`, time: '' }]
+  }],
+  supplements: [{
+    id: `supp_${Date.now()}`,
+    name: '',
+    totalDosage: '',
+    unit: '',
+    pillsPerDose: '',
+    dosagePerPill: '',
+    form: '',
+    customForm: '',
+    withFood: 'with',
     brandName: '',
     reason: '',
     doseTimes: [{ id: `time_${Date.now()}`, time: '' }]
@@ -102,7 +133,10 @@ const MedicationsSection = () => {
     }
   };
 
-  const totalMedicationsCount = medicationsData?.medications?.length || 0;
+  const totalMedicationsCount = 
+    (medicationsData?.prescriptions?.length || 0) + 
+    (medicationsData?.otc?.length || 0) + 
+    (medicationsData?.supplements?.length || 0);
 
   return (
     <div className="space-y-6">
@@ -111,7 +145,7 @@ const MedicationsSection = () => {
         <div className="bg-[#335B95] text-white px-6 py-4">
           <h1 className="text-2xl font-bold">My Medications</h1>
           <p className="text-white/80 mt-1">
-            Track your medications and supplements
+            Track your prescriptions, over-the-counter medicines, and supplements
           </p>
         </div>
         
@@ -156,15 +190,7 @@ const MedicationsSection = () => {
         
         <TabsContent value="my-meds" className="mt-0">
           <Card className="p-6 border border-gray-200">
-            {isLoaded && (
-              <div className="space-y-6">
-                {/* Single unified medications section will go here */}
-                {/* We'll implement the drugs.com style medications form in a future update */}
-                <div className="mt-4 text-center text-gray-500">
-                  <p>The medications form will be updated to match drugs.com style in the next update.</p>
-                </div>
-              </div>
-            )}
+            {isLoaded && <MedicalProfileMedicationsForm />}
             
             <div className="mt-8 flex justify-end gap-3">
               <Button 
