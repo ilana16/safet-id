@@ -2,163 +2,18 @@
 /**
  * Medical Profile Service
  * 
- * A utility service that handles loading, saving, and synchronizing medical profile data
- * between localStorage, sessionStorage, and the window object.
+ * A centralized service for handling all medical profile data operations
  */
 
-// Define a custom event for data changes
+// Custom event for data changes across components
 export const MEDICAL_DATA_CHANGE_EVENT = 'medicalDataChange';
 
-/**
- * Load data for a specific section from storage
- */
-export const loadSectionData = (sectionName: string): any => {
-  try {
-    console.log(`Loading ${sectionName} data`);
-    
-    // Create a timestamp for this data loading operation
-    const loadTimestamp = new Date().toISOString();
-    
-    // First check if localStorage has data (source of truth)
-    const savedProfileJson = localStorage.getItem('medicalProfile');
-    let localData = null;
-    
-    if (savedProfileJson) {
-      const savedProfile = JSON.parse(savedProfileJson);
-      if (savedProfile && savedProfile[sectionName]) {
-        localData = savedProfile[sectionName];
-        console.log(`Found ${sectionName} in localStorage:`, localData);
-      }
-    }
-    
-    // Also check sessionStorage
-    const sessionKey = `${sectionName}FormData`;
-    const sessionData = sessionStorage.getItem(sessionKey);
-    let sessionParsed = null;
-    
-    if (sessionData) {
-      try {
-        sessionParsed = JSON.parse(sessionData);
-        console.log(`Found ${sectionName} in sessionStorage:`, sessionParsed);
-      } catch (e) {
-        console.error(`Error parsing ${sectionName} session data:`, e);
-      }
-    }
-    
-    // Determine which data is more recent and use that
-    let dataToUse = null;
-    
-    if (localData && sessionParsed) {
-      const localTime = new Date(localData.lastUpdated || 0).getTime();
-      const sessionTime = new Date(sessionParsed.lastUpdated || 0).getTime();
-      
-      dataToUse = localTime >= sessionTime ? localData : sessionParsed;
-      console.log('Using more recent data, timestamp comparison:', { localTime, sessionTime });
-    } else {
-      dataToUse = localData || sessionParsed || {};
-    }
-    
-    // Get the window object key for this section
-    const windowKey = getWindowKeyForSection(sectionName);
-    
-    // Set the data in window object for the form to use
-    if (windowKey) {
-      (window as any)[windowKey] = dataToUse;
-      console.log(`Setting ${sectionName} data in window object:`, dataToUse);
-    }
-    
-    // Update session storage to match
-    sessionStorage.setItem(sessionKey, JSON.stringify({
-      ...dataToUse,
-      _loadTimestamp: loadTimestamp
-    }));
-    
-    return dataToUse;
-  } catch (error) {
-    console.error(`Error loading ${sectionName} data:`, error);
-    return {};
-  }
-};
-
-/**
- * Save data for a specific section to storage
- */
-export const saveSectionData = (sectionName: string, formData?: any): boolean => {
-  try {
-    const windowKey = getWindowKeyForSection(sectionName);
-    let currentFormData = formData;
-    
-    if (!currentFormData && windowKey) {
-      currentFormData = (window as any)[windowKey];
-    }
-    
-    if (!currentFormData) {
-      console.log(`No form data found for ${sectionName} with key ${windowKey}`);
-      return false;
-    }
-    
-    console.log(`Saving ${sectionName} data:`, currentFormData);
-    
-    // Handle special case for allergies section that might have array data
-    if (sectionName === 'allergies' && Array.isArray(currentFormData.allergies)) {
-      currentFormData = {
-        ...currentFormData,
-        allergies: JSON.stringify(currentFormData.allergies)
-      };
-    }
-    
-    const timestamp = new Date().toISOString();
-    const dataToSave = {
-      ...currentFormData,
-      lastUpdated: timestamp
-    };
-    
-    // Save to sessionStorage
-    const sessionKey = `${sectionName}FormData`;
-    sessionStorage.setItem(sessionKey, JSON.stringify(dataToSave));
-    
-    // Save to localStorage
-    const existingProfileJson = localStorage.getItem('medicalProfile');
-    const existingProfile = existingProfileJson ? JSON.parse(existingProfileJson) : {};
-    
-    localStorage.setItem('medicalProfile', JSON.stringify({
-      ...existingProfile,
-      [sectionName]: dataToSave
-    }));
-    
-    // Update window object
-    if (windowKey) {
-      (window as any)[windowKey] = dataToSave;
-    }
-    
-    // Dispatch event to notify other components
-    window.dispatchEvent(new CustomEvent(MEDICAL_DATA_CHANGE_EVENT, {
-      detail: { section: sectionName, timestamp }
-    }));
-    
-    return true;
-  } catch (error) {
-    console.error(`Error saving ${sectionName} data:`, error);
-    return false;
-  }
-};
-
-/**
- * Save all current section data from window objects to storage
- */
-export const saveAllSectionData = (): void => {
-  const sections = [
+// Get all section names
+export const getSectionNames = (): string[] => {
+  return [
     'personal', 'history', 'medications', 'allergies', 'immunizations', 
     'social', 'reproductive', 'mental', 'functional', 'cultural'
   ];
-  
-  sections.forEach(section => {
-    const windowKey = getWindowKeyForSection(section);
-    if (windowKey && (window as any)[windowKey]) {
-      saveSectionData(section);
-      console.log(`Auto-saved ${section} data`);
-    }
-  });
 };
 
 /**
@@ -181,55 +36,211 @@ export const getWindowKeyForSection = (section: string): string => {
 };
 
 /**
- * Load all section data at once
+ * Load data for a specific section
  */
-export const loadAllSectionData = (): Record<string, any> => {
+export const loadSectionData = (sectionName: string): any => {
   try {
-    const savedProfileJson = localStorage.getItem('medicalProfile');
-    if (!savedProfileJson) return {};
-    
-    const savedProfile = JSON.parse(savedProfileJson);
-    console.log('Loaded full profile data:', savedProfile);
-    
-    // Sync all data to sessionStorage and window objects
-    Object.keys(savedProfile).forEach(section => {
-      const windowKey = getWindowKeyForSection(section);
-      if (windowKey) {
-        (window as any)[windowKey] = savedProfile[section];
-        sessionStorage.setItem(`${section}FormData`, JSON.stringify(savedProfile[section]));
-      }
-    });
-    
-    return savedProfile;
+    console.log(`Loading ${sectionName} data from storage`);
+
+    // Get data from localStorage (source of truth)
+    const profileData = getMedicalProfile();
+    const sectionData = profileData[sectionName] || {};
+
+    // Update window object 
+    const windowKey = getWindowKeyForSection(sectionName);
+    if (windowKey) {
+      (window as any)[windowKey] = {...sectionData};
+      console.log(`Set ${sectionName} data in window.${windowKey}:`, sectionData);
+    }
+
+    // Also update sessionStorage for backup
+    sessionStorage.setItem(`${sectionName}FormData`, JSON.stringify(sectionData));
+
+    return sectionData;
   } catch (error) {
-    console.error('Error loading full medical profile data:', error);
+    console.error(`Error loading ${sectionName} data:`, error);
     return {};
   }
 };
 
-// Set up automatic saving at regular intervals
+/**
+ * Save data for a specific section
+ */
+export const saveSectionData = (sectionName: string, formData?: any): boolean => {
+  try {
+    console.log(`Saving ${sectionName} data`);
+
+    // Get the data either from parameter or window object
+    const windowKey = getWindowKeyForSection(sectionName);
+    let dataToSave = formData;
+
+    if (!dataToSave && windowKey) {
+      dataToSave = (window as any)[windowKey] || {};
+    }
+
+    if (!dataToSave) {
+      console.warn(`No data found for ${sectionName} to save`);
+      return false;
+    }
+
+    // Special handling for allergies section (array data)
+    if (sectionName === 'allergies' && Array.isArray(dataToSave.allergies)) {
+      dataToSave = {
+        ...dataToSave,
+        allergies: JSON.stringify(dataToSave.allergies)
+      };
+    }
+
+    // Get the full medical profile
+    const medicalProfile = getMedicalProfile();
+
+    // Add metadata
+    const updatedData = {
+      ...dataToSave,
+      lastUpdated: new Date().toISOString(),
+      completed: true
+    };
+
+    // Update the profile with the new section data
+    const updatedProfile = {
+      ...medicalProfile,
+      [sectionName]: updatedData
+    };
+
+    // Save back to localStorage
+    localStorage.setItem('medicalProfile', JSON.stringify(updatedProfile));
+    
+    // Update window object
+    if (windowKey) {
+      (window as any)[windowKey] = {...updatedData};
+    }
+
+    // Also update sessionStorage
+    sessionStorage.setItem(`${sectionName}FormData`, JSON.stringify(updatedData));
+
+    // Notify other components about the data change
+    window.dispatchEvent(new CustomEvent(MEDICAL_DATA_CHANGE_EVENT, {
+      detail: { section: sectionName, timestamp: new Date().toISOString() }
+    }));
+
+    console.log(`Saved ${sectionName} data successfully`);
+    return true;
+  } catch (error) {
+    console.error(`Error saving ${sectionName} data:`, error);
+    return false;
+  }
+};
+
+/**
+ * Get the full medical profile from localStorage
+ */
+export const getMedicalProfile = (): Record<string, any> => {
+  try {
+    const profileJson = localStorage.getItem('medicalProfile');
+    return profileJson ? JSON.parse(profileJson) : {};
+  } catch (error) {
+    console.error('Error getting medical profile:', error);
+    return {};
+  }
+};
+
+/**
+ * Load all section data at once
+ */
+export const loadAllSectionData = (): Record<string, any> => {
+  try {
+    console.log('Loading all medical profile data');
+    const medicalProfile = getMedicalProfile();
+
+    // Load each section into window objects and sessionStorage
+    getSectionNames().forEach(section => {
+      if (medicalProfile[section]) {
+        const windowKey = getWindowKeyForSection(section);
+        if (windowKey) {
+          (window as any)[windowKey] = {...medicalProfile[section]};
+          sessionStorage.setItem(`${section}FormData`, JSON.stringify(medicalProfile[section]));
+        }
+      }
+    });
+
+    return medicalProfile;
+  } catch (error) {
+    console.error('Error loading all medical profile data:', error);
+    return {};
+  }
+};
+
+/**
+ * Save all section data from window objects
+ */
+export const saveAllSectionData = (): void => {
+  console.log('Saving all section data');
+  
+  const medicalProfile = getMedicalProfile();
+  let hasChanges = false;
+  
+  getSectionNames().forEach(section => {
+    const windowKey = getWindowKeyForSection(section);
+    if (windowKey && (window as any)[windowKey]) {
+      const sectionData = (window as any)[windowKey];
+      
+      // Special handling for allergies
+      let processedData = sectionData;
+      if (section === 'allergies' && Array.isArray(sectionData.allergies)) {
+        processedData = {
+          ...sectionData,
+          allergies: JSON.stringify(sectionData.allergies)
+        };
+      }
+      
+      medicalProfile[section] = {
+        ...processedData,
+        lastUpdated: new Date().toISOString(),
+        completed: true
+      };
+      
+      hasChanges = true;
+    }
+  });
+  
+  if (hasChanges) {
+    localStorage.setItem('medicalProfile', JSON.stringify(medicalProfile));
+    console.log('All section data saved to localStorage');
+  }
+};
+
+/**
+ * Set up automatic saving at regular intervals
+ */
 export const initializeAutoSave = (intervalMs = 30000): () => void => {
+  console.log(`Setting up auto-save every ${intervalMs}ms`);
+  
   const intervalId = setInterval(() => {
+    console.log('Auto-saving all medical profile data');
     saveAllSectionData();
   }, intervalMs);
   
-  // Return a cleanup function
   return () => clearInterval(intervalId);
 };
 
-// Set up event listeners for data changes across tabs and windows
+/**
+ * Initialize data sync listeners for cross-tab/window updates
+ */
 export const initializeDataSyncListeners = (): () => void => {
   const handleStorageChange = (e: StorageEvent) => {
     if (e.key === 'medicalProfile' && e.newValue) {
       try {
+        console.log('Storage event detected - medical profile changed in another tab');
         const newData = JSON.parse(e.newValue);
+        
+        // Update all window objects and session storage
         Object.keys(newData).forEach(section => {
           const windowKey = getWindowKeyForSection(section);
           if (windowKey) {
-            (window as any)[windowKey] = newData[section];
+            (window as any)[windowKey] = {...newData[section]};
             sessionStorage.setItem(`${section}FormData`, JSON.stringify(newData[section]));
             
-            // Dispatch event to notify components about the change
+            // Notify components about the data change
             window.dispatchEvent(new CustomEvent(MEDICAL_DATA_CHANGE_EVENT, {
               detail: { section, timestamp: new Date().toISOString() }
             }));
@@ -242,7 +253,5 @@ export const initializeDataSyncListeners = (): () => void => {
   };
   
   window.addEventListener('storage', handleStorageChange);
-  
-  // Clean up function
   return () => window.removeEventListener('storage', handleStorageChange);
 };

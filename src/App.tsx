@@ -23,7 +23,13 @@ import MentalSection from './pages/medical-profile/MentalSection';
 import FunctionalSection from './pages/medical-profile/FunctionalSection';
 import CulturalSection from './pages/medical-profile/CulturalSection';
 import ImmuneSection from './pages/medical-profile/ImmuneSection';
-import { loadAllSectionData, saveAllSectionData, initializeAutoSave, initializeDataSyncListeners } from './utils/medicalProfileService';
+import { 
+  loadAllSectionData, 
+  saveAllSectionData, 
+  initializeAutoSave, 
+  initializeDataSyncListeners, 
+  loadSectionData 
+} from './utils/medicalProfileService';
 
 // This component manages data persistence and navigation events
 function DataPersistenceManager() {
@@ -37,30 +43,31 @@ function DataPersistenceManager() {
     // Always save all section data on navigation
     saveAllSectionData();
     
-    // Reload all data for the current view
+    // Load all data for the new location
     loadAllSectionData();
     
-    // Dispatch events for components to respond to
+    // Dispatch event for components to respond to
     window.dispatchEvent(new Event('navigationChange'));
     
-    // If we navigate to a section, dispatch a specific event for that section
+    // If we're navigating to a specific section, load that section data
     const pathParts = location.pathname.split('/');
     const currentSection = pathParts[pathParts.length - 1];
     
-    if (currentSection && currentSection !== 'profile') {
-      console.log(`Dispatching ${currentSection}DataRequest event`);
+    if (pathParts.includes('profile') && currentSection && currentSection !== 'profile') {
+      console.log(`Loading specific section data for: ${currentSection}`);
+      loadSectionData(currentSection);
+      
+      // Dispatch section-specific event
       window.dispatchEvent(new Event(`${currentSection}DataRequest`));
     }
     
-    // Set up auto-save and data sync
-    const clearAutoSave = initializeAutoSave(15000); // Auto-save every 15 seconds
+    // Set up auto-save (every 15 seconds) and data sync
+    const clearAutoSave = initializeAutoSave(15000);
     const clearDataSync = initializeDataSyncListeners();
     
     return () => {
       clearAutoSave();
       clearDataSync();
-      
-      // Save on unmount as well
       saveAllSectionData();
     };
   }, [location, navigationType]);
@@ -68,7 +75,7 @@ function DataPersistenceManager() {
   return null;
 }
 
-// Set up event listeners for page unload to ensure data is saved
+// Handles saving data when the page is unloaded
 function PageUnloadHandler() {
   useEffect(() => {
     const handleBeforeUnload = () => {
@@ -89,6 +96,7 @@ function PageUnloadHandler() {
 function App() {
   // Initialize data when the app starts
   useEffect(() => {
+    console.log('App initialized - loading all medical profile data');
     loadAllSectionData();
   }, []);
 

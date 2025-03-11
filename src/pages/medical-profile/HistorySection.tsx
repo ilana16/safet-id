@@ -58,33 +58,32 @@ const HistorySection = () => {
     setIsSaving(true);
     
     try {
-      // Get the existing data before saving (for comparison)
-      const savedProfileJson = localStorage.getItem('medicalProfile');
-      const existingProfile = savedProfileJson ? JSON.parse(savedProfileJson) : {};
-      const existingSectionData = existingProfile.history || {};
-      
-      // Current form data from window object
+      // Get the current form data from window object
       const newFormData = (window as any).historyFormData || {};
       
       console.log('Saving medical history form data:', newFormData);
-      
-      // Track changes for logging
-      const changes: {field: string; oldValue: any; newValue: any}[] = [];
-      
-      Object.entries(newFormData).forEach(([key, value]) => {
-        if (existingSectionData[key] !== value) {
-          changes.push({
-            field: key,
-            oldValue: existingSectionData[key],
-            newValue: value
-          });
-        }
-      });
       
       // Save the data
       const saved = saveSectionData('history', newFormData);
       
       if (saved) {
+        // Log changes for audit trail
+        const savedProfileJson = localStorage.getItem('medicalProfile');
+        const existingProfile = savedProfileJson ? JSON.parse(savedProfileJson) : {};
+        const existingSectionData = existingProfile.history || {};
+        
+        const changes: {field: string; oldValue: any; newValue: any}[] = [];
+        
+        Object.entries(newFormData).forEach(([key, value]) => {
+          if (existingSectionData[key] !== value) {
+            changes.push({
+              field: key,
+              oldValue: existingSectionData[key],
+              newValue: value
+            });
+          }
+        });
+        
         if (changes.length > 0) {
           logChanges('history', changes);
         }
