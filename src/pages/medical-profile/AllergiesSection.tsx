@@ -41,21 +41,6 @@ const AllergiesSection = () => {
     }
   }, []);
   
-  // Save form data periodically with auto-save
-  useEffect(() => {
-    const autoSaveInterval = setInterval(() => {
-      const currentFormData = (window as any).allergiesFormData;
-      if (currentFormData) {
-        sessionStorage.setItem('allergiesFormData', JSON.stringify(currentFormData));
-        console.log('Auto-saved allergies data to session storage:', currentFormData);
-      }
-    }, 30000); // Auto-save every 30 seconds
-    
-    return () => {
-      clearInterval(autoSaveInterval);
-    };
-  }, []);
-  
   // Add event listener for page unload to save data
   useEffect(() => {
     const handleBeforeUnload = () => {
