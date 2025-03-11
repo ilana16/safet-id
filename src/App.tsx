@@ -30,6 +30,7 @@ import {
   initializeDataSyncListeners, 
   loadSectionData 
 } from './utils/medicalProfileService';
+import { MedicalProfileProvider } from './contexts/MedicalProfileContext';
 
 // This component manages data persistence and navigation events
 function DataPersistenceManager() {
@@ -101,7 +102,7 @@ function App() {
   }, []);
 
   return (
-    <>
+    <MedicalProfileProvider>
       <Router>
         <DataPersistenceManager />
         <PageUnloadHandler />
@@ -137,7 +138,7 @@ function App() {
         </Routes>
       </Router>
       <Toaster position="top-right" />
-    </>
+    </MedicalProfileProvider>
   );
 }
 

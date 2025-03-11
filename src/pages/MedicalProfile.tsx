@@ -6,14 +6,7 @@ import { Button } from '@/components/ui/button';
 import { ChevronLeft, Save } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from '@/lib/toast';
-import { logChanges } from '@/utils/changeLog';
-import { 
-  loadSectionData, 
-  saveSectionData, 
-  loadAllSectionData, 
-  MEDICAL_DATA_CHANGE_EVENT, 
-  getWindowKeyForSection 
-} from '@/utils/medicalProfileService';
+import { useMedicalProfile } from '@/contexts/MedicalProfileContext';
 
 type SectionType = 'personal' | 'history' | 'medications' | 'allergies' | 'immunizations' | 'social' | 
                    'reproductive' | 'mental' | 'functional' | 'cultural';
@@ -34,8 +27,8 @@ const sections = [
 const MedicalProfile = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const { profileData, saveSection, loadSection } = useMedicalProfile();
   const [hasMentalHealthHistory, setHasMentalHealthHistory] = useState('no');
-  const [profileData, setProfileData] = useState({});
   const [isSaving, setIsSaving] = useState(false);
   const [isLoadingData, setIsLoadingData] = useState(true);
   
@@ -44,44 +37,15 @@ const MedicalProfile = () => {
 
   // Initial data load
   useEffect(() => {
-    console.log('Loading all profile data on component mount');
+    console.log('Loading profile data on component mount');
     setIsLoadingData(true);
-    
-    const profileData = loadAllSectionData();
-    setProfileData(profileData);
     
     if (profileData && profileData.history && profileData.history.hasMentalHealthHistory) {
       setHasMentalHealthHistory(profileData.history.hasMentalHealthHistory);
     }
     
     setIsLoadingData(false);
-    
-    // Set up a listener for data changes from other components
-    const handleDataChange = (event: Event) => {
-      const customEvent = event as CustomEvent;
-      console.log('Detected data change:', customEvent.detail);
-      
-      // Reload the section that changed
-      if (customEvent.detail?.section) {
-        const sectionData = loadSectionData(customEvent.detail.section);
-        setProfileData(prev => ({
-          ...prev,
-          [customEvent.detail.section]: sectionData
-        }));
-        
-        // Update mental health history if needed
-        if (customEvent.detail.section === 'history' && sectionData.hasMentalHealthHistory) {
-          setHasMentalHealthHistory(sectionData.hasMentalHealthHistory);
-        }
-      }
-    };
-    
-    window.addEventListener(MEDICAL_DATA_CHANGE_EVENT, handleDataChange);
-    
-    return () => {
-      window.removeEventListener(MEDICAL_DATA_CHANGE_EVENT, handleDataChange);
-    };
-  }, []);
+  }, [profileData]);
 
   // Handle route changes
   useEffect(() => {
@@ -90,11 +54,7 @@ const MedicalProfile = () => {
     
     try {
       // Load current section data
-      loadSectionData(currentSection);
-      
-      // Also refresh all profile data
-      const profileData = loadAllSectionData();
-      setProfileData(profileData);
+      loadSection(currentSection);
       
       if (profileData && profileData.history && profileData.history.hasMentalHealthHistory) {
         setHasMentalHealthHistory(profileData.history.hasMentalHealthHistory);
@@ -104,7 +64,7 @@ const MedicalProfile = () => {
     } finally {
       setIsLoadingData(false);
     }
-  }, [location.pathname, currentSection]);
+  }, [location.pathname, currentSection, loadSection]);
 
   // Handle saving current section data
   const saveCurrentSectionData = () => {
@@ -112,13 +72,9 @@ const MedicalProfile = () => {
     setIsSaving(true);
     
     try {
-      const saved = saveSectionData(currentSection);
+      const saved = saveSection(currentSection);
       
       if (saved) {
-        // Reload profile data to ensure UI is up to date
-        const updatedProfile = loadAllSectionData();
-        setProfileData(updatedProfile);
-        
         toast.success(`${getSectionTitle(currentSection)} information saved successfully`);
       } else {
         toast.error(`No data found to save for ${getSectionTitle(currentSection)}`);

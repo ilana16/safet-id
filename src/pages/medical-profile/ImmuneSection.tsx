@@ -5,25 +5,28 @@ import { Save } from 'lucide-react';
 import MedicalProfileImmunizationsForm from '@/components/forms/MedicalProfileImmunizationsForm';
 import { toast } from '@/lib/toast';
 import { logChanges } from '@/utils/changeLog';
-import { loadSectionData, saveSectionData, MEDICAL_DATA_CHANGE_EVENT } from '@/utils/medicalProfileService';
+import { useFieldPersistence } from '@/hooks/useFieldPersistence';
+import { useMedicalProfile } from '@/contexts/MedicalProfileContext';
 
 const ImmuneSection = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
+  const { loadSection, saveSection } = useMedicalProfile();
+  const [formData, updateFormData, saveData] = useFieldPersistence('immunizations', {});
   
-  // Load data on initial render and whenever navigation occurs
+  // Load data on initial render
   useEffect(() => {
     const loadImmuneData = () => {
       try {
         console.log('Loading immunizations data');
-        const immuneData = loadSectionData('immunizations');
+        loadSection('immunizations');
         setIsLoaded(true);
         
         // Trigger a UI refresh
         window.dispatchEvent(new CustomEvent('immunizationsDataLoaded'));
       } catch (error) {
         console.error('Error loading immunizations data:', error);
-        setIsLoaded(true); // Still show the form even if there's an error
+        setIsLoaded(true);
       }
     };
     
@@ -35,22 +38,15 @@ const ImmuneSection = () => {
       loadImmuneData();
     };
     
-    const handleDataChange = (event: Event) => {
-      const customEvent = event as CustomEvent;
-      if (customEvent.detail?.section === 'immunizations') {
-        console.log('Immunizations data changed externally, reloading');
-        loadImmuneData();
-      }
-    };
-    
     window.addEventListener('navigationChange', handleNavChange);
     window.addEventListener('immunizationsDataRequest', handleNavChange);
-    window.addEventListener(MEDICAL_DATA_CHANGE_EVENT, handleDataChange);
     
     return () => {
       window.removeEventListener('navigationChange', handleNavChange);
       window.removeEventListener('immunizationsDataRequest', handleNavChange);
-      window.removeEventListener(MEDICAL_DATA_CHANGE_EVENT, handleDataChange);
+      
+      // Save data when component unmounts
+      saveData();
     };
   }, []);
   
@@ -63,8 +59,9 @@ const ImmuneSection = () => {
       
       console.log('Saving immunizations form data:', newFormData);
       
-      // Save the data
-      const saved = saveSectionData('immunizations', newFormData);
+      // Save the data and update context
+      updateFormData(newFormData);
+      const saved = saveSection('immunizations');
       
       if (saved) {
         // Log changes for audit trail

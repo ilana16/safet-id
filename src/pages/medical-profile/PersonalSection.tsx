@@ -5,25 +5,28 @@ import { Save } from 'lucide-react';
 import MedicalProfilePersonalForm from '@/components/forms/MedicalProfilePersonalForm';
 import { toast } from '@/lib/toast';
 import { logChanges } from '@/utils/changeLog';
-import { loadSectionData, saveSectionData, MEDICAL_DATA_CHANGE_EVENT } from '@/utils/medicalProfileService';
+import { useFieldPersistence } from '@/hooks/useFieldPersistence';
+import { useMedicalProfile } from '@/contexts/MedicalProfileContext';
 
 const PersonalSection = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
+  const { loadSection, saveSection } = useMedicalProfile();
+  const [formData, updateFormData, saveData] = useFieldPersistence('personal', {});
   
-  // Load data on initial render and whenever navigation occurs
+  // Load data on initial render
   useEffect(() => {
     const loadPersonalData = () => {
       try {
         console.log('Loading personal data');
-        const personalData = loadSectionData('personal');
+        loadSection('personal');
         setIsLoaded(true);
         
         // Trigger a UI refresh
         window.dispatchEvent(new CustomEvent('personalDataLoaded'));
       } catch (error) {
         console.error('Error loading personal data:', error);
-        setIsLoaded(true); // Still show the form even if there's an error
+        setIsLoaded(true);
       }
     };
     
@@ -35,22 +38,15 @@ const PersonalSection = () => {
       loadPersonalData();
     };
     
-    const handleDataChange = (event: Event) => {
-      const customEvent = event as CustomEvent;
-      if (customEvent.detail?.section === 'personal') {
-        console.log('Personal data changed externally, reloading');
-        loadPersonalData();
-      }
-    };
-    
     window.addEventListener('navigationChange', handleNavChange);
     window.addEventListener('personalDataRequest', handleNavChange);
-    window.addEventListener(MEDICAL_DATA_CHANGE_EVENT, handleDataChange);
     
     return () => {
       window.removeEventListener('navigationChange', handleNavChange);
       window.removeEventListener('personalDataRequest', handleNavChange);
-      window.removeEventListener(MEDICAL_DATA_CHANGE_EVENT, handleDataChange);
+      
+      // Save data when component unmounts
+      saveData();
     };
   }, []);
   
@@ -63,8 +59,9 @@ const PersonalSection = () => {
       
       console.log('Saving personal form data:', newFormData);
       
-      // Save the data
-      const saved = saveSectionData('personal', newFormData);
+      // Save the data and record changes
+      updateFormData(newFormData);
+      const saved = saveSection('personal');
       
       if (saved) {
         // Log changes for audit trail

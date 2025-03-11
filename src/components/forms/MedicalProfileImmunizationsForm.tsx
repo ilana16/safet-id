@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Plus, Trash2 } from 'lucide-react';
 import { Card, CardContent } from "@/components/ui/card";
+import { useMedicalProfile } from '@/contexts/MedicalProfileContext';
 
 // Define schema for immunization entries
 const immunizationSchema = z.object({
@@ -25,6 +26,8 @@ const formSchema = z.object({
 });
 
 const MedicalProfileImmunizationsForm = () => {
+  const { profileData, updateSectionData } = useMedicalProfile();
+  
   // Initialize form with react-hook-form
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -40,7 +43,7 @@ const MedicalProfileImmunizationsForm = () => {
 
   // Load saved form data when component mounts
   useEffect(() => {
-    const formData = (window as any).immunizationsFormData;
+    const formData = (window as any).immunizationsFormData || profileData.immunizations;
     
     if (formData) {
       form.reset({
@@ -50,22 +53,58 @@ const MedicalProfileImmunizationsForm = () => {
       
       setImmunizationEntries(formData.immunizationHistory || []);
     }
-  }, [form]);
+    
+    // Listen for data loaded events
+    const handleDataLoaded = () => {
+      const updatedFormData = (window as any).immunizationsFormData;
+      if (updatedFormData) {
+        form.reset({
+          immunizationHistory: updatedFormData.immunizationHistory || [],
+          otherImmunizationNotes: updatedFormData.otherImmunizationNotes || "",
+        });
+        
+        setImmunizationEntries(updatedFormData.immunizationHistory || []);
+      }
+    };
+    
+    window.addEventListener('immunizationsDataLoaded', handleDataLoaded);
+    
+    return () => {
+      window.removeEventListener('immunizationsDataLoaded', handleDataLoaded);
+    };
+  }, [form, profileData.immunizations]);
 
   // Update window object on form changes for auto-save
   useEffect(() => {
     const subscription = form.watch((formValues) => {
-      (window as any).immunizationsFormData = formValues;
+      if (formValues) {
+        (window as any).immunizationsFormData = {
+          ...(window as any).immunizationsFormData,
+          ...formValues,
+        };
+        
+        // Also update the context
+        updateSectionData('immunizations', {
+          ...(window as any).immunizationsFormData
+        });
+      }
     });
     
     return () => subscription.unsubscribe();
-  }, [form.watch]);
+  }, [form.watch, updateSectionData]);
 
   // Handle adding a new immunization entry
   const handleAddImmunization = () => {
     setImmunizationEntries([
       ...immunizationEntries,
       { name: "", date: "", notes: "" },
+    ]);
+    
+    // Update form values
+    const currentHistory = form.getValues().immunizationHistory || [];
+    form.setValue("immunizationHistory", [
+      ...currentHistory, 
+      { name: "", date: "", notes: "" }
     ]);
   };
 
@@ -102,7 +141,7 @@ const MedicalProfileImmunizationsForm = () => {
       ...updatedHistory[index],
       [field]: value,
     };
-    form.setValue("immunizationHistory", updatedHistory);
+    form.setValue("immunizationHistory", updatedHistory, { shouldDirty: true });
   };
 
   return (
@@ -214,6 +253,18 @@ const MedicalProfileImmunizationsForm = () => {
                       placeholder="Enter any additional information about your immunization history"
                       className="h-24"
                       {...field}
+                      onChange={(e) => {
+                        field.onChange(e);
+                        // Update window object and context
+                        const currentFormData = (window as any).immunizationsFormData || {};
+                        (window as any).immunizationsFormData = {
+                          ...currentFormData,
+                          otherImmunizationNotes: e.target.value
+                        };
+                        
+                        // Also update context
+                        updateSectionData('immunizations', (window as any).immunizationsFormData);
+                      }}
                     />
                   </FormControl>
                   <FormMessage />

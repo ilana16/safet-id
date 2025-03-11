@@ -42,9 +42,26 @@ export const loadSectionData = (sectionName: string): any => {
   try {
     console.log(`Loading ${sectionName} data from storage`);
 
-    // Get data from localStorage (source of truth)
-    const profileData = getMedicalProfile();
-    const sectionData = profileData[sectionName] || {};
+    // First check sessionStorage for fresher in-memory data
+    const sessionData = sessionStorage.getItem(`${sectionName}FormData`);
+    let sectionData: any = {};
+    
+    if (sessionData) {
+      try {
+        sectionData = JSON.parse(sessionData);
+        console.log(`Found ${sectionName} data in sessionStorage:`, sectionData);
+      } catch (e) {
+        console.error(`Error parsing ${sectionName} session data:`, e);
+      }
+    }
+    
+    // If no sessionStorage data or it's empty, try localStorage
+    if (!sectionData || Object.keys(sectionData).length === 0) {
+      // Get data from localStorage (source of truth)
+      const profileData = getMedicalProfile();
+      sectionData = profileData[sectionName] || {};
+      console.log(`Loaded ${sectionName} data from localStorage:`, sectionData);
+    }
 
     // Update window object 
     const windowKey = getWindowKeyForSection(sectionName);
@@ -152,12 +169,35 @@ export const loadAllSectionData = (): Record<string, any> => {
     console.log('Loading all medical profile data');
     const medicalProfile = getMedicalProfile();
 
-    // Load each section into window objects and sessionStorage
+    // Check sessionStorage first for each section (may have fresher data)
+    getSectionNames().forEach(section => {
+      const sessionData = sessionStorage.getItem(`${section}FormData`);
+      if (sessionData) {
+        try {
+          const parsedData = JSON.parse(sessionData);
+          if (parsedData && Object.keys(parsedData).length > 0) {
+            // If the session data is newer, use it instead
+            const sessionTimestamp = new Date(parsedData.lastUpdated || 0).getTime();
+            const localTimestamp = new Date(medicalProfile[section]?.lastUpdated || 0).getTime();
+            
+            if (sessionTimestamp >= localTimestamp) {
+              medicalProfile[section] = parsedData;
+              console.log(`Using newer session data for ${section}`);
+            }
+          }
+        } catch (e) {
+          console.error(`Error parsing ${section} session data:`, e);
+        }
+      }
+    });
+
+    // Load each section into window objects
     getSectionNames().forEach(section => {
       if (medicalProfile[section]) {
         const windowKey = getWindowKeyForSection(section);
         if (windowKey) {
           (window as any)[windowKey] = {...medicalProfile[section]};
+          // Update sessionStorage
           sessionStorage.setItem(`${section}FormData`, JSON.stringify(medicalProfile[section]));
         }
       }
@@ -180,6 +220,7 @@ export const saveAllSectionData = (): void => {
   let hasChanges = false;
   
   getSectionNames().forEach(section => {
+    // First check window objects
     const windowKey = getWindowKeyForSection(section);
     if (windowKey && (window as any)[windowKey]) {
       const sectionData = (window as any)[windowKey];
@@ -199,7 +240,31 @@ export const saveAllSectionData = (): void => {
         completed: true
       };
       
+      // Also update sessionStorage
+      sessionStorage.setItem(`${section}FormData`, JSON.stringify(medicalProfile[section]));
+      
       hasChanges = true;
+    }
+    // Then check sessionStorage as fallback
+    else {
+      const sessionData = sessionStorage.getItem(`${section}FormData`);
+      if (sessionData) {
+        try {
+          const parsedData = JSON.parse(sessionData);
+          if (parsedData && Object.keys(parsedData).length > 0) {
+            // Check if it's newer than localStorage data
+            const sessionTimestamp = new Date(parsedData.lastUpdated || 0).getTime();
+            const localTimestamp = new Date(medicalProfile[section]?.lastUpdated || 0).getTime();
+            
+            if (sessionTimestamp > localTimestamp) {
+              medicalProfile[section] = parsedData;
+              hasChanges = true;
+            }
+          }
+        } catch (e) {
+          console.error(`Error parsing ${section} session data:`, e);
+        }
+      }
     }
   });
   
