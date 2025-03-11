@@ -1,80 +1,251 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { searchDrugsCom, getDrugsComInfo } from '@/utils/drugsComApi';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Search } from 'lucide-react';
-import { Card, CardContent } from '@/components/ui/card';
-import { searchDrugInfo } from '@/utils/drugsComApi';
-import MedicationInfo from '@/components/medications/MedicationInfo';
+import { Search, ArrowRight, Loader2, PillIcon, TabletDecorative, ExternalLink } from 'lucide-react';
+import MedicationInfo from './MedicationInfo';
 import { MedicationInfo as MedicationInfoType } from '@/utils/medicationData';
+import { Card } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 
 const DrugInfoLookup: React.FC = () => {
   const [query, setQuery] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [results, setResults] = useState<MedicationInfoType | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  const handleSearch = async () => {
-    if (!query.trim()) {
-      setError('Please enter a medication name');
-      return;
+  const [searchResults, setSearchResults] = useState<string[]>([]);
+  const [selectedMedication, setSelectedMedication] = useState<string | null>(null);
+  const [medicationInfo, setMedicationInfo] = useState<MedicationInfoType | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
+  const [history, setHistory] = useState<string[]>([]);
+  
+  // Load search history from local storage
+  useEffect(() => {
+    const savedHistory = localStorage.getItem('medicationSearchHistory');
+    if (savedHistory) {
+      try {
+        setHistory(JSON.parse(savedHistory));
+      } catch (e) {
+        console.error('Error parsing medication search history:', e);
+      }
     }
+  }, []);
+  
+  // Save search history to local storage
+  const saveHistory = (medication: string) => {
+    let newHistory = [...history];
+    
+    // Remove if already exists
+    newHistory = newHistory.filter(item => item !== medication);
+    
+    // Add to beginning
+    newHistory.unshift(medication);
+    
+    // Limit to 5 items
+    newHistory = newHistory.slice(0, 5);
+    
+    setHistory(newHistory);
+    localStorage.setItem('medicationSearchHistory', JSON.stringify(newHistory));
+  };
 
-    setLoading(true);
-    setError(null);
+  // Handle search input change
+  const handleSearchChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setQuery(value);
+    
+    if (value.length >= 2) {
+      setIsSearching(true);
+      try {
+        const results = await searchDrugsCom(value);
+        setSearchResults(results);
+      } catch (error) {
+        console.error('Error searching medications:', error);
+      } finally {
+        setIsSearching(false);
+      }
+    } else {
+      setSearchResults([]);
+    }
+  };
+
+  // Handle search form submission
+  const handleSearch = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (query.length < 2) return;
+    
+    setIsLoading(true);
     
     try {
-      const medicationInfo = await searchDrugInfo(query);
-      setResults(medicationInfo);
+      const results = await searchDrugsCom(query);
+      setSearchResults(results);
       
-      if (!medicationInfo) {
-        setError(`No information found for "${query}"`);
+      // If we get only one exact match, select it
+      if (results.length === 1 && results[0].toLowerCase() === query.toLowerCase()) {
+        await selectMedication(results[0]);
       }
-    } catch (err) {
-      console.error('Error searching for medication:', err);
-      setError('An error occurred while searching. Please try again.');
+    } catch (error) {
+      console.error('Error searching medications:', error);
     } finally {
-      setLoading(false);
+      setIsLoading(false);
+    }
+  };
+
+  // Handle medication selection
+  const selectMedication = async (medication: string) => {
+    setSelectedMedication(medication);
+    setIsLoading(true);
+    saveHistory(medication);
+    
+    try {
+      const info = await getDrugsComInfo(medication);
+      setMedicationInfo(info);
+    } catch (error) {
+      console.error('Error fetching medication information:', error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
-    <div className="space-y-4">
-      <div className="bg-white rounded-md border border-gray-200 p-4">
-        <h3 className="text-lg font-medium text-safet-700 mb-4">Medication Information Lookup</h3>
-        
-        <div className="flex gap-2">
-          <Input 
-            placeholder="Enter medication name (e.g., Lisinopril)" 
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-            className="flex-1"
-          />
-          <Button 
-            onClick={handleSearch} 
-            disabled={loading}
-            className="bg-safet-500 hover:bg-safet-600"
-          >
-            {loading ? 'Searching...' : <Search className="h-4 w-4" />}
-          </Button>
+    <div className="space-y-6">
+      {/* Search section */}
+      <div className="bg-white border border-[#D1DEE8] rounded-md overflow-hidden">
+        <div className="bg-safet-600 text-white px-5 py-3 font-medium">
+          Search Medications Database
         </div>
-        
-        {error && (
-          <div className="mt-3 text-red-500 text-sm">{error}</div>
-        )}
-        
-        <div className="mt-2 text-xs text-gray-500">
-          Note: Search for medications by brand or generic name. Information provided is for educational purposes only.
+        <div className="p-5">
+          <form onSubmit={handleSearch} className="flex gap-2">
+            <div className="relative flex-1">
+              <Input
+                type="text"
+                placeholder="Enter medication name..."
+                value={query}
+                onChange={handleSearchChange}
+                className="pl-10 w-full"
+              />
+              <Search className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
+              
+              {/* Search results dropdown */}
+              {searchResults.length > 0 && query.length >= 2 && !medicationInfo && (
+                <div className="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-auto">
+                  <ul className="py-1">
+                    {searchResults.map((result, index) => (
+                      <li 
+                        key={index}
+                        className="px-4 py-2 hover:bg-gray-100 cursor-pointer flex items-center"
+                        onClick={() => {
+                          selectMedication(result);
+                          setQuery(result);
+                          setSearchResults([]);
+                        }}
+                      >
+                        <TabletDecorative className="h-4 w-4 text-safet-500 mr-2" />
+                        {result}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+            <Button 
+              type="submit" 
+              disabled={isLoading || query.length < 2}
+              className="bg-safet-500 hover:bg-safet-600"
+            >
+              {isSearching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+              <span className="ml-2">Search</span>
+            </Button>
+          </form>
+          
+          {/* Recent searches */}
+          {history.length > 0 && !medicationInfo && (
+            <div className="mt-4">
+              <p className="text-sm text-gray-500 mb-2">Recent searches:</p>
+              <div className="flex flex-wrap gap-2">
+                {history.map((item, index) => (
+                  <Badge 
+                    key={index}
+                    className="bg-gray-100 text-gray-700 hover:bg-gray-200 cursor-pointer"
+                    onClick={() => {
+                      setQuery(item);
+                      selectMedication(item);
+                    }}
+                  >
+                    {item}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          )}
+          
+          {/* Popular medications */}
+          {!query && !medicationInfo && (
+            <div className="mt-6">
+              <h3 className="text-sm font-medium text-gray-500 mb-2">Popular medications:</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                {['lisinopril', 'metformin', 'atorvastatin', 'levothyroxine', 'amoxicillin', 'amlodipine'].map((drug, index) => (
+                  <Card 
+                    key={index} 
+                    className="p-3 hover:bg-gray-50 cursor-pointer transition-colors border-gray-200"
+                    onClick={() => {
+                      setQuery(drug);
+                      selectMedication(drug);
+                    }}
+                  >
+                    <div className="flex items-center">
+                      <PillIcon className="h-4 w-4 text-safet-500 mr-2" />
+                      <span className="text-gray-700">{drug}</span>
+                      <ArrowRight className="h-3 w-3 text-gray-400 ml-auto" />
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
       
-      {results && (
-        <Card className="border-safet-100">
-          <CardContent className="pt-6">
-            <MedicationInfo medication={results} />
-          </CardContent>
-        </Card>
+      {/* Loading indicator */}
+      {isLoading && (
+        <div className="flex justify-center p-8">
+          <div className="flex items-center space-x-2">
+            <Loader2 className="h-6 w-6 animate-spin text-safet-500" />
+            <span className="text-gray-600">Loading medication information...</span>
+          </div>
+        </div>
+      )}
+      
+      {/* Medication information display */}
+      {medicationInfo && (
+        <div>
+          <div className="flex justify-between items-center mb-4">
+            <Button 
+              variant="outline" 
+              className="text-safet-600" 
+              onClick={() => {
+                setMedicationInfo(null);
+                setSelectedMedication(null);
+              }}
+            >
+              Back to Search
+            </Button>
+            
+            {medicationInfo.drugsComUrl && (
+              <Button variant="outline" className="text-safet-600" asChild>
+                <a 
+                  href={medicationInfo.drugsComUrl} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center"
+                >
+                  <ExternalLink className="h-4 w-4 mr-1" />
+                  View on Drugs.com
+                </a>
+              </Button>
+            )}
+          </div>
+          
+          <MedicationInfo medication={medicationInfo} />
+        </div>
       )}
     </div>
   );

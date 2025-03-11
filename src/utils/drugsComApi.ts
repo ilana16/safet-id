@@ -56,7 +56,12 @@ const searchMedicationsLocal = (query: string): string[] => {
   const medications = [
     "lisinopril", "metformin", "atorvastatin", "levothyroxine", "amoxicillin",
     "amlodipine", "hydrochlorothiazide", "omeprazole", "losartan", "simvastatin",
-    "albuterol", "gabapentin", "fluticasone", "acetaminophen", "ibuprofen"
+    "albuterol", "gabapentin", "fluticasone", "acetaminophen", "ibuprofen",
+    "metoprolol", "prednisone", "escitalopram", "sertraline", "alprazolam",
+    "zolpidem", "azithromycin", "montelukast", "furosemide", "citalopram",
+    "trazodone", "pantoprazole", "duloxetine", "clopidogrel", "rosuvastatin",
+    "tramadol", "warfarin", "venlafaxine", "carvedilol", "cyclobenzaprine",
+    "meloxicam", "bupropion", "lorazepam", "clonazepam", "tamsulosin"
   ];
   
   return medications.filter(med => med.includes(normalizedQuery));
@@ -66,7 +71,50 @@ const searchMedicationsLocal = (query: string): string[] => {
 const getMedicationInfoLocal = (medicationKey: string): MedicationInfo | null => {
   // Import the medications database directly to avoid circular dependencies
   const { medicationDatabase } = require('./medicationData');
-  return medicationDatabase[medicationKey.toLowerCase()] || null;
+  
+  const normalizedKey = medicationKey.toLowerCase();
+  
+  // Try to find the exact match first
+  if (medicationDatabase[normalizedKey]) {
+    return medicationDatabase[normalizedKey];
+  }
+  
+  // If not found, try to find a medication that starts with the query
+  const keys = Object.keys(medicationDatabase);
+  for (const key of keys) {
+    if (key.startsWith(normalizedKey)) {
+      return medicationDatabase[key];
+    }
+  }
+  
+  // Fall back to a mock entry if nothing is found
+  return {
+    name: medicationKey,
+    genericName: `Generic ${medicationKey}`,
+    description: `This is a simulated entry for ${medicationKey}. In a production environment, this would contain actual drug information from a comprehensive database.`,
+    drugsComUrl: `https://www.drugs.com/search.php?searchterm=${encodeURIComponent(medicationKey)}`,
+    usedFor: ["Simulated condition 1", "Simulated condition 2"],
+    drugClass: "Not specified (demo data)",
+    dosage: {
+      adult: "Consult your doctor for proper dosage information.",
+      child: "Not recommended for children without medical supervision.",
+      elderly: "May require dosage adjustment. Consult your doctor."
+    },
+    sideEffects: [
+      "Headache",
+      "Nausea",
+      "Dizziness",
+      "Fatigue"
+    ],
+    warnings: [
+      "This is a simulated warning. Do not use this information for medical decisions.",
+      "Always consult with a healthcare professional before taking any medication."
+    ],
+    interactions: [
+      "This is a simulated drug interaction warning.",
+      "Actual interactions would be listed here in a production environment."
+    ]
+  };
 };
 
 // Export these local functions to allow direct use when needed
