@@ -12,7 +12,7 @@ interface MedicationDetailsProps {
   medication: MedicationInfoType;
 }
 
-const MedicationDetails: React.FC<MedicationDetailsProps> = ({ medication }) => {
+const MedicationInfo: React.FC<MedicationDetailsProps> = ({ medication }) => {
   return (
     <div className="space-y-6">
       {/* Overview Section */}
@@ -178,4 +178,4 @@ const MedicationDetails: React.FC<MedicationDetailsProps> = ({ medication }) => 
   );
 };
 
-export default MedicationDetails;
+export default MedicationInfo;
