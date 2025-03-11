@@ -18,14 +18,8 @@ export function useFieldPersistence<T>(
     if (sectionData && Object.keys(sectionData).length > 0) {
       console.log(`Found existing data for ${section}:`, sectionData);
       setFormData(prev => ({ ...prev, ...sectionData }));
-      
-      // Set window object for compatibility with existing code
-      const windowKey = getWindowKeyForSection(section);
-      if (windowKey) {
-        (window as any)[windowKey] = { ...sectionData };
-      }
     }
-  }, [section]);
+  }, [section, loadSection]);
   
   // Update form data and sync with context
   const updateFormData = (newData: Partial<T>) => {
@@ -34,12 +28,6 @@ export function useFieldPersistence<T>(
       
       // Update context data which will propagate to other components
       updateSectionData(section, updated);
-      
-      // Set window object for compatibility with existing code
-      const windowKey = getWindowKeyForSection(section);
-      if (windowKey) {
-        (window as any)[windowKey] = { ...updated };
-      }
       
       return updated;
     });
@@ -53,23 +41,6 @@ export function useFieldPersistence<T>(
   // Manually save data
   const saveData = () => {
     saveSection(section);
-  };
-  
-  // Helper function to get window key for section
-  const getWindowKeyForSection = (section: string): string => {
-    switch (section) {
-      case 'personal': return 'personalFormData';
-      case 'history': return 'historyFormData';
-      case 'medications': return 'medicationsFormData';
-      case 'allergies': return 'allergiesFormData';
-      case 'immunizations': return 'immunizationsFormData';
-      case 'social': return 'socialHistoryFormData';
-      case 'reproductive': return 'reproductiveHistoryFormData';
-      case 'mental': return 'mentalHealthFormData';
-      case 'functional': return 'functionalStatusFormData';
-      case 'cultural': return 'culturalPreferencesFormData';
-      default: return '';
-    }
   };
   
   return [formData, updateFormData, saveData];

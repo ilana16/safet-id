@@ -5,54 +5,80 @@ import { Save } from 'lucide-react';
 import MedicalProfileMedicationsForm from '@/components/forms/MedicalProfileMedicationsForm';
 import { toast } from '@/lib/toast';
 import { logChanges } from '@/utils/changeLog';
-import { loadSectionData, saveSectionData, MEDICAL_DATA_CHANGE_EVENT } from '@/utils/medicalProfileService';
+import { useFieldPersistence } from '@/hooks/useFieldPersistence';
+
+// Define the type for medications data
+interface MedicationsData {
+  prescriptions: any[];
+  otc: any[];
+  supplements: any[];
+  [key: string]: any;
+}
+
+const initialMedicationsData: MedicationsData = {
+  prescriptions: [{
+    id: `med_${Date.now()}`,
+    name: '',
+    totalDosage: '',
+    unit: '',
+    pillsPerDose: '',
+    dosagePerPill: '',
+    form: '',
+    customForm: '',
+    withFood: 'with',
+    prescriptionType: 'prescription',
+    brandName: '',
+    reason: '',
+    doseTimes: [{ id: `time_${Date.now()}`, time: '' }]
+  }],
+  otc: [{
+    id: `otc_${Date.now()}`,
+    name: '',
+    totalDosage: '',
+    unit: '',
+    pillsPerDose: '',
+    dosagePerPill: '',
+    form: '',
+    customForm: '',
+    withFood: 'with',
+    brandName: '',
+    reason: '',
+    doseTimes: [{ id: `time_${Date.now()}`, time: '' }]
+  }],
+  supplements: [{
+    id: `supp_${Date.now()}`,
+    name: '',
+    totalDosage: '',
+    unit: '',
+    pillsPerDose: '',
+    dosagePerPill: '',
+    form: '',
+    customForm: '',
+    withFood: 'with',
+    brandName: '',
+    reason: '',
+    doseTimes: [{ id: `time_${Date.now()}`, time: '' }]
+  }]
+};
 
 const MedicationsSection = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
   
-  // Load data on initial render and whenever navigation occurs
+  // Use the useFieldPersistence hook for medications data
+  const [medicationsData, updateMedicationsData, saveMedicationsData] = useFieldPersistence<MedicationsData>(
+    'medications',
+    initialMedicationsData
+  );
+  
   useEffect(() => {
-    const loadMedicationsData = () => {
-      try {
-        console.log('Loading medications data');
-        const medicationsData = loadSectionData('medications');
-        setIsLoaded(true);
-        
-        // Trigger a UI refresh
-        window.dispatchEvent(new CustomEvent('medicationsDataLoaded'));
-      } catch (error) {
-        console.error('Error loading medications data:', error);
-        setIsLoaded(true);
-      }
-    };
+    setIsLoaded(true);
     
-    loadMedicationsData();
-    
-    // Listen for navigation changes and data requests
-    const handleNavChange = () => {
-      console.log('Navigation change detected, reloading medications data');
-      loadMedicationsData();
-    };
-    
-    const handleDataChange = (event: Event) => {
-      const customEvent = event as CustomEvent;
-      if (customEvent.detail?.section === 'medications') {
-        console.log('Medications data changed externally, reloading');
-        loadMedicationsData();
-      }
-    };
-    
-    window.addEventListener('navigationChange', handleNavChange);
-    window.addEventListener('medicationsDataRequest', handleNavChange);
-    window.addEventListener(MEDICAL_DATA_CHANGE_EVENT, handleDataChange);
-    
-    return () => {
-      window.removeEventListener('navigationChange', handleNavChange);
-      window.removeEventListener('medicationsDataRequest', handleNavChange);
-      window.removeEventListener(MEDICAL_DATA_CHANGE_EVENT, handleDataChange);
-    };
-  }, []);
+    // Make the medications data available to the MedicalProfileMedicationsForm
+    if (medicationsData) {
+      (window as any).medicationsFormData = medicationsData;
+    }
+  }, [medicationsData]);
   
   const handleSave = () => {
     setIsSaving(true);
@@ -63,40 +89,36 @@ const MedicationsSection = () => {
       
       console.log('Saving medications form data:', newFormData);
       
-      // Save the data
-      const saved = saveSectionData('medications', newFormData);
+      // Update the context and persist the data
+      updateMedicationsData(newFormData);
+      saveMedicationsData();
       
-      if (saved) {
-        // Log changes for audit trail
-        const savedProfileJson = localStorage.getItem('medicalProfile');
-        const existingProfile = savedProfileJson ? JSON.parse(savedProfileJson) : {};
-        const existingSectionData = existingProfile.medications || {};
+      // Get the saved profile from localStorage for comparison
+      const savedProfileJson = localStorage.getItem('medicalProfile');
+      const existingProfile = savedProfileJson ? JSON.parse(savedProfileJson) : {};
+      const existingSectionData = existingProfile.medications || {};
+      
+      const changes: {field: string; oldValue: any; newValue: any}[] = [];
+      
+      Object.keys(newFormData).forEach(key => {
+        const oldValue = existingSectionData[key];
+        const newValue = newFormData[key];
         
-        const changes: {field: string; oldValue: any; newValue: any}[] = [];
-        
-        Object.keys(newFormData).forEach(key => {
-          const oldValue = existingSectionData[key];
-          const newValue = newFormData[key];
-          
-          if (JSON.stringify(oldValue) !== JSON.stringify(newValue)) {
-            changes.push({
-              field: key,
-              oldValue: oldValue,
-              newValue: newValue
-            });
-          }
-        });
-        
-        if (changes.length > 0) {
-          logChanges('medications', changes);
+        if (JSON.stringify(oldValue) !== JSON.stringify(newValue)) {
+          changes.push({
+            field: key,
+            oldValue: oldValue,
+            newValue: newValue
+          });
         }
-        
-        setIsSaving(false);
-        toast.success('Medications saved successfully');
-      } else {
-        setIsSaving(false);
-        toast.error('Error saving medications');
+      });
+      
+      if (changes.length > 0) {
+        logChanges('medications', changes);
       }
+      
+      setIsSaving(false);
+      toast.success('Medications saved successfully');
     } catch (error) {
       console.error('Error saving medications:', error);
       setIsSaving(false);

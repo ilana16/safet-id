@@ -66,6 +66,12 @@ export const MedicalProfileProvider = ({ children }: { children: ReactNode }) =>
       [section]: sectionData
     }));
     
+    // Update window object for interoperability
+    const windowKey = getWindowKeyForSection(section);
+    if (windowKey) {
+      (window as any)[windowKey] = { ...sectionData };
+    }
+    
     return sectionData;
   };
 
@@ -76,7 +82,7 @@ export const MedicalProfileProvider = ({ children }: { children: ReactNode }) =>
     return success;
   };
 
-  // Helper function to get window key for section (copied from medicalProfileService)
+  // Helper function to get window key for section
   const getWindowKeyForSection = (section: string): string => {
     switch (section) {
       case 'personal': return 'personalFormData';
