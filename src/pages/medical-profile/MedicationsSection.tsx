@@ -1,7 +1,7 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
-import { ExternalLink, Search, Plus } from 'lucide-react';
+import { ExternalLink, Search, Plus, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -12,17 +12,33 @@ import { toast } from '@/lib/toast';
 import MedicationDetails from '@/components/medications/MedicationInfo';
 import { searchMedications, getMedicationInfo } from '@/utils/medicationData';
 import { MedicationInfo as MedicationInfoType } from '@/utils/medicationData';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
 const MedicationsSection = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [searchResults, setSearchResults] = useState<string[]>([]);
+  const [autocompleteSuggestions, setAutocompleteSuggestions] = useState<string[]>([]);
   const [selectedMedication, setSelectedMedication] = useState<string | null>(null);
   const [medicationInfo, setMedicationInfo] = useState<MedicationInfoType | null>(null);
   const [isLoadingInfo, setIsLoadingInfo] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('search');
+  const [isAutocompleteOpen, setIsAutocompleteOpen] = useState(false);
+  const searchInputRef = useRef<HTMLInputElement>(null);
   
+  // Update autocomplete suggestions as user types
+  useEffect(() => {
+    if (searchTerm.trim().length > 1) {
+      const suggestions = searchMedications(searchTerm);
+      setAutocompleteSuggestions(suggestions.slice(0, 5)); // Limit to 5 suggestions
+      setIsAutocompleteOpen(suggestions.length > 0);
+    } else {
+      setAutocompleteSuggestions([]);
+      setIsAutocompleteOpen(false);
+    }
+  }, [searchTerm]);
+
   // Handle searching medications
   const handleSearch = () => {
     if (!searchTerm.trim()) {
@@ -33,6 +49,7 @@ const MedicationsSection = () => {
     setIsSearching(true);
     setError(null);
     setSearchResults([]);
+    setIsAutocompleteOpen(false);
 
     try {
       // Use the local medication database for searching
@@ -55,6 +72,7 @@ const MedicationsSection = () => {
     setIsLoadingInfo(true);
     setMedicationInfo(null);
     setError(null);
+    setIsAutocompleteOpen(false);
     
     try {
       // Get medication details from the local database
@@ -76,6 +94,26 @@ const MedicationsSection = () => {
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
       handleSearch();
+    } else if (e.key === 'Escape') {
+      setIsAutocompleteOpen(false);
+    }
+  };
+
+  const handleAutocompleteSelection = (medication: string) => {
+    setSearchTerm(medication);
+    setIsAutocompleteOpen(false);
+    // Focus back on the input
+    if (searchInputRef.current) {
+      searchInputRef.current.focus();
+    }
+  };
+
+  const clearSearch = () => {
+    setSearchTerm('');
+    setAutocompleteSuggestions([]);
+    setIsAutocompleteOpen(false);
+    if (searchInputRef.current) {
+      searchInputRef.current.focus();
     }
   };
 
@@ -112,23 +150,57 @@ const MedicationsSection = () => {
           </TabsList>
           
           <TabsContent value="search" className="space-y-4">
-            <div className="flex gap-2">
-              <Input
-                type="text"
-                placeholder="Enter medication name (e.g., Aspirin, Lisinopril)"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                onKeyDown={handleKeyDown}
-                className="flex-1"
-              />
-              <Button 
-                onClick={handleSearch}
-                disabled={isSearching}
-                className="bg-safet-500 hover:bg-safet-600"
-              >
-                {isSearching ? 'Searching...' : 'Search'}
-                {!isSearching && <Search className="ml-2 h-4 w-4" />}
-              </Button>
+            <div className="relative">
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <Input
+                    ref={searchInputRef}
+                    type="text"
+                    placeholder="Enter medication name (e.g., Aspirin, Lisinopril)"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                    onFocus={() => {
+                      if (autocompleteSuggestions.length > 0) {
+                        setIsAutocompleteOpen(true);
+                      }
+                    }}
+                    className="flex-1 pr-8"
+                  />
+                  {searchTerm && (
+                    <button 
+                      onClick={clearSearch}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  )}
+                </div>
+                <Button 
+                  onClick={handleSearch}
+                  disabled={isSearching}
+                  className="bg-safet-500 hover:bg-safet-600"
+                >
+                  {isSearching ? 'Searching...' : 'Search'}
+                  {!isSearching && <Search className="ml-2 h-4 w-4" />}
+                </Button>
+              </div>
+              
+              {/* Autocomplete Dropdown */}
+              {isAutocompleteOpen && (
+                <div className="absolute z-10 mt-1 w-full bg-white shadow-lg rounded-md border border-gray-200 max-h-60 overflow-auto">
+                  {autocompleteSuggestions.map((suggestion, index) => (
+                    <div 
+                      key={index}
+                      className="px-4 py-2 hover:bg-gray-100 cursor-pointer flex items-center"
+                      onClick={() => handleAutocompleteSelection(suggestion)}
+                    >
+                      <Search className="h-4 w-4 mr-2 text-gray-400" />
+                      <span className="capitalize">{suggestion}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
             
             {error && (
