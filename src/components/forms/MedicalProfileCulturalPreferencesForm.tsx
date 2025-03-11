@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -21,49 +20,25 @@ const MedicalProfileCulturalPreferencesForm = () => {
 
   // Load saved data on component mount
   useEffect(() => {
+    // Define function to load saved data
     const loadSavedData = () => {
       try {
         console.log('Loading cultural preferences data...');
-        let dataLoaded = false;
+        const savedProfileJson = localStorage.getItem('medicalProfile');
         
-        // First check session storage (highest priority)
-        const sessionData = sessionStorage.getItem('culturalPreferencesFormData');
-        if (sessionData) {
-          try {
-            const culturalData = JSON.parse(sessionData);
-            populateFormData(culturalData);
-            console.log('Loaded cultural preferences from sessionStorage:', culturalData);
-            dataLoaded = true;
-          } catch (e) {
-            console.error('Error parsing session data:', e);
-          }
-        }
-        
-        // If no session data, check window object
-        if (!dataLoaded && (window as any).culturalPreferencesFormData) {
-          const culturalData = (window as any).culturalPreferencesFormData;
-          populateFormData(culturalData);
-          console.log('Loaded cultural preferences from window object:', culturalData);
-          dataLoaded = true;
-        } 
-        
-        // Fallback to localStorage if no data loaded yet
-        if (!dataLoaded) {
-          const savedProfile = localStorage.getItem('medicalProfile');
+        if (savedProfileJson) {
+          const savedProfile = JSON.parse(savedProfileJson);
           
-          if (savedProfile) {
-            const profileData = JSON.parse(savedProfile);
-            if (profileData && profileData.cultural) {
-              const culturalData = profileData.cultural;
-              populateFormData(culturalData);
-              console.log('Loaded cultural preferences from localStorage:', culturalData);
-              
-              // Also update the window object so other components can access it
-              (window as any).culturalPreferencesFormData = culturalData;
-              
-              // And update session storage for better persistence
-              sessionStorage.setItem('culturalPreferencesFormData', JSON.stringify(culturalData));
-            }
+          if (savedProfile && savedProfile.cultural) {
+            const culturalData = savedProfile.cultural;
+            populateFormData(culturalData);
+            console.log('Loaded cultural preferences from localStorage:', culturalData);
+            
+            // Update session storage with data from localStorage
+            sessionStorage.setItem('culturalPreferencesFormData', JSON.stringify(culturalData));
+            
+            // Update window object for other components to access
+            (window as any).culturalPreferencesFormData = culturalData;
           }
         }
         
@@ -75,6 +50,8 @@ const MedicalProfileCulturalPreferencesForm = () => {
 
     // Helper function to populate form data
     const populateFormData = (data: any) => {
+      if (!data) return;
+      
       setReligion(data.religion || '');
       setOtherReligion(data.otherReligion || '');
       setCulturalConsiderations(data.culturalConsiderations || '');
@@ -89,16 +66,16 @@ const MedicalProfileCulturalPreferencesForm = () => {
     // Load data when component mounts
     loadSavedData();
     
-    // Update when the route changes to ensure data persistence between tabs
+    // Update when browser history changes (navigation between tabs)
     window.addEventListener('popstate', loadSavedData);
     
+    // Return cleanup function
     return () => {
       window.removeEventListener('popstate', loadSavedData);
     };
   }, []);
 
-  // Make form data available to the parent component for saving
-  // Update more frequently to ensure data persistence
+  // Make form data available to the parent component for saving and persist changes
   useEffect(() => {
     if (!dataLoaded) return; // Skip initial render until data is loaded
     
@@ -118,32 +95,33 @@ const MedicalProfileCulturalPreferencesForm = () => {
     // Store the current form state in window for the parent component to access
     (window as any).culturalPreferencesFormData = formData;
     
-    // Additionally, store in sessionStorage for route changes
+    // Save to sessionStorage for persistence between tabs
     sessionStorage.setItem('culturalPreferencesFormData', JSON.stringify(formData));
     
-    // Also do periodic localStorage saves for more permanent storage
+    // Direct save to localStorage for more permanent storage
     const saveToLocalStorage = () => {
       try {
-        const savedProfile = localStorage.getItem('medicalProfile');
-        if (savedProfile) {
-          const profileData = JSON.parse(savedProfile);
-          localStorage.setItem('medicalProfile', JSON.stringify({
-            ...profileData,
-            cultural: formData
-          }));
-        }
+        const savedProfileJson = localStorage.getItem('medicalProfile');
+        const savedProfile = savedProfileJson ? JSON.parse(savedProfileJson) : {};
+        
+        localStorage.setItem('medicalProfile', JSON.stringify({
+          ...savedProfile,
+          cultural: formData
+        }));
+        
+        console.log('Saved cultural preferences to localStorage:', formData);
       } catch (error) {
-        console.error('Error auto-saving to localStorage:', error);
+        console.error('Error saving to localStorage:', error);
       }
     };
     
-    // Save immediately for critical fields
+    // Save immediately for important fields
     if (religion || dietaryRestrictions) {
       saveToLocalStorage();
     }
     
-    // Setup auto-save with debounce
-    const autoSaveTimer = setTimeout(saveToLocalStorage, 3000);
+    // Debounced save for other changes
+    const autoSaveTimer = setTimeout(saveToLocalStorage, 1000);
     
     return () => {
       clearTimeout(autoSaveTimer);
