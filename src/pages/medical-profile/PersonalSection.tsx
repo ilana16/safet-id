@@ -41,6 +41,21 @@ const PersonalSection = () => {
     }
   }, []);
   
+  // Save form data periodically with auto-save
+  useEffect(() => {
+    const autoSaveInterval = setInterval(() => {
+      const currentFormData = (window as any).personalFormData;
+      if (currentFormData) {
+        sessionStorage.setItem('personalFormData', JSON.stringify(currentFormData));
+        console.log('Auto-saved personal data to session storage:', currentFormData);
+      }
+    }, 30000); // Auto-save every 30 seconds
+    
+    return () => {
+      clearInterval(autoSaveInterval);
+    };
+  }, []);
+  
   // Add event listener for page unload to save data
   useEffect(() => {
     const handleBeforeUnload = () => {
