@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import PageLayout from '@/components/layout/PageLayout';
@@ -14,11 +13,10 @@ import MedicalProfileReproductiveHistoryForm from '@/components/forms/MedicalPro
 import MedicalProfileMentalHealthForm from '@/components/forms/MedicalProfileMentalHealthForm';
 import MedicalProfileFunctionalStatusForm from '@/components/forms/MedicalProfileFunctionalStatusForm';
 import MedicalProfileCulturalPreferencesForm from '@/components/forms/MedicalProfileCulturalPreferencesForm';
-import MedicalProfilePreventativeCareForm from '@/components/forms/MedicalProfilePreventativeCareForm';
 import { logChanges } from '@/utils/changeLog';
 
 type SectionType = 'personal' | 'history' | 'medications' | 'allergies' | 'social' | 
-                   'reproductive' | 'mental' | 'functional' | 'cultural' | 'preventative';
+                   'reproductive' | 'mental' | 'functional' | 'cultural';
 
 const MedicalProfileForm = () => {
   const navigate = useNavigate();
@@ -29,16 +27,13 @@ const MedicalProfileForm = () => {
   
   const currentSection = section || 'personal';
 
-  // This effect runs whenever the section changes
   useEffect(() => {
     try {
       console.log(`Section changed to: ${currentSection}`);
       const sessionKey = `${currentSection}FormData`;
       
-      // When section changes, load the relevant data
       loadSectionData(currentSection);
       
-      // Trigger a custom navigation event for form components to reload
       window.dispatchEvent(new Event('navigationChange'));
       
     } catch (error) {
@@ -46,13 +41,11 @@ const MedicalProfileForm = () => {
     }
   }, [currentSection]);
   
-  // Load data for a specific section
   const loadSectionData = (sectionName: string) => {
     try {
       console.log(`Loading data for section: ${sectionName}`);
       const sessionKey = `${sectionName}FormData`;
       
-      // First try sessionStorage for quicker access
       const sessionData = sessionStorage.getItem(sessionKey);
       if (sessionData) {
         try {
@@ -75,7 +68,6 @@ const MedicalProfileForm = () => {
         }
       }
       
-      // Fall back to localStorage
       const savedProfileJson = localStorage.getItem('medicalProfile');
       if (!savedProfileJson) return;
       
@@ -96,7 +88,6 @@ const MedicalProfileForm = () => {
         if (windowKey) {
           (window as any)[windowKey] = sectionData;
           
-          // Update sessionStorage with localStorage data
           sessionStorage.setItem(sessionKey, JSON.stringify(sectionData));
           console.log(`Updated sessionStorage for ${sectionName} with localStorage data`);
         }
@@ -109,7 +100,6 @@ const MedicalProfileForm = () => {
     }
   };
 
-  // Save current section data before unloading or unmounting
   useEffect(() => {
     const handleBeforeUnload = () => {
       saveCurrentSectionData();
@@ -123,7 +113,6 @@ const MedicalProfileForm = () => {
     };
   }, [currentSection]);
   
-  // Save the current section's data to both sessionStorage and localStorage
   const saveCurrentSectionData = () => {
     try {
       const windowKey = getWindowKeyForSection(currentSection);
@@ -131,11 +120,9 @@ const MedicalProfileForm = () => {
         const currentData = (window as any)[windowKey];
         const sessionKey = `${currentSection}FormData`;
         
-        // Save to sessionStorage
         sessionStorage.setItem(sessionKey, JSON.stringify(currentData));
         console.log(`Saved ${currentSection} data to session storage:`, currentData);
         
-        // Also save to localStorage for persistence
         const savedProfileJson = localStorage.getItem('medicalProfile');
         const savedProfile = savedProfileJson ? JSON.parse(savedProfileJson) : {};
         
@@ -164,7 +151,6 @@ const MedicalProfileForm = () => {
       case 'mental': return 'mentalHealthFormData';
       case 'functional': return 'functionalStatusFormData';
       case 'cultural': return 'culturalPreferencesFormData';
-      case 'preventative': return 'preventativeCareFormData';
       default: return '';
     }
   };
@@ -173,7 +159,6 @@ const MedicalProfileForm = () => {
     setIsSaving(true);
     
     try {
-      // Save current section data first
       saveCurrentSectionData();
       
       const existingProfileJson = localStorage.getItem('medicalProfile');
@@ -262,14 +247,14 @@ const MedicalProfileForm = () => {
         setIsSaving(false);
         toast.success('Medical information saved successfully');
         
-        if (currentSection === 'preventative') {
+        if (currentSection === 'cultural') {
           navigate('/dashboard');
           return;
         }
         
         const sections: SectionType[] = [
           'personal', 'history', 'medications', 'allergies', 'social',
-          'reproductive', 'mental', 'functional', 'cultural', 'preventative'
+          'reproductive', 'mental', 'functional', 'cultural'
         ];
         const currentIndex = sections.indexOf(currentSection as SectionType);
         
@@ -318,8 +303,6 @@ const MedicalProfileForm = () => {
         return <MedicalProfileFunctionalStatusForm />;
       case 'cultural':
         return <MedicalProfileCulturalPreferencesForm />;
-      case 'preventative':
-        return <MedicalProfilePreventativeCareForm />;
       default:
         return <MedicalProfilePersonalForm />;
     }
@@ -345,8 +328,6 @@ const MedicalProfileForm = () => {
         return 'Functional Status';
       case 'cultural':
         return 'Cultural & Religious Preferences';
-      case 'preventative':
-        return 'Preventative Care';
       default:
         return 'Personal Information';
     }
@@ -360,7 +341,7 @@ const MedicalProfileForm = () => {
             <Button 
               variant="ghost" 
               onClick={() => {
-                saveCurrentSectionData(); // Save data before navigation
+                saveCurrentSectionData();
                 navigate('/dashboard');
               }} 
             >
@@ -400,11 +381,11 @@ const MedicalProfileForm = () => {
                 <Button 
                   variant="outline"
                   onClick={() => {
-                    saveCurrentSectionData(); // Save data before navigation
+                    saveCurrentSectionData();
                     
                     const sections: SectionType[] = [
                       'personal', 'history', 'medications', 'allergies', 'social',
-                      'reproductive', 'mental', 'functional', 'cultural', 'preventative'
+                      'reproductive', 'mental', 'functional', 'cultural'
                     ];
                     const currentIndex = sections.indexOf(currentSection as SectionType);
                     
@@ -423,7 +404,7 @@ const MedicalProfileForm = () => {
                 className="bg-safet-500 hover:bg-safet-600"
                 disabled={isSaving}
               >
-                {isSaving ? 'Saving...' : currentSection === 'preventative' ? 'Complete Profile' : 'Save & Continue'}
+                {isSaving ? 'Saving...' : currentSection === 'cultural' ? 'Complete Profile' : 'Save & Continue'}
                 {!isSaving && <Save className="ml-2 h-4 w-4" />}
               </Button>
             </div>
