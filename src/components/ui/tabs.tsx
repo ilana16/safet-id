@@ -15,7 +15,7 @@ const Tabs = React.forwardRef<
   <TabsPrimitive.Root
     ref={ref}
     className={cn(
-      orientation === "vertical" ? "flex" : "",
+      orientation === "vertical" ? "flex flex-row" : "",
       className
     )}
     {...props}
@@ -25,12 +25,15 @@ Tabs.displayName = TabsPrimitive.Root.displayName
 
 const TabsList = React.forwardRef<
   React.ElementRef<typeof TabsPrimitive.List>,
-  React.ComponentPropsWithoutRef<typeof TabsPrimitive.List>
->(({ className, ...props }, ref) => (
+  React.ComponentPropsWithoutRef<typeof TabsPrimitive.List> & {
+    orientation?: "horizontal" | "vertical" 
+  }
+>(({ className, orientation = "horizontal", ...props }, ref) => (
   <TabsPrimitive.List
     ref={ref}
     className={cn(
       "inline-flex items-center justify-center rounded-md bg-muted p-1 text-muted-foreground",
+      orientation === "vertical" && "flex-col h-full",
       className
     )}
     {...props}
