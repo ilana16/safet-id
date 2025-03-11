@@ -140,7 +140,7 @@ const MedicationsSection = () => {
 
   return (
     <div className="space-y-6">
-      {/* Drugs.com-like header */}
+      {/* Drugs.com-style header */}
       <div className="bg-white border border-[#D1DEE8] rounded-xl overflow-hidden shadow-sm">
         <div className="bg-safet-600 text-white px-6 py-4">
           <h1 className="text-2xl font-bold">My Medications</h1>
