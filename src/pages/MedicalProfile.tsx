@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import PageLayout from '@/components/layout/PageLayout';
@@ -8,7 +7,7 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from '@/lib/toast';
 import { logChanges } from '@/utils/changeLog';
 
-type SectionType = 'personal' | 'history' | 'medications' | 'allergies' | 'social' | 
+type SectionType = 'personal' | 'history' | 'medications' | 'allergies' | 'immunizations' | 'social' | 
                    'reproductive' | 'mental' | 'functional' | 'cultural' | 'preventative';
 
 const sections = [
@@ -16,6 +15,7 @@ const sections = [
   { id: 'history', label: 'Medical History' },
   { id: 'medications', label: 'Medications' },
   { id: 'allergies', label: 'Allergies' },
+  { id: 'immunizations', label: 'Immunizations & Vaccines' },
   { id: 'social', label: 'Social History' },
   { id: 'reproductive', label: 'Reproductive' },
   { id: 'mental', label: 'Mental Health' },
@@ -36,31 +36,26 @@ const MedicalProfile = () => {
   const pathParts = location.pathname.split('/');
   const currentSection = pathParts[pathParts.length - 1] === 'profile' ? 'personal' : pathParts[pathParts.length - 1];
 
-  // Load all profile data when component mounts
   useEffect(() => {
     console.log('Loading all profile data on component mount');
     loadFullProfileData();
     
-    // Setup a reload interval to periodically check for new data
     const reloadInterval = setInterval(() => {
       loadFullProfileData(false);
-    }, 60000); // Check every minute for new data
+    }, 60000);
     
     return () => {
       clearInterval(reloadInterval);
     };
   }, []);
 
-  // Reload current section data when route changes
   useEffect(() => {
     console.log(`Route changed to ${location.pathname}, loading section: ${currentSection}`);
     setIsLoadingData(true);
     
     try {
-      // Always attempt to load the most up-to-date data for the current section
       loadCurrentSectionData();
       
-      // Also reload full profile data to ensure sidebar is up-to-date
       loadFullProfileData(false);
     } catch (error) {
       console.error('Error reloading section data:', error);
@@ -75,7 +70,6 @@ const MedicalProfile = () => {
     }
     
     try {
-      // Load the full profile data for the sidebar status
       const savedProfileJson = localStorage.getItem('medicalProfile');
       if (!savedProfileJson) {
         if (showLoading) setIsLoadingData(false);
@@ -85,10 +79,8 @@ const MedicalProfile = () => {
       const savedProfile = JSON.parse(savedProfileJson);
       console.log('Loaded full profile data:', savedProfile);
       
-      // Store all sections data
       setProfileData(savedProfile);
       
-      // Capture last saved timestamps for all sections
       const newLastSaved: {[key: string]: string | null} = {};
       
       Object.entries(savedProfile).forEach(([sectionKey, sectionData]: [string, any]) => {
@@ -113,7 +105,6 @@ const MedicalProfile = () => {
 
   const loadCurrentSectionData = () => {
     try {
-      // First check if there's more up-to-date data in session storage
       const sessionKey = `${currentSection}FormData`;
       const sessionData = sessionStorage.getItem(sessionKey);
       
@@ -122,14 +113,12 @@ const MedicalProfile = () => {
           const parsedData = JSON.parse(sessionData);
           console.log(`Loaded ${currentSection} data from session storage:`, parsedData);
           
-          // Set window data
           const windowKey = getCurrentSectionWindowKey(currentSection);
           if (windowKey) {
             console.log(`Setting ${windowKey} data from session storage`);
             (window as any)[windowKey] = parsedData;
           }
           
-          // Update last saved time if available
           if (parsedData.lastUpdated) {
             setLastSaved(prev => ({...prev, [currentSection]: parsedData.lastUpdated}));
           }
@@ -140,7 +129,6 @@ const MedicalProfile = () => {
         }
       }
       
-      // If no session data, check local storage
       const savedProfileJson = localStorage.getItem('medicalProfile');
       if (!savedProfileJson) return;
       
@@ -148,17 +136,14 @@ const MedicalProfile = () => {
       if (savedProfile && savedProfile[currentSection]) {
         console.log(`Loaded ${currentSection} data from localStorage:`, savedProfile[currentSection]);
         
-        // Set window data
         const windowKey = getCurrentSectionWindowKey(currentSection);
         if (windowKey) {
           console.log(`Setting ${windowKey} data from localStorage`);
           (window as any)[windowKey] = savedProfile[currentSection];
           
-          // Also update session storage for better persistence
           sessionStorage.setItem(sessionKey, JSON.stringify(savedProfile[currentSection]));
         }
         
-        // Update last saved time if available
         if (savedProfile[currentSection].lastUpdated) {
           setLastSaved(prev => ({...prev, [currentSection]: savedProfile[currentSection].lastUpdated}));
         }
@@ -168,14 +153,11 @@ const MedicalProfile = () => {
     }
   };
 
-  // Update window object with the current section's form data to make it available for the forms
   useEffect(() => {
-    // Forcibly reload data 100ms after initial load to ensure child components have mounted
     const reloadTimeout = setTimeout(() => {
       loadCurrentSectionData();
     }, 100);
     
-    // Save data to session storage periodically for auto-recovery
     const autoSaveInterval = setInterval(() => {
       const windowKey = getCurrentSectionWindowKey(currentSection);
       if (windowKey && (window as any)[windowKey]) {
@@ -184,7 +166,7 @@ const MedicalProfile = () => {
         sessionStorage.setItem(sessionKey, JSON.stringify(currentData));
         console.log(`Auto-saved ${currentSection} data to session storage:`, currentData);
       }
-    }, 30000); // Auto-save every 30 seconds
+    }, 30000);
     
     return () => {
       clearTimeout(reloadTimeout);
@@ -213,7 +195,6 @@ const MedicalProfile = () => {
       
       const changes: {field: string; oldValue: any; newValue: any}[] = [];
       
-      // Handle different section data formats
       if (currentSection === 'medications' || 
           currentSection === 'social' || 
           currentSection === 'reproductive' || 
@@ -260,14 +241,12 @@ const MedicalProfile = () => {
       localStorage.setItem('medicalProfile', JSON.stringify(updatedProfile));
       console.log('Auto-saved updated profile:', updatedProfile);
       
-      // Update session storage
       sessionStorage.setItem(`${currentSection}FormData`, JSON.stringify({
         ...currentFormData,
         lastUpdated: saveTimestamp
       }));
       console.log(`Updated session storage for ${currentSection}FormData`);
       
-      // Update last saved timestamp
       setLastSaved(prev => ({...prev, [currentSection]: saveTimestamp}));
       
       if (changes.length > 0) {
@@ -281,7 +260,7 @@ const MedicalProfile = () => {
           ...currentFormData,
           lastUpdated: saveTimestamp
         }
-      })); // Update the local state to reflect the changes
+      }));
       return true;
     } catch (error) {
       console.error(`Error auto-saving ${currentSection} data:`, error);
@@ -291,24 +270,22 @@ const MedicalProfile = () => {
   };
 
   const handleTabChange = (value: string) => {
-    // Save any current section data to localStorage before navigating
     const saved = saveCurrentSectionData();
     
     if (saved) {
       toast.success(`${getSectionTitle(currentSection)} information saved automatically`);
     }
     
-    // Navigate to the new tab
     navigate(`/profile/${value}`);
   };
 
-  // Helper function to get the window key for a given section
   const getCurrentSectionWindowKey = (section: string): string => {
     switch (section) {
       case 'personal': return 'personalFormData';
       case 'history': return 'historyFormData';
       case 'medications': return 'medicationsFormData';
       case 'allergies': return 'allergiesFormData';
+      case 'immunizations': return 'immunizationsFormData';
       case 'social': return 'socialHistoryFormData';
       case 'reproductive': return 'reproductiveHistoryFormData';
       case 'mental': return 'mentalHealthFormData';
@@ -319,23 +296,19 @@ const MedicalProfile = () => {
     }
   };
 
-  // Function to get section title for toast message
   const getSectionTitle = (section: string): string => {
     const sectionObj = sections.find(s => s.id === section);
     return sectionObj ? sectionObj.label : 'Section';
   };
 
-  // Format the last saved timestamp for display
   const formatLastSaved = (timestamp: string | null) => {
     if (!timestamp) return null;
     
     try {
       const date = new Date(timestamp);
       
-      // If the date is invalid, return null
       if (isNaN(date.getTime())) return null;
       
-      // If it's today, just show the time
       const now = new Date();
       const isToday = date.getDate() === now.getDate() && 
                      date.getMonth() === now.getMonth() && 
@@ -345,7 +318,6 @@ const MedicalProfile = () => {
         return `Today at ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
       }
       
-      // If it's yesterday
       const yesterday = new Date(now);
       yesterday.setDate(now.getDate() - 1);
       const isYesterday = date.getDate() === yesterday.getDate() && 
@@ -356,7 +328,6 @@ const MedicalProfile = () => {
         return `Yesterday at ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
       }
       
-      // Otherwise show the full date
       return date.toLocaleDateString([], { 
         month: 'short', 
         day: 'numeric' 
@@ -367,7 +338,6 @@ const MedicalProfile = () => {
     }
   };
 
-  // Listen for beforeunload event to save data when leaving the page
   useEffect(() => {
     const handleBeforeUnload = () => {
       saveCurrentSectionData();
@@ -476,4 +446,3 @@ const MedicalProfile = () => {
 };
 
 export default MedicalProfile;
-

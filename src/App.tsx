@@ -22,6 +22,7 @@ import MentalSection from './pages/medical-profile/MentalSection';
 import FunctionalSection from './pages/medical-profile/FunctionalSection';
 import CulturalSection from './pages/medical-profile/CulturalSection';
 import PreventativeSection from './pages/medical-profile/PreventativeSection';
+import ImmuneSection from './pages/medical-profile/ImmuneSection';
 
 function App() {
   return (
@@ -41,6 +42,7 @@ function App() {
             <Route path="history" element={<HistorySection />} />
             <Route path="medications" element={<MedicationsSection />} />
             <Route path="allergies" element={<AllergiesSection />} />
+            <Route path="immunizations" element={<ImmuneSection />} />
             <Route path="social" element={<SocialSection />} />
             <Route path="reproductive" element={<ReproductiveSection />} />
             <Route path="mental" element={<MentalSection />} />

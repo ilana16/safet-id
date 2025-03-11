@@ -33,6 +33,7 @@ const MedicalProfileTab: React.FC<MedicalProfileTabProps> = ({ completionPercent
     history: '2023-11-20T09:45:00Z',
     medications: '2023-12-05T16:20:00Z',
     allergies: '2024-01-10T11:15:00Z',
+    immunizations: '2024-02-15T12:00:00Z',
   };
   
   const getRelativeTime = (dateString: string) => {
@@ -52,6 +53,7 @@ const MedicalProfileTab: React.FC<MedicalProfileTabProps> = ({ completionPercent
     history: 75,
     medications: 100,
     allergies: 60,
+    immunizations: 0,
   };
   
   const sections = [
@@ -81,11 +83,19 @@ const MedicalProfileTab: React.FC<MedicalProfileTabProps> = ({ completionPercent
     },
     {
       id: 'allergies',
-      title: 'Allergies & Immunizations',
-      description: 'Allergic reactions and vaccination history',
+      title: 'Allergies',
+      description: 'Drug, food, environmental, and other allergic reactions',
       link: '/profile/allergies',
       status: sectionStatus.allergies,
       lastUpdated: lastUpdated.allergies,
+    },
+    {
+      id: 'immunizations',
+      title: 'Immunizations & Vaccines',
+      description: 'Vaccination history and immunization records',
+      link: '/profile/immunizations',
+      status: sectionStatus.immunizations || 0,
+      lastUpdated: lastUpdated.immunizations || null,
     },
   ];
   
