@@ -145,6 +145,41 @@ export const medicationDatabase: Record<string, MedicationInfo> = {
       elderly: "12.5-25mg once daily."
     },
     drugsComUrl: "https://www.drugs.com/hydrochlorothiazide.html"
+  },
+  "aspirin": {
+    name: "Aspirin",
+    genericName: "Acetylsalicylic Acid",
+    description: "Aspirin is a nonsteroidal anti-inflammatory drug (NSAID) used to treat pain, fever, and inflammation.",
+    usedFor: ["Pain relief", "Fever reduction", "Anti-inflammatory", "Heart attack prevention"],
+    sideEffects: ["Stomach upset", "Heartburn", "Nausea", "Stomach bleeding", "Tinnitus (ringing in ears)"],
+    interactions: ["Blood thinners", "Other NSAIDs", "Corticosteroids", "Some antidepressants"],
+    warnings: [
+      "Can cause stomach bleeding",
+      "Should not be given to children (risk of Reye's syndrome)",
+      "Not recommended during pregnancy"
+    ],
+    dosage: {
+      adult: "325-650mg every 4-6 hours as needed for pain. 81-325mg daily for heart attack prevention."
+    },
+    drugsComUrl: "https://www.drugs.com/aspirin.html"
+  },
+  "ibuprofen": {
+    name: "Ibuprofen",
+    genericName: "Ibuprofen",
+    description: "Ibuprofen is a nonsteroidal anti-inflammatory drug (NSAID) used to reduce fever and treat pain or inflammation.",
+    usedFor: ["Pain relief", "Fever reduction", "Inflammation", "Menstrual cramps"],
+    sideEffects: ["Stomach pain", "Heartburn", "Dizziness", "Mild headache", "Nausea"],
+    interactions: ["Aspirin", "Blood pressure medications", "Diuretics", "Blood thinners"],
+    warnings: [
+      "Increased risk of heart attack and stroke",
+      "Can cause stomach bleeding",
+      "May cause kidney problems with long-term use"
+    ],
+    dosage: {
+      adult: "200-400mg every 4-6 hours as needed, not to exceed 3200mg per day.",
+      child: "Varies by weight and age."
+    },
+    drugsComUrl: "https://www.drugs.com/ibuprofen.html"
   }
 };
 
