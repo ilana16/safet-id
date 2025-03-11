@@ -14,9 +14,14 @@ const CulturalSection = () => {
       // First check if session storage has any data
       const sessionData = sessionStorage.getItem('culturalPreferencesFormData');
       if (sessionData) {
-        (window as any).culturalPreferencesFormData = JSON.parse(sessionData);
-        console.log('Setting cultural preferences form data from session storage:', JSON.parse(sessionData));
-        return;
+        try {
+          const parsedData = JSON.parse(sessionData);
+          (window as any).culturalPreferencesFormData = parsedData;
+          console.log('Setting cultural preferences form data from session storage:', parsedData);
+          return;
+        } catch (e) {
+          console.error('Error parsing session data:', e);
+        }
       }
       
       // Fall back to localStorage
@@ -42,12 +47,24 @@ const CulturalSection = () => {
       const currentFormData = (window as any).culturalPreferencesFormData;
       if (currentFormData) {
         sessionStorage.setItem('culturalPreferencesFormData', JSON.stringify(currentFormData));
+        console.log('Saving cultural preferences form data to session storage before unload:', currentFormData);
       }
     };
     
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, []);
+  
+  // Save form data when component unmounts
+  useEffect(() => {
+    return () => {
+      const currentFormData = (window as any).culturalPreferencesFormData;
+      if (currentFormData) {
+        sessionStorage.setItem('culturalPreferencesFormData', JSON.stringify(currentFormData));
+        console.log('Saving cultural preferences form data to session storage on unmount:', currentFormData);
+      }
     };
   }, []);
   
