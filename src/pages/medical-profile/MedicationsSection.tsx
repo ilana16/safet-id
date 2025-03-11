@@ -1,13 +1,20 @@
 
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Save } from 'lucide-react';
+import { Save, Search } from 'lucide-react';
 import MedicalProfileMedicationsForm from '@/components/forms/MedicalProfileMedicationsForm';
 import { toast } from '@/lib/toast';
 import { logChanges } from '@/utils/changeLog';
+import { Input } from '@/components/ui/input';
+import MedicationInfo from '@/components/medications/MedicationInfo';
+import { searchDrugInfo } from '@/utils/drugsComApi';
 
 const MedicationsSection = () => {
   const [isSaving, setIsSaving] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [isSearching, setIsSearching] = useState(false);
+  const [drugInfo, setDrugInfo] = useState<any>(null);
+  const [error, setError] = useState<string | null>(null);
   
   useEffect(() => {
     try {
@@ -142,6 +149,36 @@ const MedicationsSection = () => {
     }
   };
 
+  const handleDrugSearch = async () => {
+    if (!searchTerm.trim()) {
+      toast.error('Please enter a medication name to search');
+      return;
+    }
+
+    setIsSearching(true);
+    setError(null);
+    setDrugInfo(null);
+
+    try {
+      const result = await searchDrugInfo(searchTerm);
+      setDrugInfo(result);
+      if (!result || Object.keys(result).length === 0) {
+        setError(`No information found for "${searchTerm}"`);
+      }
+    } catch (err) {
+      console.error('Error searching drug information:', err);
+      setError(`Error searching for "${searchTerm}". Please try again.`);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleDrugSearch();
+    }
+  };
+
   return (
     <div>
       <div className="flex justify-end mb-6">
@@ -153,6 +190,39 @@ const MedicationsSection = () => {
           {isSaving ? 'Saving...' : 'Save'}
           {!isSaving && <Save className="ml-2 h-4 w-4" />}
         </Button>
+      </div>
+      
+      <div className="bg-white p-6 rounded-lg border border-gray-200 mb-6">
+        <h2 className="text-lg font-medium text-gray-900 mb-4">Medication Information Lookup</h2>
+        <p className="text-sm text-gray-600 mb-4">
+          Search for medication information from Drugs.com database to learn about usage, side effects, and more.
+        </p>
+        <div className="flex gap-2 mb-4">
+          <Input
+            type="text"
+            placeholder="Enter medication name (e.g., Aspirin, Lisinopril)"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            onKeyDown={handleKeyDown}
+            className="flex-1"
+          />
+          <Button 
+            onClick={handleDrugSearch}
+            disabled={isSearching}
+            className="bg-safet-500 hover:bg-safet-600"
+          >
+            {isSearching ? 'Searching...' : 'Search'}
+            {!isSearching && <Search className="ml-2 h-4 w-4" />}
+          </Button>
+        </div>
+        
+        {error && (
+          <div className="p-4 border border-amber-200 bg-amber-50 rounded-md text-amber-800 mb-4">
+            {error}
+          </div>
+        )}
+        
+        {drugInfo && <MedicationInfo drugInfo={drugInfo} />}
       </div>
       
       <MedicalProfileMedicationsForm />
