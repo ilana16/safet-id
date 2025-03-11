@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Save, PlusCircle, Info, ChevronLeft, BookOpen, Shield, Pill, Search, AlertTriangle } from 'lucide-react';
@@ -12,6 +13,7 @@ import { CommandDialog, CommandInput, CommandList, CommandEmpty, CommandGroup, C
 import { Separator } from '@/components/ui/separator';
 import { searchDrugsCom, getDrugsComInfo } from '@/utils/drugsComApi';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Textarea } from '@/components/ui/textarea';
 
 interface Medication {
   id: string;
@@ -224,132 +226,140 @@ const MedicationsSection = () => {
         </div>
       </div>
 
-      <Card className="p-6 border-[#DCE8F7] bg-[#F0F6FE]">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="bg-[#1A3C70] p-2 rounded-full">
-            <BookOpen className="h-5 w-5 text-white" />
-          </div>
-          <h3 className="text-xl font-semibold text-[#1A3C70]">Drug Information Lookup</h3>
-        </div>
-        
-        <Alert className="bg-white border-[#DCE8F7] mb-4">
-          <Info className="h-4 w-4 text-[#1A3C70]" />
-          <AlertTitle className="text-[#1A3C70]">Look up medication information</AlertTitle>
-          <AlertDescription className="text-[#666666]">
-            Search for medications to view detailed information from Drugs.com including dosage, side effects, interactions, and more.
-          </AlertDescription>
-        </Alert>
-        
-        <div className="flex gap-2">
-          <div className="relative flex-1">
-            <Input
-              type="search"
-              placeholder="Search for a medication..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-              className="pr-10 border-[#C8D7EC] focus-visible:ring-[#1A3C70] bg-white"
-            />
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleSearch}
-              disabled={isSearching}
-              className="absolute right-0 top-0 h-full text-[#8E9196] hover:text-[#1A3C70]"
-            >
-              {isSearching ? 
-                <div className="h-4 w-4 border-2 border-t-transparent border-[#8E9196] rounded-full animate-spin"></div> : 
-                <Search className="h-4 w-4" />
-              }
-            </Button>
-          </div>
-        </div>
-        
-        {searchResults.length > 0 && !selectedMedication && (
-          <Card className="p-4 border-[#DCE8F7] mt-4 bg-white">
-            <h3 className="font-medium mb-2 text-[#1A3C70]">Search Results</h3>
-            <Separator className="bg-[#DCE8F7] mb-3" />
-            <ul className="space-y-1 divide-y divide-[#F0F6FE]">
-              {searchResults.map((result) => (
-                <li key={result}>
-                  <Button 
-                    variant="ghost" 
-                    onClick={() => handleSelectMedication(result)}
-                    disabled={isLoading}
-                    className="w-full justify-start text-left py-3 hover:bg-[#F0F6FE] text-[#333333]"
-                  >
-                    {isLoading ? (
-                      <div className="flex items-center">
-                        <div className="h-4 w-4 border-2 border-t-transparent border-[#1A3C70] rounded-full animate-spin mr-2"></div>
-                        <span>Loading...</span>
-                      </div>
-                    ) : (
-                      <div className="flex items-center">
-                        <Pill className="h-4 w-4 mr-2 text-[#1A3C70]" />
-                        <span className="font-medium text-[#1A3C70] capitalize">{result}</span>
-                      </div>
-                    )}
-                  </Button>
-                </li>
-              ))}
-            </ul>
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        {/* Left column (form and alerts) */}
+        <div className="lg:col-span-7 space-y-6">
+          <Card className="p-6 border-[#DCE8F7] bg-white">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="bg-[#1A3C70] p-2 rounded-full">
+                <Pill className="h-5 w-5 text-white" />
+              </div>
+              <h3 className="text-xl font-semibold text-[#1A3C70]">My Medications</h3>
+            </div>
+
+            <Alert className="mb-6 bg-[#FFFBF2] border-[#FFECC7]">
+              <AlertTriangle className="h-4 w-4 text-[#ED9121]" />
+              <AlertTitle className="text-[#8A6D3B]">Important</AlertTitle>
+              <AlertDescription className="text-[#8A6D3B]">
+                Keep your medication list up to date and share it with your healthcare providers.
+              </AlertDescription>
+            </Alert>
+            
+            <MedicalProfileMedicationsForm />
+            
+            <div className="mt-8 flex justify-end gap-3">
+              <Button 
+                onClick={handleSave} 
+                className="bg-[#1A3C70] hover:bg-[#15366D] text-white"
+                disabled={isSaving}
+              >
+                {isSaving ? 'Saving...' : 'Save'}
+                {!isSaving && <Save className="ml-2 h-4 w-4" />}
+              </Button>
+            </div>
           </Card>
-        )}
-      </Card>
-      
-      {selectedMedication && (
-        <div className="bg-white rounded-lg border border-[#DCE8F7] p-6">
-          <div className="flex justify-between mb-6">
-            <Button 
-              variant="outline" 
-              onClick={() => setSelectedMedication(null)}
-              className="text-[#1A3C70] border-[#C8D7EC] hover:bg-[#F0F6FE] flex items-center"
-            >
-              <ChevronLeft className="h-4 w-4 mr-1" />
-              Back to search
-            </Button>
-            <Button 
-              onClick={() => {
-                toast.info("Functionality to add medication to your list would be implemented here");
-                setSelectedMedication(null);
-              }}
-              className="flex items-center gap-2 bg-[#1A3C70] hover:bg-[#15366D] text-white"
-            >
-              <PlusCircle className="h-4 w-4" />
-              Add to My Medications
-            </Button>
-          </div>
-          <MedicationDetails medication={selectedMedication} />
-        </div>
-      )}
-
-      <div className="bg-white rounded-lg border border-[#DCE8F7] p-6">
-        <div className="flex items-center gap-3 mb-6">
-          <div className="bg-[#1A3C70] p-2 rounded-full">
-            <Pill className="h-5 w-5 text-white" />
-          </div>
-          <h3 className="text-xl font-semibold text-[#1A3C70]">My Medications</h3>
         </div>
 
-        <Alert className="mb-6 bg-[#FFFBF2] border-[#FFECC7]">
-          <AlertTriangle className="h-4 w-4 text-[#ED9121]" />
-          <AlertTitle className="text-[#8A6D3B]">Important</AlertTitle>
-          <AlertDescription className="text-[#8A6D3B]">
-            Keep your medication list up to date and share it with your healthcare providers.
-          </AlertDescription>
-        </Alert>
-        
-        <MedicalProfileMedicationsForm />
-        
-        <div className="mt-8 flex justify-end gap-3">
-          <Button 
-            onClick={handleSave} 
-            className="bg-[#1A3C70] hover:bg-[#15366D] text-white"
-            disabled={isSaving}
-          >
-            {isSaving ? 'Saving...' : 'Save'}
-            {!isSaving && <Save className="ml-2 h-4 w-4" />}
-          </Button>
+        {/* Right column (drug information) */}
+        <div className="lg:col-span-5 space-y-6">
+          <Card className="p-6 border-[#DCE8F7] bg-[#F0F6FE]">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="bg-[#1A3C70] p-2 rounded-full">
+                <BookOpen className="h-5 w-5 text-white" />
+              </div>
+              <h3 className="text-xl font-semibold text-[#1A3C70]">Drug Information Lookup</h3>
+            </div>
+            
+            <Alert className="bg-white border-[#DCE8F7] mb-4">
+              <Info className="h-4 w-4 text-[#1A3C70]" />
+              <AlertTitle className="text-[#1A3C70]">Look up medication information</AlertTitle>
+              <AlertDescription className="text-[#666666]">
+                Search for medications to view detailed information from Drugs.com including dosage, side effects, interactions, and more.
+              </AlertDescription>
+            </Alert>
+            
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <Input
+                  type="search"
+                  placeholder="Search for a medication..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                  className="pr-10 border-[#C8D7EC] focus-visible:ring-[#1A3C70] bg-white"
+                />
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleSearch}
+                  disabled={isSearching}
+                  className="absolute right-0 top-0 h-full text-[#8E9196] hover:text-[#1A3C70]"
+                >
+                  {isSearching ? 
+                    <div className="h-4 w-4 border-2 border-t-transparent border-[#8E9196] rounded-full animate-spin"></div> : 
+                    <Search className="h-4 w-4" />
+                  }
+                </Button>
+              </div>
+            </div>
+            
+            {searchResults.length > 0 && !selectedMedication && (
+              <Card className="p-4 border-[#DCE8F7] mt-4 bg-white">
+                <h3 className="font-medium mb-2 text-[#1A3C70]">Search Results</h3>
+                <Separator className="bg-[#DCE8F7] mb-3" />
+                <ul className="space-y-1 divide-y divide-[#F0F6FE]">
+                  {searchResults.map((result) => (
+                    <li key={result}>
+                      <Button 
+                        variant="ghost" 
+                        onClick={() => handleSelectMedication(result)}
+                        disabled={isLoading}
+                        className="w-full justify-start text-left py-3 hover:bg-[#F0F6FE] text-[#333333]"
+                      >
+                        {isLoading ? (
+                          <div className="flex items-center">
+                            <div className="h-4 w-4 border-2 border-t-transparent border-[#1A3C70] rounded-full animate-spin mr-2"></div>
+                            <span>Loading...</span>
+                          </div>
+                        ) : (
+                          <div className="flex items-center">
+                            <Pill className="h-4 w-4 mr-2 text-[#1A3C70]" />
+                            <span className="font-medium text-[#1A3C70] capitalize">{result}</span>
+                          </div>
+                        )}
+                      </Button>
+                    </li>
+                  ))}
+                </ul>
+              </Card>
+            )}
+          </Card>
+
+          {selectedMedication && (
+            <div className="bg-white rounded-lg border border-[#DCE8F7] p-6">
+              <div className="flex justify-between mb-6">
+                <Button 
+                  variant="outline" 
+                  onClick={() => setSelectedMedication(null)}
+                  className="text-[#1A3C70] border-[#C8D7EC] hover:bg-[#F0F6FE] flex items-center"
+                >
+                  <ChevronLeft className="h-4 w-4 mr-1" />
+                  Back to search
+                </Button>
+                <Button 
+                  onClick={() => {
+                    toast.info("Functionality to add medication to your list would be implemented here");
+                    setSelectedMedication(null);
+                  }}
+                  className="flex items-center gap-2 bg-[#1A3C70] hover:bg-[#15366D] text-white"
+                >
+                  <PlusCircle className="h-4 w-4" />
+                  Add to My Medications
+                </Button>
+              </div>
+              <MedicationDetails medication={selectedMedication} />
+            </div>
+          )}
         </div>
       </div>
       
