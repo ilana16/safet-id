@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import PageLayout from '@/components/layout/PageLayout';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, Save } from 'lucide-react';
+import { ChevronLeft, Save, Edit } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from '@/lib/toast';
 import { useMedicalProfile } from '@/contexts/MedicalProfileContext';
@@ -31,6 +31,7 @@ const MedicalProfile = () => {
   const [hasMentalHealthHistory, setHasMentalHealthHistory] = useState('no');
   const [isSaving, setIsSaving] = useState(false);
   const [isLoadingData, setIsLoadingData] = useState(true);
+  const [isEditing, setIsEditing] = useState(true);
   
   const pathParts = location.pathname.split('/');
   const currentSection = pathParts[pathParts.length - 1] === 'profile' ? 'personal' : pathParts[pathParts.length - 1];
@@ -76,6 +77,10 @@ const MedicalProfile = () => {
       
       if (saved) {
         toast.success(`${getSectionTitle(currentSection)} information saved successfully`);
+        // Switch to view mode after saving if not in medications section
+        if (currentSection !== 'medications') {
+          setIsEditing(false);
+        }
       } else {
         toast.error(`No data found to save for ${getSectionTitle(currentSection)}`);
       }
@@ -96,12 +101,29 @@ const MedicalProfile = () => {
     
     saveCurrentSectionData();
     navigate(`/profile/${value}`);
+    
+    // Reset to edit mode for medications, view mode for others
+    setIsEditing(value === 'medications');
   };
 
   const getSectionTitle = (section: string): string => {
     const sectionObj = sections.find(s => s.id === section);
     return sectionObj ? sectionObj.label : 'Section';
   };
+
+  // Toggle edit mode
+  const toggleEditMode = () => {
+    if (isEditing) {
+      // If currently editing, save data before exiting edit mode
+      saveCurrentSectionData();
+    } else {
+      // Enter edit mode
+      setIsEditing(true);
+    }
+  };
+
+  // Determine if we should show edit controls
+  const showEditControls = currentSection !== 'medications';
 
   return (
     <PageLayout className="bg-gray-50">
@@ -126,18 +148,6 @@ const MedicalProfile = () => {
             <p className="text-gray-600 mt-1">
               Update your comprehensive medical information with our new section-by-section editor
             </p>
-            <div className="flex items-center">
-              <Button
-                onClick={saveCurrentSectionData}
-                variant="outline"
-                size="sm"
-                className="flex items-center gap-1 text-xs"
-                disabled={isSaving || isLoadingData}
-              >
-                {isSaving ? 'Saving...' : isLoadingData ? 'Loading...' : 'Save'}
-                {!isSaving && !isLoadingData && <Save className="h-3 w-3" />}
-              </Button>
-            </div>
           </div>
         </div>
 
@@ -171,17 +181,68 @@ const MedicalProfile = () => {
           </div>
           
           <div className="md:col-span-3 bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-            <div className="p-6">
-              {isLoadingData ? (
-                <div className="flex justify-center items-center h-32">
-                  <div className="animate-pulse flex flex-col items-center">
-                    <div className="h-8 w-8 bg-safet-200 rounded-full mb-4"></div>
-                    <div className="h-4 w-32 bg-safet-100 rounded mb-3"></div>
-                    <div className="h-3 w-24 bg-safet-50 rounded"></div>
+            <div className="p-0">
+              {/* Section header with action buttons */}
+              <div className="bg-gray-50 border-b border-gray-200 px-6 py-3 flex justify-between items-center">
+                <h2 className="text-lg font-medium text-gray-900">
+                  {getSectionTitle(currentSection)}
+                </h2>
+                
+                {showEditControls && (
+                  <div className="flex items-center gap-2">
+                    {isEditing ? (
+                      <Button 
+                        onClick={saveCurrentSectionData} 
+                        className="bg-safet-500 hover:bg-safet-600 text-white"
+                        size="sm"
+                        disabled={isSaving}
+                      >
+                        {isSaving ? 'Saving...' : 'Save'}
+                        {!isSaving && <Save className="ml-2 h-4 w-4" />}
+                      </Button>
+                    ) : (
+                      <Button 
+                        onClick={toggleEditMode} 
+                        variant="outline"
+                        size="sm"
+                        className="text-safet-600 border-safet-300 hover:bg-safet-50"
+                      >
+                        Edit
+                        <Edit className="ml-2 h-4 w-4" />
+                      </Button>
+                    )}
                   </div>
+                )}
+              </div>
+
+              <div className="p-6">
+                {isLoadingData ? (
+                  <div className="flex justify-center items-center h-32">
+                    <div className="animate-pulse flex flex-col items-center">
+                      <div className="h-8 w-8 bg-safet-200 rounded-full mb-4"></div>
+                      <div className="h-4 w-32 bg-safet-100 rounded mb-3"></div>
+                      <div className="h-3 w-24 bg-safet-50 rounded"></div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className={`${showEditControls && !isEditing ? 'pointer-events-none opacity-90' : ''}`}>
+                    <Outlet context={{ isEditing }} />
+                  </div>
+                )}
+              </div>
+              
+              {/* Footer action buttons for non-medication sections */}
+              {showEditControls && isEditing && (
+                <div className="border-t border-gray-200 px-6 py-4 bg-gray-50 flex justify-end">
+                  <Button 
+                    onClick={saveCurrentSectionData} 
+                    className="bg-safet-500 hover:bg-safet-600 text-white"
+                    disabled={isSaving}
+                  >
+                    {isSaving ? 'Saving...' : 'Save'}
+                    {!isSaving && <Save className="ml-2 h-4 w-4" />}
+                  </Button>
                 </div>
-              ) : (
-                <Outlet />
               )}
             </div>
           </div>

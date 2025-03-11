@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
+import { useOutletContext } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Save } from 'lucide-react';
 import MedicalProfileHistoryForm from '@/components/forms/MedicalProfileHistoryForm';
@@ -7,7 +8,12 @@ import { toast } from '@/lib/toast';
 import { logChanges } from '@/utils/changeLog';
 import { loadSectionData, saveSectionData, MEDICAL_DATA_CHANGE_EVENT } from '@/utils/medicalProfileService';
 
+interface SectionContext {
+  isEditing: boolean;
+}
+
 const HistorySection = () => {
+  const { isEditing } = useOutletContext<SectionContext>();
   const [isSaving, setIsSaving] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
   
@@ -102,30 +108,12 @@ const HistorySection = () => {
   };
 
   return (
-    <div>
-      <div className="flex justify-end mb-6">
-        <Button 
-          onClick={handleSave} 
-          className="bg-safet-500 hover:bg-safet-600"
-          disabled={isSaving}
-        >
-          {isSaving ? 'Saving...' : 'Save'}
-          {!isSaving && <Save className="ml-2 h-4 w-4" />}
-        </Button>
-      </div>
-      
-      {isLoaded && <MedicalProfileHistoryForm />}
-      
-      <div className="mt-8 flex justify-end gap-3">
-        <Button 
-          onClick={handleSave} 
-          className="bg-safet-500 hover:bg-safet-600"
-          disabled={isSaving}
-        >
-          {isSaving ? 'Saving...' : 'Save'}
-          {!isSaving && <Save className="ml-2 h-4 w-4" />}
-        </Button>
-      </div>
+    <div className={`${!isEditing ? 'opacity-90' : ''}`}>
+      {isLoaded && (
+        <div className={`${!isEditing ? 'pointer-events-none' : ''}`}>
+          <MedicalProfileHistoryForm />
+        </div>
+      )}
     </div>
   );
 };
