@@ -7,6 +7,19 @@
 
 import { MedicationInfo } from './medicationData';
 
+// Function to search for drug information
+export const searchDrugInfo = async (query: string): Promise<MedicationInfo | null> => {
+  if (!query || query.length < 2) return null;
+  
+  // Simulate API call delay
+  await new Promise(resolve => setTimeout(resolve, 1000));
+  
+  console.log('Searching drug information for:', query);
+  
+  // Get the medication info from our local database
+  return getMedicationInfoLocal(query);
+};
+
 // Function to search for medications, simulating a Drugs.com search
 export const searchDrugsCom = async (query: string): Promise<string[]> => {
   if (!query || query.length < 2) return [];

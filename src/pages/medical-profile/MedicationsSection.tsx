@@ -6,14 +6,15 @@ import MedicalProfileMedicationsForm from '@/components/forms/MedicalProfileMedi
 import { toast } from '@/lib/toast';
 import { logChanges } from '@/utils/changeLog';
 import { Input } from '@/components/ui/input';
-import MedicationInfo from '@/components/medications/MedicationInfo';
+import MedicationDetails from '@/components/medications/MedicationInfo';
 import { searchDrugInfo } from '@/utils/drugsComApi';
+import { MedicationInfo as MedicationInfoType } from '@/utils/medicationData';
 
 const MedicationsSection = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [isSearching, setIsSearching] = useState(false);
-  const [drugInfo, setDrugInfo] = useState<any>(null);
+  const [drugInfo, setDrugInfo] = useState<MedicationInfoType | null>(null);
   const [error, setError] = useState<string | null>(null);
   
   useEffect(() => {
@@ -162,7 +163,7 @@ const MedicationsSection = () => {
     try {
       const result = await searchDrugInfo(searchTerm);
       setDrugInfo(result);
-      if (!result || Object.keys(result).length === 0) {
+      if (!result) {
         setError(`No information found for "${searchTerm}"`);
       }
     } catch (err) {
@@ -222,7 +223,7 @@ const MedicationsSection = () => {
           </div>
         )}
         
-        {drugInfo && <MedicationInfo drugInfo={drugInfo} />}
+        {drugInfo && <MedicationDetails medication={drugInfo} />}
       </div>
       
       <MedicalProfileMedicationsForm />
