@@ -107,8 +107,7 @@ const MentalSection = () => {
           ...existingProfile,
           mental: {
             ...newFormData,
-            completed: true,
-            lastUpdated: new Date().toISOString()
+            completed: true
           }
         };
         
@@ -118,8 +117,7 @@ const MentalSection = () => {
         // Also update session storage
         sessionStorage.setItem('mentalHealthFormData', JSON.stringify({
           ...newFormData,
-          completed: true,
-          lastUpdated: new Date().toISOString()
+          completed: true
         }));
         
         if (changes.length > 0) {

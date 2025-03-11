@@ -83,8 +83,7 @@ const SocialSection = () => {
           ...existingProfile,
           social: {
             ...newFormData,
-            completed: true,
-            lastUpdated: new Date().toISOString()
+            completed: true
           }
         };
         
@@ -94,8 +93,7 @@ const SocialSection = () => {
         // Also update session storage
         sessionStorage.setItem('socialHistoryFormData', JSON.stringify({
           ...newFormData,
-          completed: true,
-          lastUpdated: new Date().toISOString()
+          completed: true
         }));
         
         if (changes.length > 0) {

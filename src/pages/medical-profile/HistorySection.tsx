@@ -110,8 +110,7 @@ const HistorySection = () => {
           ...existingProfile,
           history: {
             ...newFormData,
-            completed: true,
-            lastUpdated: new Date().toISOString()
+            completed: true
           }
         };
         
@@ -121,8 +120,7 @@ const HistorySection = () => {
         // Also update session storage
         sessionStorage.setItem('historyFormData', JSON.stringify({
           ...newFormData,
-          completed: true,
-          lastUpdated: new Date().toISOString()
+          completed: true
         }));
         
         if (changes.length > 0) {

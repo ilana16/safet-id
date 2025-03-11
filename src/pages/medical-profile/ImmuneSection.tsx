@@ -97,8 +97,7 @@ const ImmuneSection = () => {
           ...existingProfile,
           immunizations: {
             ...newFormData,
-            completed: true,
-            lastUpdated: new Date().toISOString()
+            completed: true
           }
         };
         
@@ -108,8 +107,7 @@ const ImmuneSection = () => {
         // Also update session storage
         sessionStorage.setItem('immunizationsFormData', JSON.stringify({
           ...newFormData,
-          completed: true,
-          lastUpdated: new Date().toISOString()
+          completed: true
         }));
         
         if (changes.length > 0) {

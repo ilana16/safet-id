@@ -93,13 +93,11 @@ const CulturalSection = () => {
       });
       
       setTimeout(() => {
-        const saveTimestamp = new Date().toISOString();
         const updatedProfile = {
           ...existingProfile,
           cultural: {
             ...newFormData,
-            completed: true,
-            lastUpdated: saveTimestamp
+            completed: true
           }
         };
         
@@ -109,8 +107,7 @@ const CulturalSection = () => {
         // Also update session storage
         sessionStorage.setItem('culturalPreferencesFormData', JSON.stringify({
           ...newFormData,
-          completed: true,
-          lastUpdated: saveTimestamp
+          completed: true
         }));
         
         if (changes.length > 0) {

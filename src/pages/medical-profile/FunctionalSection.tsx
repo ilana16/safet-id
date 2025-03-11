@@ -83,8 +83,7 @@ const FunctionalSection = () => {
           ...existingProfile,
           functional: {
             ...newFormData,
-            completed: true,
-            lastUpdated: new Date().toISOString()
+            completed: true
           }
         };
         
@@ -94,8 +93,7 @@ const FunctionalSection = () => {
         // Also update session storage
         sessionStorage.setItem('functionalStatusFormData', JSON.stringify({
           ...newFormData,
-          completed: true,
-          lastUpdated: new Date().toISOString()
+          completed: true
         }));
         
         if (changes.length > 0) {

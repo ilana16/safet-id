@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import PageLayout from '@/components/layout/PageLayout';
@@ -25,7 +26,6 @@ const MedicalProfileForm = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [hasMentalHealthHistory, setHasMentalHealthHistory] = useState('no');
   const [formData, setFormData] = useState<any>({});
-  const [lastSaved, setLastSaved] = useState<string | null>(null);
   
   const currentSection = section || 'personal';
 
@@ -44,11 +44,6 @@ const MedicalProfileForm = () => {
         }
         
         setFormData(parsedData);
-        
-        if (parsedData.lastUpdated) {
-          setLastSaved(parsedData.lastUpdated);
-        }
-        
         return;
       }
       
@@ -70,10 +65,6 @@ const MedicalProfileForm = () => {
           (window as any)[windowKey] = savedProfile[currentSection];
           
           sessionStorage.setItem(sessionKey, JSON.stringify(savedProfile[currentSection]));
-        }
-        
-        if (savedProfile[currentSection].lastUpdated) {
-          setLastSaved(savedProfile[currentSection].lastUpdated);
         }
       } else {
         setFormData({});
@@ -179,15 +170,12 @@ const MedicalProfileForm = () => {
       const additionalData = currentSection === 'history' ? 
         { hasMentalHealthHistory } : {};
       
-      const saveTimestamp = new Date().toISOString();
-      
       setTimeout(() => {
         const updatedProfile = {
           ...existingProfile,
           [currentSection]: {
             ...newFormData,
             completed: true,
-            lastUpdated: saveTimestamp,
             ...additionalData
           }
         };
@@ -199,7 +187,6 @@ const MedicalProfileForm = () => {
         sessionStorage.setItem(sessionKey, JSON.stringify({
           ...newFormData,
           completed: true,
-          lastUpdated: saveTimestamp,
           ...additionalData
         }));
         
@@ -208,7 +195,6 @@ const MedicalProfileForm = () => {
         }
         
         setIsSaving(false);
-        setLastSaved(saveTimestamp);
         toast.success('Medical information saved successfully');
         
         if (currentSection === 'preventative') {
@@ -301,47 +287,6 @@ const MedicalProfileForm = () => {
     }
   };
 
-  const formatLastSaved = (timestamp: string | null) => {
-    if (!timestamp) return null;
-    
-    try {
-      const date = new Date(timestamp);
-      
-      if (isNaN(date.getTime())) return null;
-      
-      const now = new Date();
-      const isToday = date.getDate() === now.getDate() && 
-                     date.getMonth() === now.getMonth() && 
-                     date.getFullYear() === now.getFullYear();
-      
-      if (isToday) {
-        return `Today at ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
-      }
-      
-      const yesterday = new Date(now);
-      yesterday.setDate(now.getDate() - 1);
-      const isYesterday = date.getDate() === yesterday.getDate() && 
-                         date.getMonth() === yesterday.getMonth() && 
-                         date.getFullYear() === yesterday.getFullYear();
-      
-      if (isYesterday) {
-        return `Yesterday at ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
-      }
-      
-      return date.toLocaleDateString([], { 
-        year: 'numeric', 
-        month: 'short', 
-        day: 'numeric' 
-      }) + ' at ' + date.toLocaleTimeString([], { 
-        hour: '2-digit', 
-        minute: '2-digit' 
-      });
-    } catch (e) {
-      console.error('Error formatting timestamp:', e);
-      return null;
-    }
-  };
-
   return (
     <PageLayout className="bg-gray-50">
       <div className="max-w-3xl mx-auto px-4 py-8">
@@ -372,11 +317,6 @@ const MedicalProfileForm = () => {
             <p className="text-gray-600 mt-1">
               Update your medical information
             </p>
-            {lastSaved && (
-              <p className="text-xs text-gray-500 mt-1">
-                Last saved: {formatLastSaved(lastSaved)}
-              </p>
-            )}
           </div>
         </div>
         
@@ -385,11 +325,6 @@ const MedicalProfileForm = () => {
           
           <div className="mt-8 flex items-center justify-between">
             <div>
-              {lastSaved && (
-                <p className="text-xs text-gray-500">
-                  Last saved: {formatLastSaved(lastSaved)}
-                </p>
-              )}
             </div>
             
             <div className="flex gap-3">

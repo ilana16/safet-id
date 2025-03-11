@@ -83,8 +83,7 @@ const MedicationsSection = () => {
           ...existingProfile,
           medications: {
             ...newFormData,
-            completed: true,
-            lastUpdated: new Date().toISOString()
+            completed: true
           }
         };
         
@@ -94,8 +93,7 @@ const MedicationsSection = () => {
         // Also update session storage
         sessionStorage.setItem('medicationsFormData', JSON.stringify({
           ...newFormData,
-          completed: true,
-          lastUpdated: new Date().toISOString()
+          completed: true
         }));
         
         if (changes.length > 0) {

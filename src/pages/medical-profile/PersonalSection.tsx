@@ -107,13 +107,11 @@ const PersonalSection = () => {
       });
       
       setTimeout(() => {
-        const saveTimestamp = new Date().toISOString();
         const updatedProfile = {
           ...existingProfile,
           personal: {
             ...newFormData,
-            completed: true,
-            lastUpdated: saveTimestamp
+            completed: true
           }
         };
         
@@ -123,8 +121,7 @@ const PersonalSection = () => {
         // Also update session storage
         sessionStorage.setItem('personalFormData', JSON.stringify({
           ...newFormData,
-          completed: true,
-          lastUpdated: saveTimestamp
+          completed: true
         }));
         
         if (changes.length > 0) {

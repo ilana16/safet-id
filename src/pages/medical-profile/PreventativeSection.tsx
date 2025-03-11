@@ -80,8 +80,7 @@ const PreventativeSection = () => {
           ...existingProfile,
           preventative: {
             ...newFormData,
-            completed: true,
-            lastUpdated: new Date().toISOString()
+            completed: true
           }
         };
         
@@ -91,8 +90,7 @@ const PreventativeSection = () => {
         // Also update session storage
         sessionStorage.setItem('preventativeCareFormData', JSON.stringify({
           ...newFormData,
-          completed: true,
-          lastUpdated: new Date().toISOString()
+          completed: true
         }));
         
         if (changes.length > 0) {

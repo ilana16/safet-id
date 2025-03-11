@@ -83,8 +83,7 @@ const ReproductiveSection = () => {
           ...existingProfile,
           reproductive: {
             ...newFormData,
-            completed: true,
-            lastUpdated: new Date().toISOString()
+            completed: true
           }
         };
         
@@ -94,8 +93,7 @@ const ReproductiveSection = () => {
         // Also update session storage
         sessionStorage.setItem('reproductiveHistoryFormData', JSON.stringify({
           ...newFormData,
-          completed: true,
-          lastUpdated: new Date().toISOString()
+          completed: true
         }));
         
         if (changes.length > 0) {
