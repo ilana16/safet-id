@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import PageLayout from '@/components/layout/PageLayout';
@@ -6,6 +7,13 @@ import { ChevronLeft, Save } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from '@/lib/toast';
 import { logChanges } from '@/utils/changeLog';
+import { 
+  loadSectionData, 
+  saveSectionData, 
+  loadAllSectionData, 
+  MEDICAL_DATA_CHANGE_EVENT, 
+  getWindowKeyForSection 
+} from '@/utils/medicalProfileService';
 
 type SectionType = 'personal' | 'history' | 'medications' | 'allergies' | 'immunizations' | 'social' | 
                    'reproductive' | 'mental' | 'functional' | 'cultural';
@@ -34,237 +42,104 @@ const MedicalProfile = () => {
   const pathParts = location.pathname.split('/');
   const currentSection = pathParts[pathParts.length - 1] === 'profile' ? 'personal' : pathParts[pathParts.length - 1];
 
+  // Initial data load
   useEffect(() => {
     console.log('Loading all profile data on component mount');
-    loadFullProfileData();
+    setIsLoadingData(true);
     
-    const reloadInterval = setInterval(() => {
-      loadFullProfileData(false);
-    }, 60000);
+    const profileData = loadAllSectionData();
+    setProfileData(profileData);
+    
+    if (profileData && profileData.history && profileData.history.hasMentalHealthHistory) {
+      setHasMentalHealthHistory(profileData.history.hasMentalHealthHistory);
+    }
+    
+    setIsLoadingData(false);
+    
+    // Set up a listener for data changes from other components
+    const handleDataChange = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      console.log('Detected data change:', customEvent.detail);
+      
+      // Reload the section that changed
+      if (customEvent.detail?.section) {
+        const sectionData = loadSectionData(customEvent.detail.section);
+        setProfileData(prev => ({
+          ...prev,
+          [customEvent.detail.section]: sectionData
+        }));
+        
+        // Update mental health history if needed
+        if (customEvent.detail.section === 'history' && sectionData.hasMentalHealthHistory) {
+          setHasMentalHealthHistory(sectionData.hasMentalHealthHistory);
+        }
+      }
+    };
+    
+    window.addEventListener(MEDICAL_DATA_CHANGE_EVENT, handleDataChange);
     
     return () => {
-      clearInterval(reloadInterval);
+      window.removeEventListener(MEDICAL_DATA_CHANGE_EVENT, handleDataChange);
     };
   }, []);
 
+  // Handle route changes
   useEffect(() => {
     console.log(`Route changed to ${location.pathname}, loading section: ${currentSection}`);
     setIsLoadingData(true);
     
     try {
-      loadCurrentSectionData();
+      // Load current section data
+      loadSectionData(currentSection);
       
-      loadFullProfileData(false);
+      // Also refresh all profile data
+      const profileData = loadAllSectionData();
+      setProfileData(profileData);
+      
+      if (profileData && profileData.history && profileData.history.hasMentalHealthHistory) {
+        setHasMentalHealthHistory(profileData.history.hasMentalHealthHistory);
+      }
     } catch (error) {
       console.error('Error reloading section data:', error);
     } finally {
       setIsLoadingData(false);
     }
-  }, [location.pathname]);
+  }, [location.pathname, currentSection]);
 
-  const loadFullProfileData = (showLoading = true) => {
-    if (showLoading) {
-      setIsLoadingData(true);
-    }
-    
-    try {
-      const savedProfileJson = localStorage.getItem('medicalProfile');
-      if (!savedProfileJson) {
-        if (showLoading) setIsLoadingData(false);
-        return;
-      }
-      
-      const savedProfile = JSON.parse(savedProfileJson);
-      console.log('Loaded full profile data:', savedProfile);
-      
-      setProfileData(savedProfile);
-      
-      if (savedProfile && savedProfile.history && savedProfile.history.hasMentalHealthHistory) {
-        setHasMentalHealthHistory(savedProfile.history.hasMentalHealthHistory);
-      }
-    } catch (error) {
-      console.error('Error loading full medical profile data:', error);
-    } finally {
-      if (showLoading) {
-        setIsLoadingData(false);
-      }
-    }
-  };
-
-  const loadCurrentSectionData = () => {
-    try {
-      const sessionKey = `${currentSection}FormData`;
-      const sessionData = sessionStorage.getItem(sessionKey);
-      
-      if (sessionData) {
-        try {
-          const parsedData = JSON.parse(sessionData);
-          console.log(`Loaded ${currentSection} data from session storage:`, parsedData);
-          
-          const windowKey = getCurrentSectionWindowKey(currentSection);
-          if (windowKey) {
-            console.log(`Setting ${windowKey} data from session storage`);
-            (window as any)[windowKey] = parsedData;
-          }
-          
-          return;
-        } catch (e) {
-          console.error(`Error parsing session data for ${currentSection}:`, e);
-        }
-      }
-      
-      const savedProfileJson = localStorage.getItem('medicalProfile');
-      if (!savedProfileJson) return;
-      
-      const savedProfile = JSON.parse(savedProfileJson);
-      if (savedProfile && savedProfile[currentSection]) {
-        console.log(`Loaded ${currentSection} data from localStorage:`, savedProfile[currentSection]);
-        
-        const windowKey = getCurrentSectionWindowKey(currentSection);
-        if (windowKey) {
-          console.log(`Setting ${windowKey} data from localStorage`);
-          (window as any)[windowKey] = savedProfile[currentSection];
-          
-          sessionStorage.setItem(sessionKey, JSON.stringify(savedProfile[currentSection]));
-        }
-      }
-    } catch (error) {
-      console.error(`Error loading data for ${currentSection}:`, error);
-    }
-  };
-
-  useEffect(() => {
-    const reloadTimeout = setTimeout(() => {
-      loadCurrentSectionData();
-    }, 100);
-    
-    const autoSaveInterval = setInterval(() => {
-      const windowKey = getCurrentSectionWindowKey(currentSection);
-      if (windowKey && (window as any)[windowKey]) {
-        const sessionKey = `${currentSection}FormData`;
-        const currentData = (window as any)[windowKey];
-        sessionStorage.setItem(sessionKey, JSON.stringify(currentData));
-        console.log(`Auto-saved ${currentSection} data to session storage:`, currentData);
-      }
-    }, 30000);
-    
-    return () => {
-      clearTimeout(reloadTimeout);
-      clearInterval(autoSaveInterval);
-    };
-  }, [currentSection]);
-
+  // Handle saving current section data
   const saveCurrentSectionData = () => {
-    const formDataKey = getCurrentSectionWindowKey(currentSection);
-    console.log(`Attempting to save data for section: ${currentSection}, using key: ${formDataKey}`);
-    
-    const currentFormData = (window as any)[formDataKey];
-    
-    if (!currentFormData) {
-      console.log(`No form data found for ${currentSection} with key ${formDataKey}`);
-      return false;
-    }
-    
-    console.log(`Auto-saving ${currentSection} data before tab change:`, currentFormData);
+    console.log(`Attempting to save data for section: ${currentSection}`);
     setIsSaving(true);
     
     try {
-      const existingProfileJson = localStorage.getItem('medicalProfile');
-      const existingProfile = existingProfileJson ? JSON.parse(existingProfileJson) : {};
-      const existingSectionData = existingProfile[currentSection] || {};
+      const saved = saveSectionData(currentSection);
       
-      const changes: {field: string; oldValue: any; newValue: any}[] = [];
-      
-      if (currentSection === 'medications' || 
-          currentSection === 'social' || 
-          currentSection === 'reproductive' || 
-          currentSection === 'mental' || 
-          currentSection === 'functional' ||
-          currentSection === 'cultural' ||
-          currentSection === 'allergies') {
+      if (saved) {
+        // Reload profile data to ensure UI is up to date
+        const updatedProfile = loadAllSectionData();
+        setProfileData(updatedProfile);
         
-        Object.keys(currentFormData).forEach(key => {
-          const oldValue = existingSectionData[key];
-          const newValue = currentFormData[key];
-          
-          if (JSON.stringify(oldValue) !== JSON.stringify(newValue)) {
-            changes.push({
-              field: key,
-              oldValue: oldValue,
-              newValue: newValue
-            });
-          }
-        });
+        toast.success(`${getSectionTitle(currentSection)} information saved successfully`);
       } else {
-        Object.entries(currentFormData).forEach(([key, value]) => {
-          if (existingSectionData[key] !== value) {
-            changes.push({
-              field: key,
-              oldValue: existingSectionData[key],
-              newValue: value
-            });
-          }
-        });
-      }
-      
-      const updatedProfile = {
-        ...existingProfile,
-        [currentSection]: {
-          ...currentFormData
-        }
-      };
-      
-      localStorage.setItem('medicalProfile', JSON.stringify(updatedProfile));
-      console.log('Auto-saved updated profile:', updatedProfile);
-      
-      sessionStorage.setItem(`${currentSection}FormData`, JSON.stringify({
-        ...currentFormData
-      }));
-      console.log(`Updated session storage for ${currentSection}FormData`);
-      
-      if (changes.length > 0) {
-        logChanges(currentSection, changes);
+        toast.error(`No data found to save for ${getSectionTitle(currentSection)}`);
       }
       
       setIsSaving(false);
-      setProfileData(prev => ({
-        ...prev,
-        [currentSection]: {
-          ...currentFormData
-        }
-      }));
-      return true;
+      return saved;
     } catch (error) {
-      console.error(`Error auto-saving ${currentSection} data:`, error);
+      console.error(`Error saving ${currentSection} data:`, error);
       setIsSaving(false);
+      toast.error(`Error saving ${getSectionTitle(currentSection)} information`);
       return false;
     }
   };
 
+  // Handle tab changes
   const handleTabChange = (value: string) => {
-    const saved = saveCurrentSectionData();
+    if (currentSection === value) return;
     
-    if (saved) {
-      toast.success(`${getSectionTitle(currentSection)} information saved automatically`);
-    }
-    
+    saveCurrentSectionData();
     navigate(`/profile/${value}`);
-  };
-
-  const getCurrentSectionWindowKey = (section: string): string => {
-    switch (section) {
-      case 'personal': return 'personalFormData';
-      case 'history': return 'historyFormData';
-      case 'medications': return 'medicationsFormData';
-      case 'allergies': return 'allergiesFormData';
-      case 'immunizations': return 'immunizationsFormData';
-      case 'social': return 'socialHistoryFormData';
-      case 'reproductive': return 'reproductiveHistoryFormData';
-      case 'mental': return 'mentalHealthFormData';
-      case 'functional': return 'functionalStatusFormData';
-      case 'cultural': return 'culturalPreferencesFormData';
-      default: return '';
-    }
   };
 
   const getSectionTitle = (section: string): string => {
@@ -272,25 +147,16 @@ const MedicalProfile = () => {
     return sectionObj ? sectionObj.label : 'Section';
   };
 
-  useEffect(() => {
-    const handleBeforeUnload = () => {
-      saveCurrentSectionData();
-    };
-    
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    
-    return () => {
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-    };
-  }, [currentSection]);
-
   return (
     <PageLayout className="bg-gray-50">
       <div className="max-w-5xl mx-auto px-4 py-8">
         <div className="mb-6">
           <Button 
             variant="ghost" 
-            onClick={() => navigate('/dashboard')} 
+            onClick={() => {
+              saveCurrentSectionData();
+              navigate('/dashboard');
+            }} 
             className="mb-4"
           >
             <ChevronLeft className="mr-2 h-4 w-4" />
