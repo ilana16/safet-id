@@ -8,14 +8,32 @@ import { logChanges } from '@/utils/changeLog';
 
 const CulturalSection = () => {
   const [isSaving, setIsSaving] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   
   useEffect(() => {
+    setIsLoading(true);
+    loadData();
+    
+    // Setup a data reload interval
+    const reloadInterval = setInterval(() => {
+      // Quietly reload data without showing loading state
+      loadData(false);
+    }, 30000);
+    
+    return () => {
+      clearInterval(reloadInterval);
+    };
+  }, []);
+
+  const loadData = (showLoading = true) => {
     try {
+      console.log('Loading cultural preferences data...');
       // First check if session storage has any data
       const sessionData = sessionStorage.getItem('culturalPreferencesFormData');
       if (sessionData) {
         (window as any).culturalPreferencesFormData = JSON.parse(sessionData);
         console.log('Setting cultural preferences form data from session storage:', JSON.parse(sessionData));
+        if (showLoading) setIsLoading(false);
         return;
       }
       
@@ -33,8 +51,10 @@ const CulturalSection = () => {
       }
     } catch (error) {
       console.error('Error loading cultural preferences data:', error);
+    } finally {
+      if (showLoading) setIsLoading(false);
     }
-  }, []);
+  };
   
   // Add event listener for page unload to save data
   useEffect(() => {
@@ -48,6 +68,21 @@ const CulturalSection = () => {
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, []);
+  
+  // Listen for visibility changes to reload data when coming back to the tab
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        console.log('Tab became visible, reloading cultural data');
+        loadData(false);
+      }
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, []);
   
@@ -76,12 +111,13 @@ const CulturalSection = () => {
       });
       
       setTimeout(() => {
+        const saveTimestamp = new Date().toISOString();
         const updatedProfile = {
           ...existingProfile,
           cultural: {
             ...newFormData,
             completed: true,
-            lastUpdated: new Date().toISOString()
+            lastUpdated: saveTimestamp
           }
         };
         
@@ -92,7 +128,7 @@ const CulturalSection = () => {
         sessionStorage.setItem('culturalPreferencesFormData', JSON.stringify({
           ...newFormData,
           completed: true,
-          lastUpdated: new Date().toISOString()
+          lastUpdated: saveTimestamp
         }));
         
         if (changes.length > 0) {
@@ -115,23 +151,31 @@ const CulturalSection = () => {
         <Button 
           onClick={handleSave} 
           className="bg-safet-500 hover:bg-safet-600"
-          disabled={isSaving}
+          disabled={isSaving || isLoading}
         >
-          {isSaving ? 'Saving...' : 'Save'}
-          {!isSaving && <Save className="ml-2 h-4 w-4" />}
+          {isSaving ? 'Saving...' : isLoading ? 'Loading...' : 'Save'}
+          {!isSaving && !isLoading && <Save className="ml-2 h-4 w-4" />}
         </Button>
       </div>
       
-      <MedicalProfileCulturalPreferencesForm />
+      {isLoading ? (
+        <div className="animate-pulse space-y-6">
+          <div className="h-12 bg-gray-100 rounded-md w-full"></div>
+          <div className="h-40 bg-gray-100 rounded-md w-full"></div>
+          <div className="h-20 bg-gray-100 rounded-md w-full"></div>
+        </div>
+      ) : (
+        <MedicalProfileCulturalPreferencesForm />
+      )}
       
       <div className="mt-8 flex justify-end gap-3">
         <Button 
           onClick={handleSave} 
           className="bg-safet-500 hover:bg-safet-600"
-          disabled={isSaving}
+          disabled={isSaving || isLoading}
         >
-          {isSaving ? 'Saving...' : 'Save'}
-          {!isSaving && <Save className="ml-2 h-4 w-4" />}
+          {isSaving ? 'Saving...' : isLoading ? 'Loading...' : 'Save'}
+          {!isSaving && !isLoading && <Save className="ml-2 h-4 w-4" />}
         </Button>
       </div>
     </div>
@@ -139,3 +183,4 @@ const CulturalSection = () => {
 };
 
 export default CulturalSection;
+

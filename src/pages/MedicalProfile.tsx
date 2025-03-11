@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import PageLayout from '@/components/layout/PageLayout';
@@ -30,19 +31,56 @@ const MedicalProfile = () => {
   const [profileData, setProfileData] = useState({});
   const [isSaving, setIsSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<{[key: string]: string | null}>({});
+  const [isLoadingData, setIsLoadingData] = useState(true);
   
   const pathParts = location.pathname.split('/');
   const currentSection = pathParts[pathParts.length - 1] === 'profile' ? 'personal' : pathParts[pathParts.length - 1];
 
-  // Load all profile data when component mounts or when location changes
+  // Load all profile data when component mounts
   useEffect(() => {
+    console.log('Loading all profile data on component mount');
+    loadFullProfileData();
+    
+    // Setup a reload interval to periodically check for new data
+    const reloadInterval = setInterval(() => {
+      loadFullProfileData(false);
+    }, 60000); // Check every minute for new data
+    
+    return () => {
+      clearInterval(reloadInterval);
+    };
+  }, []);
+
+  // Reload current section data when route changes
+  useEffect(() => {
+    console.log(`Route changed to ${location.pathname}, loading section: ${currentSection}`);
+    setIsLoadingData(true);
+    
     try {
       // Always attempt to load the most up-to-date data for the current section
       loadCurrentSectionData();
       
+      // Also reload full profile data to ensure sidebar is up-to-date
+      loadFullProfileData(false);
+    } catch (error) {
+      console.error('Error reloading section data:', error);
+    } finally {
+      setIsLoadingData(false);
+    }
+  }, [location.pathname]);
+
+  const loadFullProfileData = (showLoading = true) => {
+    if (showLoading) {
+      setIsLoadingData(true);
+    }
+    
+    try {
       // Load the full profile data for the sidebar status
       const savedProfileJson = localStorage.getItem('medicalProfile');
-      if (!savedProfileJson) return;
+      if (!savedProfileJson) {
+        if (showLoading) setIsLoadingData(false);
+        return;
+      }
       
       const savedProfile = JSON.parse(savedProfileJson);
       console.log('Loaded full profile data:', savedProfile);
@@ -65,9 +103,13 @@ const MedicalProfile = () => {
         setHasMentalHealthHistory(savedProfile.history.hasMentalHealthHistory);
       }
     } catch (error) {
-      console.error('Error loading medical profile data:', error);
+      console.error('Error loading full medical profile data:', error);
+    } finally {
+      if (showLoading) {
+        setIsLoadingData(false);
+      }
     }
-  }, [location.pathname]);
+  };
 
   const loadCurrentSectionData = () => {
     try {
@@ -128,7 +170,10 @@ const MedicalProfile = () => {
 
   // Update window object with the current section's form data to make it available for the forms
   useEffect(() => {
-    // Initial load handled by loadCurrentSectionData on location change
+    // Forcibly reload data 100ms after initial load to ensure child components have mounted
+    const reloadTimeout = setTimeout(() => {
+      loadCurrentSectionData();
+    }, 100);
     
     // Save data to session storage periodically for auto-recovery
     const autoSaveInterval = setInterval(() => {
@@ -142,6 +187,7 @@ const MedicalProfile = () => {
     }, 30000); // Auto-save every 30 seconds
     
     return () => {
+      clearTimeout(reloadTimeout);
       clearInterval(autoSaveInterval);
     };
   }, [currentSection]);
@@ -215,11 +261,11 @@ const MedicalProfile = () => {
       console.log('Auto-saved updated profile:', updatedProfile);
       
       // Update session storage
-      sessionStorage.setItem(formDataKey, JSON.stringify({
+      sessionStorage.setItem(`${currentSection}FormData`, JSON.stringify({
         ...currentFormData,
         lastUpdated: saveTimestamp
       }));
-      console.log(`Updated session storage for ${formDataKey}`);
+      console.log(`Updated session storage for ${currentSection}FormData`);
       
       // Update last saved timestamp
       setLastSaved(prev => ({...prev, [currentSection]: saveTimestamp}));
@@ -229,7 +275,13 @@ const MedicalProfile = () => {
       }
       
       setIsSaving(false);
-      setProfileData(updatedProfile); // Update the local state to reflect the changes
+      setProfileData(prev => ({
+        ...prev,
+        [currentSection]: {
+          ...currentFormData,
+          lastUpdated: saveTimestamp
+        }
+      })); // Update the local state to reflect the changes
       return true;
     } catch (error) {
       console.error(`Error auto-saving ${currentSection} data:`, error);
@@ -354,10 +406,10 @@ const MedicalProfile = () => {
                 variant="outline"
                 size="sm"
                 className="flex items-center gap-1 text-xs"
-                disabled={isSaving}
+                disabled={isSaving || isLoadingData}
               >
-                {isSaving ? 'Saving...' : 'Save'}
-                {!isSaving && <Save className="h-3 w-3" />}
+                {isSaving ? 'Saving...' : isLoadingData ? 'Loading...' : 'Save'}
+                {!isSaving && !isLoadingData && <Save className="h-3 w-3" />}
               </Button>
               {lastSaved[currentSection] && (
                 <p className="text-xs text-gray-500 ml-2">
@@ -404,7 +456,17 @@ const MedicalProfile = () => {
           
           <div className="md:col-span-3 bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
             <div className="p-6">
-              <Outlet />
+              {isLoadingData ? (
+                <div className="flex justify-center items-center h-32">
+                  <div className="animate-pulse flex flex-col items-center">
+                    <div className="h-8 w-8 bg-safet-200 rounded-full mb-4"></div>
+                    <div className="h-4 w-32 bg-safet-100 rounded mb-3"></div>
+                    <div className="h-3 w-24 bg-safet-50 rounded"></div>
+                  </div>
+                </div>
+              ) : (
+                <Outlet />
+              )}
             </div>
           </div>
         </div>
@@ -414,3 +476,4 @@ const MedicalProfile = () => {
 };
 
 export default MedicalProfile;
+
