@@ -1,15 +1,13 @@
 
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Save, ShieldAlert, Syringe } from 'lucide-react';
+import { Save } from 'lucide-react';
 import MedicalProfileAllergiesForm from '@/components/forms/MedicalProfileAllergiesForm';
 import { toast } from '@/lib/toast';
 import { logChanges } from '@/utils/changeLog';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const AllergiesSection = () => {
   const [isSaving, setIsSaving] = useState(false);
-  const [activeTab, setActiveTab] = useState("allergies");
   
   useEffect(() => {
     try {
@@ -128,18 +126,6 @@ const AllergiesSection = () => {
     }
   };
 
-  // Create a handler to change tabs
-  const handleTabChange = (value: string) => {
-    // First save current form data to session storage before changing tabs
-    const currentFormData = (window as any).allergiesFormData;
-    if (currentFormData) {
-      sessionStorage.setItem('allergiesFormData', JSON.stringify(currentFormData));
-    }
-    
-    // Set the new active tab
-    setActiveTab(value);
-  };
-
   return (
     <div>
       <div className="flex justify-end mb-6">
@@ -153,24 +139,7 @@ const AllergiesSection = () => {
         </Button>
       </div>
       
-      <Tabs defaultValue="allergies" value={activeTab} onValueChange={handleTabChange}>
-        <TabsList className="mb-6">
-          <TabsTrigger value="allergies" className="flex items-center gap-1">
-            <ShieldAlert className="h-4 w-4" /> Allergies
-          </TabsTrigger>
-          <TabsTrigger value="immunizations" className="flex items-center gap-1">
-            <Syringe className="h-4 w-4" /> Immunizations & Vaccines
-          </TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="allergies" className="pt-2">
-          <MedicalProfileAllergiesForm showOnlyAllergies={true} />
-        </TabsContent>
-        
-        <TabsContent value="immunizations" className="pt-2">
-          <MedicalProfileAllergiesForm showOnlyImmunizations={true} />
-        </TabsContent>
-      </Tabs>
+      <MedicalProfileAllergiesForm />
       
       <div className="mt-8 flex justify-end gap-3">
         <Button 

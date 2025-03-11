@@ -4,16 +4,18 @@ import * as TabsPrimitive from "@radix-ui/react-tabs"
 
 import { cn } from "@/lib/utils"
 
+interface TabsProps extends React.ComponentPropsWithoutRef<typeof TabsPrimitive.Root> {
+  orientation?: "horizontal" | "vertical"
+}
+
 const Tabs = React.forwardRef<
   React.ElementRef<typeof TabsPrimitive.Root>,
-  React.ComponentPropsWithoutRef<typeof TabsPrimitive.Root> & {
-    orientation?: "horizontal" | "vertical"
-  }
+  TabsProps
 >(({ className, orientation = "horizontal", ...props }, ref) => (
   <TabsPrimitive.Root
     ref={ref}
     className={cn(
-      orientation === "vertical" ? "flex flex-row" : "",
+      orientation === "vertical" ? "flex" : "",
       className
     )}
     {...props}
@@ -23,15 +25,12 @@ Tabs.displayName = TabsPrimitive.Root.displayName
 
 const TabsList = React.forwardRef<
   React.ElementRef<typeof TabsPrimitive.List>,
-  React.ComponentPropsWithoutRef<typeof TabsPrimitive.List> & {
-    orientation?: "horizontal" | "vertical" 
-  }
->(({ className, orientation = "horizontal", ...props }, ref) => (
+  React.ComponentPropsWithoutRef<typeof TabsPrimitive.List>
+>(({ className, ...props }, ref) => (
   <TabsPrimitive.List
     ref={ref}
     className={cn(
       "inline-flex items-center justify-center rounded-md bg-muted p-1 text-muted-foreground",
-      orientation === "vertical" && "flex-col h-full",
       className
     )}
     {...props}
