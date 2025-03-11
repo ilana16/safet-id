@@ -9,105 +9,168 @@ import { logChanges } from '@/utils/changeLog';
 const HistorySection = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [hasMentalHealthHistory, setHasMentalHealthHistory] = useState('no');
+  const [isLoaded, setIsLoaded] = useState(false);
   
-  useEffect(() => {
+  // Load data on initial render and whenever navigation occurs
+  const loadData = () => {
     try {
-      // First check if session storage has any data
-      const sessionData = sessionStorage.getItem('historyFormData');
-      if (sessionData) {
-        try {
-          const parsedData = JSON.parse(sessionData);
-          (window as any).historyFormData = parsedData;
-          console.log('Setting history form data from session storage:', parsedData);
-          
-          if (parsedData.hasMentalHealthHistory) {
-            setHasMentalHealthHistory(parsedData.hasMentalHealthHistory);
-          }
-          
-          return;
-        } catch (e) {
-          console.error('Error parsing session data:', e);
-        }
-      }
+      console.log('Loading medical history data');
       
-      // Fall back to localStorage
+      // First check if localStorage has data (source of truth)
       const savedProfileJson = localStorage.getItem('medicalProfile');
+      let localData = null;
+      
       if (savedProfileJson) {
         const savedProfile = JSON.parse(savedProfileJson);
         if (savedProfile && savedProfile.history) {
-          (window as any).historyFormData = savedProfile.history;
-          console.log('Setting history form data in window object:', savedProfile.history);
+          localData = savedProfile.history;
+          console.log('Found medical history in localStorage:', localData);
           
-          if (savedProfile.history.hasMentalHealthHistory) {
-            setHasMentalHealthHistory(savedProfile.history.hasMentalHealthHistory);
+          if (localData.hasMentalHealthHistory) {
+            setHasMentalHealthHistory(localData.hasMentalHealthHistory);
           }
-          
-          // Also save to session storage for better persistence
-          sessionStorage.setItem('historyFormData', JSON.stringify(savedProfile.history));
         }
       }
-    } catch (error) {
-      console.error('Error loading history data:', error);
-    }
-  }, []);
-  
-  // Save form data periodically with auto-save
-  useEffect(() => {
-    const autoSaveInterval = setInterval(() => {
-      const currentFormData = (window as any).historyFormData;
-      if (currentFormData) {
-        sessionStorage.setItem('historyFormData', JSON.stringify(currentFormData));
-        console.log('Auto-saved history data to session storage:', currentFormData);
+      
+      // Also check sessionStorage
+      const sessionData = sessionStorage.getItem('historyFormData');
+      let sessionParsed = null;
+      
+      if (sessionData) {
+        try {
+          sessionParsed = JSON.parse(sessionData);
+          console.log('Found medical history in sessionStorage:', sessionParsed);
+          
+          if (sessionParsed.hasMentalHealthHistory && !localData) {
+            setHasMentalHealthHistory(sessionParsed.hasMentalHealthHistory);
+          }
+        } catch (e) {
+          console.error('Error parsing medical history session data:', e);
+        }
       }
-    }, 30000); // Auto-save every 30 seconds
+      
+      // Determine which data is more recent and use that
+      let dataToUse = null;
+      
+      if (localData && sessionParsed) {
+        const localTime = new Date(localData.lastUpdated || 0).getTime();
+        const sessionTime = new Date(sessionParsed.lastUpdated || 0).getTime();
+        
+        dataToUse = localTime >= sessionTime ? localData : sessionParsed;
+        console.log('Using more recent data, timestamp comparison:', { localTime, sessionTime });
+        
+        // Make sure we use the mental health history from the most recent data
+        if (dataToUse.hasMentalHealthHistory) {
+          setHasMentalHealthHistory(dataToUse.hasMentalHealthHistory);
+        }
+      } else {
+        dataToUse = localData || sessionParsed || { hasMentalHealthHistory: hasMentalHealthHistory };
+      }
+      
+      // Set the data in window object for the form to use
+      (window as any).historyFormData = dataToUse;
+      console.log('Setting medical history data in window object:', dataToUse);
+      
+      // Update session storage to match
+      sessionStorage.setItem('historyFormData', JSON.stringify(dataToUse));
+      
+      setIsLoaded(true);
+    } catch (error) {
+      console.error('Error loading medical history data:', error);
+      setIsLoaded(true); // Still show the form even if there's an error
+    }
+  };
+  
+  // Initial load
+  useEffect(() => {
+    loadData();
+    
+    // Listen for navigation changes to reload data
+    const handleNavChange = () => {
+      console.log('Navigation change detected, reloading medical history data');
+      loadData();
+    };
+    
+    window.addEventListener('navigationChange', handleNavChange);
+    window.addEventListener('popstate', handleNavChange);
     
     return () => {
-      clearInterval(autoSaveInterval);
+      window.removeEventListener('navigationChange', handleNavChange);
+      window.removeEventListener('popstate', handleNavChange);
     };
   }, []);
   
-  // Add event listener for page unload to save data
+  // Save form data when component unmounts or before unload
   useEffect(() => {
-    const handleBeforeUnload = () => {
-      const currentFormData = (window as any).historyFormData;
-      if (currentFormData) {
-        sessionStorage.setItem('historyFormData', JSON.stringify(currentFormData));
-        console.log('Saving history form data to session storage before unload:', currentFormData);
+    const saveData = () => {
+      const currentFormData = (window as any).historyFormData || {};
+      // Ensure hasMentalHealthHistory is saved
+      const dataToSave = {
+        ...currentFormData,
+        hasMentalHealthHistory: hasMentalHealthHistory,
+        lastUpdated: new Date().toISOString()
+      };
+      
+      sessionStorage.setItem('historyFormData', JSON.stringify(dataToSave));
+      console.log('Saving medical history data on unmount/unload:', dataToSave);
+      
+      // Also save to localStorage for persistence
+      try {
+        const savedProfileJson = localStorage.getItem('medicalProfile');
+        const savedProfile = savedProfileJson ? JSON.parse(savedProfileJson) : {};
+        
+        localStorage.setItem('medicalProfile', JSON.stringify({
+          ...savedProfile,
+          history: dataToSave
+        }));
+      } catch (error) {
+        console.error('Error saving to localStorage:', error);
       }
     };
+    
+    const handleBeforeUnload = () => saveData();
     
     window.addEventListener('beforeunload', handleBeforeUnload);
+    
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
+      saveData();
     };
-  }, []);
-  
-  // Save form data when component unmounts
-  useEffect(() => {
-    return () => {
-      const currentFormData = (window as any).historyFormData;
-      if (currentFormData) {
-        sessionStorage.setItem('historyFormData', JSON.stringify(currentFormData));
-        console.log('Saving history form data to session storage on unmount:', currentFormData);
-      }
-    };
-  }, []);
+  }, [hasMentalHealthHistory]);
   
   const handleMentalHealthHistoryChange = (value: string) => {
     setHasMentalHealthHistory(value);
     
+    // Update window object and session storage immediately
     if ((window as any).historyFormData) {
       (window as any).historyFormData.hasMentalHealthHistory = value;
     } else {
       (window as any).historyFormData = { hasMentalHealthHistory: value };
     }
     
-    // Update session storage immediately when this value changes
     const currentFormData = (window as any).historyFormData || {};
     sessionStorage.setItem('historyFormData', JSON.stringify({
       ...currentFormData,
-      hasMentalHealthHistory: value
+      hasMentalHealthHistory: value,
+      lastUpdated: new Date().toISOString()
     }));
+    
+    // Also update localStorage immediately
+    try {
+      const savedProfileJson = localStorage.getItem('medicalProfile');
+      const savedProfile = savedProfileJson ? JSON.parse(savedProfileJson) : {};
+      
+      localStorage.setItem('medicalProfile', JSON.stringify({
+        ...savedProfile,
+        history: {
+          ...(savedProfile.history || {}),
+          hasMentalHealthHistory: value,
+          lastUpdated: new Date().toISOString()
+        }
+      }));
+    } catch (error) {
+      console.error('Error saving mental health history to localStorage:', error);
+    }
   };
   
   const handleSave = () => {
@@ -119,10 +182,9 @@ const HistorySection = () => {
       const existingSectionData = existingProfile.history || {};
       
       let newFormData = (window as any).historyFormData || {};
-      
       newFormData.hasMentalHealthHistory = hasMentalHealthHistory;
       
-      console.log('Saving history form data:', newFormData);
+      console.log('Saving medical history form data:', newFormData);
       
       const changes: {field: string; oldValue: any; newValue: any}[] = [];
       
@@ -137,22 +199,25 @@ const HistorySection = () => {
       });
       
       setTimeout(() => {
+        const currentTimestamp = new Date().toISOString();
+        const updatedFormData = {
+          ...newFormData,
+          hasMentalHealthHistory: hasMentalHealthHistory, // Ensure this is included
+          completed: true,
+          lastUpdated: currentTimestamp
+        };
+        
         const updatedProfile = {
           ...existingProfile,
-          history: {
-            ...newFormData,
-            completed: true
-          }
+          history: updatedFormData
         };
         
         localStorage.setItem('medicalProfile', JSON.stringify(updatedProfile));
         console.log('Saved updated profile:', updatedProfile);
         
-        // Also update session storage
-        sessionStorage.setItem('historyFormData', JSON.stringify({
-          ...newFormData,
-          completed: true
-        }));
+        // Also update session storage and window object
+        sessionStorage.setItem('historyFormData', JSON.stringify(updatedFormData));
+        (window as any).historyFormData = updatedFormData;
         
         if (changes.length > 0) {
           logChanges('history', changes);
@@ -181,9 +246,9 @@ const HistorySection = () => {
         </Button>
       </div>
       
-      <MedicalProfileHistoryForm 
-        onMentalHealthHistoryChange={handleMentalHealthHistoryChange}
-      />
+      {isLoaded && (
+        <MedicalProfileHistoryForm onMentalHealthHistoryChange={handleMentalHealthHistoryChange} />
+      )}
       
       <div className="mt-8 flex justify-end gap-3">
         <Button 

@@ -8,78 +8,119 @@ import { logChanges } from '@/utils/changeLog';
 
 const ImmuneSection = () => {
   const [isSaving, setIsSaving] = useState(false);
+  const [isLoaded, setIsLoaded] = useState(false);
   
-  useEffect(() => {
+  // Load data on initial render and whenever navigation occurs
+  const loadData = () => {
     try {
-      // First check if session storage has any data
-      const sessionData = sessionStorage.getItem('immunizationsFormData');
-      if (sessionData) {
-        try {
-          const parsedData = JSON.parse(sessionData);
-          (window as any).immunizationsFormData = parsedData;
-          console.log('Setting immunizations form data from session storage:', parsedData);
-          return;
-        } catch (e) {
-          console.error('Error parsing session data:', e);
-        }
-      }
+      console.log('Loading immunizations data');
       
-      // Fall back to localStorage
+      // First check if localStorage has data (source of truth)
       const savedProfileJson = localStorage.getItem('medicalProfile');
+      let localData = null;
+      
       if (savedProfileJson) {
         const savedProfile = JSON.parse(savedProfileJson);
         if (savedProfile && savedProfile.immunizations) {
-          (window as any).immunizationsFormData = savedProfile.immunizations;
-          console.log('Setting immunizations form data in window object:', savedProfile.immunizations);
-          
-          // Also save to session storage for better persistence
-          sessionStorage.setItem('immunizationsFormData', JSON.stringify(savedProfile.immunizations));
+          localData = savedProfile.immunizations;
+          console.log('Found immunizations in localStorage:', localData);
         }
       }
-    } catch (error) {
-      console.error('Error loading immunizations profile data:', error);
-    }
-  }, []);
-  
-  // Save form data periodically with auto-save
-  useEffect(() => {
-    const autoSaveInterval = setInterval(() => {
-      const currentFormData = (window as any).immunizationsFormData;
-      if (currentFormData) {
-        sessionStorage.setItem('immunizationsFormData', JSON.stringify(currentFormData));
-        console.log('Auto-saved immunizations data to session storage:', currentFormData);
+      
+      // Also check sessionStorage
+      const sessionData = sessionStorage.getItem('immunizationsFormData');
+      let sessionParsed = null;
+      
+      if (sessionData) {
+        try {
+          sessionParsed = JSON.parse(sessionData);
+          console.log('Found immunizations in sessionStorage:', sessionParsed);
+        } catch (e) {
+          console.error('Error parsing immunizations session data:', e);
+        }
       }
-    }, 30000); // Auto-save every 30 seconds
+      
+      // Determine which data is more recent and use that
+      let dataToUse = null;
+      
+      if (localData && sessionParsed) {
+        const localTime = new Date(localData.lastUpdated || 0).getTime();
+        const sessionTime = new Date(sessionParsed.lastUpdated || 0).getTime();
+        
+        dataToUse = localTime >= sessionTime ? localData : sessionParsed;
+        console.log('Using more recent data, timestamp comparison:', { localTime, sessionTime });
+      } else {
+        dataToUse = localData || sessionParsed || {};
+      }
+      
+      // Set the data in window object for the form to use
+      (window as any).immunizationsFormData = dataToUse;
+      console.log('Setting immunizations data in window object:', dataToUse);
+      
+      // Update session storage to match
+      sessionStorage.setItem('immunizationsFormData', JSON.stringify(dataToUse));
+      
+      setIsLoaded(true);
+    } catch (error) {
+      console.error('Error loading immunizations data:', error);
+    }
+  };
+  
+  // Initial load
+  useEffect(() => {
+    loadData();
+    
+    // Listen for navigation changes to reload data
+    const handleNavChange = () => {
+      console.log('Navigation change detected, reloading immunizations data');
+      loadData();
+    };
+    
+    window.addEventListener('navigationChange', handleNavChange);
+    window.addEventListener('popstate', handleNavChange);
     
     return () => {
-      clearInterval(autoSaveInterval);
+      window.removeEventListener('navigationChange', handleNavChange);
+      window.removeEventListener('popstate', handleNavChange);
     };
   }, []);
   
-  // Add event listener for page unload to save data
+  // Save form data when component unmounts or before unload
   useEffect(() => {
-    const handleBeforeUnload = () => {
+    const saveData = () => {
       const currentFormData = (window as any).immunizationsFormData;
       if (currentFormData) {
-        sessionStorage.setItem('immunizationsFormData', JSON.stringify(currentFormData));
-        console.log('Saving immunizations form data to session storage before unload:', currentFormData);
+        sessionStorage.setItem('immunizationsFormData', JSON.stringify({
+          ...currentFormData,
+          lastUpdated: new Date().toISOString()
+        }));
+        console.log('Saving immunizations data on unmount/unload');
+        
+        // Also save to localStorage for persistence
+        try {
+          const savedProfileJson = localStorage.getItem('medicalProfile');
+          const savedProfile = savedProfileJson ? JSON.parse(savedProfileJson) : {};
+          
+          localStorage.setItem('medicalProfile', JSON.stringify({
+            ...savedProfile,
+            immunizations: {
+              ...currentFormData,
+              lastUpdated: new Date().toISOString()
+            }
+          }));
+        } catch (error) {
+          console.error('Error saving to localStorage:', error);
+        }
       }
     };
+    
+    const handleBeforeUnload = () => saveData();
     
     window.addEventListener('beforeunload', handleBeforeUnload);
+    
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
-    };
-  }, []);
-  
-  // Save form data when component unmounts
-  useEffect(() => {
-    return () => {
-      const currentFormData = (window as any).immunizationsFormData;
-      if (currentFormData) {
-        sessionStorage.setItem('immunizationsFormData', JSON.stringify(currentFormData));
-        console.log('Saving immunizations form data to session storage on unmount:', currentFormData);
-      }
+      saveData();
     };
   }, []);
   
@@ -108,22 +149,28 @@ const ImmuneSection = () => {
       });
       
       setTimeout(() => {
+        const currentTimestamp = new Date().toISOString();
         const updatedProfile = {
           ...existingProfile,
           immunizations: {
             ...newFormData,
-            completed: true
+            completed: true,
+            lastUpdated: currentTimestamp
           }
         };
         
         localStorage.setItem('medicalProfile', JSON.stringify(updatedProfile));
         console.log('Saved updated profile:', updatedProfile);
         
-        // Also update session storage
-        sessionStorage.setItem('immunizationsFormData', JSON.stringify({
+        // Also update session storage and window object
+        const updatedFormData = {
           ...newFormData,
-          completed: true
-        }));
+          completed: true,
+          lastUpdated: currentTimestamp
+        };
+        
+        sessionStorage.setItem('immunizationsFormData', JSON.stringify(updatedFormData));
+        (window as any).immunizationsFormData = updatedFormData;
         
         if (changes.length > 0) {
           logChanges('immunizations', changes);
@@ -152,7 +199,7 @@ const ImmuneSection = () => {
         </Button>
       </div>
       
-      <MedicalProfileImmunizationsForm />
+      {isLoaded && <MedicalProfileImmunizationsForm />}
       
       <div className="mt-8 flex justify-end gap-3">
         <Button 

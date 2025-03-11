@@ -8,78 +8,119 @@ import { logChanges } from '@/utils/changeLog';
 
 const PersonalSection = () => {
   const [isSaving, setIsSaving] = useState(false);
+  const [isLoaded, setIsLoaded] = useState(false);
   
-  useEffect(() => {
+  // Load data on initial render and whenever navigation occurs
+  const loadData = () => {
     try {
-      // First check if session storage has any data
-      const sessionData = sessionStorage.getItem('personalFormData');
-      if (sessionData) {
-        try {
-          const parsedData = JSON.parse(sessionData);
-          (window as any).personalFormData = parsedData;
-          console.log('Setting personal form data from session storage:', parsedData);
-          return;
-        } catch (e) {
-          console.error('Error parsing session data:', e);
-        }
-      }
+      console.log('Loading personal data');
       
-      // Fall back to localStorage
+      // First check if localStorage has data (source of truth)
       const savedProfileJson = localStorage.getItem('medicalProfile');
+      let localData = null;
+      
       if (savedProfileJson) {
         const savedProfile = JSON.parse(savedProfileJson);
         if (savedProfile && savedProfile.personal) {
-          (window as any).personalFormData = savedProfile.personal;
-          console.log('Setting personal form data in window object:', savedProfile.personal);
-          
-          // Also save to session storage for better persistence
-          sessionStorage.setItem('personalFormData', JSON.stringify(savedProfile.personal));
+          localData = savedProfile.personal;
+          console.log('Found personal data in localStorage:', localData);
         }
       }
-    } catch (error) {
-      console.error('Error loading personal profile data:', error);
-    }
-  }, []);
-  
-  // Save form data periodically with auto-save
-  useEffect(() => {
-    const autoSaveInterval = setInterval(() => {
-      const currentFormData = (window as any).personalFormData;
-      if (currentFormData) {
-        sessionStorage.setItem('personalFormData', JSON.stringify(currentFormData));
-        console.log('Auto-saved personal data to session storage:', currentFormData);
+      
+      // Also check sessionStorage
+      const sessionData = sessionStorage.getItem('personalFormData');
+      let sessionParsed = null;
+      
+      if (sessionData) {
+        try {
+          sessionParsed = JSON.parse(sessionData);
+          console.log('Found personal data in sessionStorage:', sessionParsed);
+        } catch (e) {
+          console.error('Error parsing personal session data:', e);
+        }
       }
-    }, 30000); // Auto-save every 30 seconds
+      
+      // Determine which data is more recent and use that
+      let dataToUse = null;
+      
+      if (localData && sessionParsed) {
+        // Check for lastUpdated field to determine which is more recent
+        const localTime = localData.lastUpdated ? new Date(localData.lastUpdated).getTime() : 0;
+        const sessionTime = sessionParsed.lastUpdated ? new Date(sessionParsed.lastUpdated).getTime() : 0;
+        
+        dataToUse = localTime >= sessionTime ? localData : sessionParsed;
+        console.log('Using more recent data, timestamp comparison:', { localTime, sessionTime });
+      } else {
+        dataToUse = localData || sessionParsed || {};
+      }
+      
+      // Set the data in window object for the form to use
+      (window as any).personalFormData = dataToUse;
+      console.log('Setting personal data in window object:', dataToUse);
+      
+      // Update session storage to match
+      sessionStorage.setItem('personalFormData', JSON.stringify(dataToUse));
+      
+      setIsLoaded(true);
+    } catch (error) {
+      console.error('Error loading personal data:', error);
+      setIsLoaded(true); // Still show the form even if there's an error
+    }
+  };
+  
+  // Initial load
+  useEffect(() => {
+    loadData();
+    
+    // Listen for navigation changes to reload data
+    const handleNavChange = () => {
+      console.log('Navigation change detected, reloading personal data');
+      loadData();
+    };
+    
+    window.addEventListener('navigationChange', handleNavChange);
+    window.addEventListener('popstate', handleNavChange);
     
     return () => {
-      clearInterval(autoSaveInterval);
+      window.removeEventListener('navigationChange', handleNavChange);
+      window.removeEventListener('popstate', handleNavChange);
     };
   }, []);
   
-  // Add event listener for page unload to save data
+  // Save form data when component unmounts or before unload
   useEffect(() => {
-    const handleBeforeUnload = () => {
+    const saveData = () => {
       const currentFormData = (window as any).personalFormData;
       if (currentFormData) {
-        sessionStorage.setItem('personalFormData', JSON.stringify(currentFormData));
-        console.log('Saving personal form data to session storage before unload:', currentFormData);
+        const dataWithTimestamp = {
+          ...currentFormData,
+          lastUpdated: new Date().toISOString()
+        };
+        sessionStorage.setItem('personalFormData', JSON.stringify(dataWithTimestamp));
+        console.log('Saving personal data on unmount/unload');
+        
+        // Also save to localStorage for persistence
+        try {
+          const savedProfileJson = localStorage.getItem('medicalProfile');
+          const savedProfile = savedProfileJson ? JSON.parse(savedProfileJson) : {};
+          
+          localStorage.setItem('medicalProfile', JSON.stringify({
+            ...savedProfile,
+            personal: dataWithTimestamp
+          }));
+        } catch (error) {
+          console.error('Error saving to localStorage:', error);
+        }
       }
     };
+    
+    const handleBeforeUnload = () => saveData();
     
     window.addEventListener('beforeunload', handleBeforeUnload);
+    
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
-    };
-  }, []);
-  
-  // Save form data when component unmounts
-  useEffect(() => {
-    return () => {
-      const currentFormData = (window as any).personalFormData;
-      if (currentFormData) {
-        sessionStorage.setItem('personalFormData', JSON.stringify(currentFormData));
-        console.log('Saving personal form data to session storage on unmount:', currentFormData);
-      }
+      saveData();
     };
   }, []);
   
@@ -122,22 +163,24 @@ const PersonalSection = () => {
       });
       
       setTimeout(() => {
+        const currentTimestamp = new Date().toISOString();
+        const updatedFormData = {
+          ...newFormData,
+          completed: true,
+          lastUpdated: currentTimestamp
+        };
+        
         const updatedProfile = {
           ...existingProfile,
-          personal: {
-            ...newFormData,
-            completed: true
-          }
+          personal: updatedFormData
         };
         
         localStorage.setItem('medicalProfile', JSON.stringify(updatedProfile));
         console.log('Saved updated profile:', updatedProfile);
         
-        // Also update session storage
-        sessionStorage.setItem('personalFormData', JSON.stringify({
-          ...newFormData,
-          completed: true
-        }));
+        // Also update session storage and window object
+        sessionStorage.setItem('personalFormData', JSON.stringify(updatedFormData));
+        (window as any).personalFormData = updatedFormData;
         
         if (changes.length > 0) {
           logChanges('personal', changes);
@@ -166,7 +209,7 @@ const PersonalSection = () => {
         </Button>
       </div>
       
-      <MedicalProfilePersonalForm />
+      {isLoaded && <MedicalProfilePersonalForm />}
       
       <div className="mt-8 flex justify-end gap-3">
         <Button 

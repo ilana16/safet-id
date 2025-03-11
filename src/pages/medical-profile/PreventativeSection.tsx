@@ -8,78 +8,118 @@ import { logChanges } from '@/utils/changeLog';
 
 const PreventativeSection = () => {
   const [isSaving, setIsSaving] = useState(false);
+  const [isLoaded, setIsLoaded] = useState(false);
   
-  useEffect(() => {
+  // Load data on initial render and whenever navigation occurs
+  const loadData = () => {
     try {
-      // First check if session storage has any data
-      const sessionData = sessionStorage.getItem('preventativeCareFormData');
-      if (sessionData) {
-        try {
-          const parsedData = JSON.parse(sessionData);
-          (window as any).preventativeCareFormData = parsedData;
-          console.log('Setting preventative care form data from session storage:', parsedData);
-          return;
-        } catch (e) {
-          console.error('Error parsing session data:', e);
-        }
-      }
+      console.log('Loading preventative care data');
       
-      // Fall back to localStorage
+      // First check if localStorage has data (source of truth)
       const savedProfileJson = localStorage.getItem('medicalProfile');
+      let localData = null;
+      
       if (savedProfileJson) {
         const savedProfile = JSON.parse(savedProfileJson);
         if (savedProfile && savedProfile.preventative) {
-          (window as any).preventativeCareFormData = savedProfile.preventative;
-          console.log('Setting preventative care form data in window object:', savedProfile.preventative);
-          
-          // Also save to session storage for better persistence
-          sessionStorage.setItem('preventativeCareFormData', JSON.stringify(savedProfile.preventative));
+          localData = savedProfile.preventative;
+          console.log('Found preventative care in localStorage:', localData);
         }
       }
+      
+      // Also check sessionStorage
+      const sessionData = sessionStorage.getItem('preventativeCareFormData');
+      let sessionParsed = null;
+      
+      if (sessionData) {
+        try {
+          sessionParsed = JSON.parse(sessionData);
+          console.log('Found preventative care in sessionStorage:', sessionParsed);
+        } catch (e) {
+          console.error('Error parsing preventative care session data:', e);
+        }
+      }
+      
+      // Determine which data is more recent and use that
+      let dataToUse = null;
+      
+      if (localData && sessionParsed) {
+        const localTime = new Date(localData.lastUpdated || 0).getTime();
+        const sessionTime = new Date(sessionParsed.lastUpdated || 0).getTime();
+        
+        dataToUse = localTime >= sessionTime ? localData : sessionParsed;
+        console.log('Using more recent data, timestamp comparison:', { localTime, sessionTime });
+      } else {
+        dataToUse = localData || sessionParsed || {};
+      }
+      
+      // Set the data in window object for the form to use
+      (window as any).preventativeCareFormData = dataToUse;
+      console.log('Setting preventative care data in window object:', dataToUse);
+      
+      // Update session storage to match
+      sessionStorage.setItem('preventativeCareFormData', JSON.stringify(dataToUse));
+      
+      setIsLoaded(true);
     } catch (error) {
       console.error('Error loading preventative care data:', error);
+      setIsLoaded(true); // Still show the form even if there's an error
     }
-  }, []);
+  };
   
-  // Save form data periodically with auto-save
+  // Initial load
   useEffect(() => {
-    const autoSaveInterval = setInterval(() => {
-      const currentFormData = (window as any).preventativeCareFormData;
-      if (currentFormData) {
-        sessionStorage.setItem('preventativeCareFormData', JSON.stringify(currentFormData));
-        console.log('Auto-saved preventative care data to session storage:', currentFormData);
-      }
-    }, 30000); // Auto-save every 30 seconds
+    loadData();
+    
+    // Listen for navigation changes to reload data
+    const handleNavChange = () => {
+      console.log('Navigation change detected, reloading preventative care data');
+      loadData();
+    };
+    
+    window.addEventListener('navigationChange', handleNavChange);
+    window.addEventListener('popstate', handleNavChange);
     
     return () => {
-      clearInterval(autoSaveInterval);
+      window.removeEventListener('navigationChange', handleNavChange);
+      window.removeEventListener('popstate', handleNavChange);
     };
   }, []);
   
-  // Add event listener for page unload to save data
+  // Save form data when component unmounts or before unload
   useEffect(() => {
-    const handleBeforeUnload = () => {
+    const saveData = () => {
       const currentFormData = (window as any).preventativeCareFormData;
       if (currentFormData) {
-        sessionStorage.setItem('preventativeCareFormData', JSON.stringify(currentFormData));
-        console.log('Saving preventative care form data to session storage before unload:', currentFormData);
+        const dataWithTimestamp = {
+          ...currentFormData,
+          lastUpdated: new Date().toISOString()
+        };
+        sessionStorage.setItem('preventativeCareFormData', JSON.stringify(dataWithTimestamp));
+        console.log('Saving preventative care data on unmount/unload');
+        
+        // Also save to localStorage for persistence
+        try {
+          const savedProfileJson = localStorage.getItem('medicalProfile');
+          const savedProfile = savedProfileJson ? JSON.parse(savedProfileJson) : {};
+          
+          localStorage.setItem('medicalProfile', JSON.stringify({
+            ...savedProfile,
+            preventative: dataWithTimestamp
+          }));
+        } catch (error) {
+          console.error('Error saving to localStorage:', error);
+        }
       }
     };
+    
+    const handleBeforeUnload = () => saveData();
     
     window.addEventListener('beforeunload', handleBeforeUnload);
+    
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
-    };
-  }, []);
-  
-  // Save form data when component unmounts
-  useEffect(() => {
-    return () => {
-      const currentFormData = (window as any).preventativeCareFormData;
-      if (currentFormData) {
-        sessionStorage.setItem('preventativeCareFormData', JSON.stringify(currentFormData));
-        console.log('Saving preventative care form data to session storage on unmount:', currentFormData);
-      }
+      saveData();
     };
   }, []);
   
@@ -108,22 +148,24 @@ const PreventativeSection = () => {
       });
       
       setTimeout(() => {
+        const currentTimestamp = new Date().toISOString();
+        const updatedFormData = {
+          ...newFormData,
+          completed: true,
+          lastUpdated: currentTimestamp
+        };
+        
         const updatedProfile = {
           ...existingProfile,
-          preventative: {
-            ...newFormData,
-            completed: true
-          }
+          preventative: updatedFormData
         };
         
         localStorage.setItem('medicalProfile', JSON.stringify(updatedProfile));
         console.log('Saved updated profile:', updatedProfile);
         
-        // Also update session storage
-        sessionStorage.setItem('preventativeCareFormData', JSON.stringify({
-          ...newFormData,
-          completed: true
-        }));
+        // Also update session storage and window object
+        sessionStorage.setItem('preventativeCareFormData', JSON.stringify(updatedFormData));
+        (window as any).preventativeCareFormData = updatedFormData;
         
         if (changes.length > 0) {
           logChanges('preventative', changes);
@@ -152,7 +194,7 @@ const PreventativeSection = () => {
         </Button>
       </div>
       
-      <MedicalProfilePreventativeCareForm />
+      {isLoaded && <MedicalProfilePreventativeCareForm />}
       
       <div className="mt-8 flex justify-end gap-3">
         <Button 

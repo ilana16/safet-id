@@ -8,78 +8,119 @@ import { logChanges } from '@/utils/changeLog';
 
 const FunctionalSection = () => {
   const [isSaving, setIsSaving] = useState(false);
+  const [isLoaded, setIsLoaded] = useState(false);
   
-  useEffect(() => {
+  // Load data on initial render and whenever navigation occurs
+  const loadData = () => {
     try {
-      // First check if session storage has any data
-      const sessionData = sessionStorage.getItem('functionalStatusFormData');
-      if (sessionData) {
-        try {
-          const parsedData = JSON.parse(sessionData);
-          (window as any).functionalStatusFormData = parsedData;
-          console.log('Setting functional status form data from session storage:', parsedData);
-          return;
-        } catch (e) {
-          console.error('Error parsing session data:', e);
-        }
-      }
+      console.log('Loading functional status data');
       
-      // Fall back to localStorage
+      // First check if localStorage has data (source of truth)
       const savedProfileJson = localStorage.getItem('medicalProfile');
+      let localData = null;
+      
       if (savedProfileJson) {
         const savedProfile = JSON.parse(savedProfileJson);
         if (savedProfile && savedProfile.functional) {
-          (window as any).functionalStatusFormData = savedProfile.functional;
-          console.log('Setting functional status form data in window object:', savedProfile.functional);
-          
-          // Also save to session storage for better persistence
-          sessionStorage.setItem('functionalStatusFormData', JSON.stringify(savedProfile.functional));
+          localData = savedProfile.functional;
+          console.log('Found functional status in localStorage:', localData);
         }
       }
+      
+      // Also check sessionStorage
+      const sessionData = sessionStorage.getItem('functionalStatusFormData');
+      let sessionParsed = null;
+      
+      if (sessionData) {
+        try {
+          sessionParsed = JSON.parse(sessionData);
+          console.log('Found functional status in sessionStorage:', sessionParsed);
+        } catch (e) {
+          console.error('Error parsing functional status session data:', e);
+        }
+      }
+      
+      // Determine which data is more recent and use that
+      let dataToUse = null;
+      
+      if (localData && sessionParsed) {
+        const localTime = new Date(localData.lastUpdated || 0).getTime();
+        const sessionTime = new Date(sessionParsed.lastUpdated || 0).getTime();
+        
+        dataToUse = localTime >= sessionTime ? localData : sessionParsed;
+        console.log('Using more recent data, timestamp comparison:', { localTime, sessionTime });
+      } else {
+        dataToUse = localData || sessionParsed || {};
+      }
+      
+      // Set the data in window object for the form to use
+      (window as any).functionalStatusFormData = dataToUse;
+      console.log('Setting functional status data in window object:', dataToUse);
+      
+      // Update session storage to match
+      sessionStorage.setItem('functionalStatusFormData', JSON.stringify(dataToUse));
+      
+      setIsLoaded(true);
     } catch (error) {
       console.error('Error loading functional status data:', error);
     }
-  }, []);
+  };
   
-  // Save form data periodically with auto-save
+  // Initial load
   useEffect(() => {
-    const autoSaveInterval = setInterval(() => {
-      const currentFormData = (window as any).functionalStatusFormData;
-      if (currentFormData) {
-        sessionStorage.setItem('functionalStatusFormData', JSON.stringify(currentFormData));
-        console.log('Auto-saved functional status data to session storage:', currentFormData);
-      }
-    }, 30000); // Auto-save every 30 seconds
+    loadData();
+    
+    // Listen for navigation changes to reload data
+    const handleNavChange = () => {
+      console.log('Navigation change detected, reloading functional status data');
+      loadData();
+    };
+    
+    window.addEventListener('navigationChange', handleNavChange);
+    window.addEventListener('popstate', handleNavChange);
     
     return () => {
-      clearInterval(autoSaveInterval);
+      window.removeEventListener('navigationChange', handleNavChange);
+      window.removeEventListener('popstate', handleNavChange);
     };
   }, []);
   
-  // Add event listener for page unload to save data
+  // Save form data when component unmounts or before unload
   useEffect(() => {
-    const handleBeforeUnload = () => {
+    const saveData = () => {
       const currentFormData = (window as any).functionalStatusFormData;
       if (currentFormData) {
-        sessionStorage.setItem('functionalStatusFormData', JSON.stringify(currentFormData));
-        console.log('Saving functional status form data to session storage before unload:', currentFormData);
+        sessionStorage.setItem('functionalStatusFormData', JSON.stringify({
+          ...currentFormData,
+          lastUpdated: new Date().toISOString()
+        }));
+        console.log('Saving functional status data on unmount/unload');
+        
+        // Also save to localStorage for persistence
+        try {
+          const savedProfileJson = localStorage.getItem('medicalProfile');
+          const savedProfile = savedProfileJson ? JSON.parse(savedProfileJson) : {};
+          
+          localStorage.setItem('medicalProfile', JSON.stringify({
+            ...savedProfile,
+            functional: {
+              ...currentFormData,
+              lastUpdated: new Date().toISOString()
+            }
+          }));
+        } catch (error) {
+          console.error('Error saving to localStorage:', error);
+        }
       }
     };
+    
+    const handleBeforeUnload = () => saveData();
     
     window.addEventListener('beforeunload', handleBeforeUnload);
+    
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
-    };
-  }, []);
-  
-  // Save form data when component unmounts
-  useEffect(() => {
-    return () => {
-      const currentFormData = (window as any).functionalStatusFormData;
-      if (currentFormData) {
-        sessionStorage.setItem('functionalStatusFormData', JSON.stringify(currentFormData));
-        console.log('Saving functional status form data to session storage on unmount:', currentFormData);
-      }
+      saveData();
     };
   }, []);
   
@@ -111,22 +152,28 @@ const FunctionalSection = () => {
       });
       
       setTimeout(() => {
+        const currentTimestamp = new Date().toISOString();
         const updatedProfile = {
           ...existingProfile,
           functional: {
             ...newFormData,
-            completed: true
+            completed: true,
+            lastUpdated: currentTimestamp
           }
         };
         
         localStorage.setItem('medicalProfile', JSON.stringify(updatedProfile));
         console.log('Saved updated profile:', updatedProfile);
         
-        // Also update session storage
-        sessionStorage.setItem('functionalStatusFormData', JSON.stringify({
+        // Also update session storage and window object
+        const updatedFormData = {
           ...newFormData,
-          completed: true
-        }));
+          completed: true,
+          lastUpdated: currentTimestamp
+        };
+        
+        sessionStorage.setItem('functionalStatusFormData', JSON.stringify(updatedFormData));
+        (window as any).functionalStatusFormData = updatedFormData;
         
         if (changes.length > 0) {
           logChanges('functional', changes);
@@ -155,7 +202,7 @@ const FunctionalSection = () => {
         </Button>
       </div>
       
-      <MedicalProfileFunctionalStatusForm />
+      {isLoaded && <MedicalProfileFunctionalStatusForm />}
       
       <div className="mt-8 flex justify-end gap-3">
         <Button 

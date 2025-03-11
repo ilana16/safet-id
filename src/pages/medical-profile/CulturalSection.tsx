@@ -8,75 +8,119 @@ import { logChanges } from '@/utils/changeLog';
 
 const CulturalSection = () => {
   const [isSaving, setIsSaving] = useState(false);
+  const [isLoaded, setIsLoaded] = useState(false);
   
-  useEffect(() => {
+  // Load data on initial render and whenever navigation occurs
+  const loadData = () => {
     try {
-      // First check if session storage has any data
-      const sessionData = sessionStorage.getItem('culturalPreferencesFormData');
-      if (sessionData) {
-        try {
-          const parsedData = JSON.parse(sessionData);
-          (window as any).culturalPreferencesFormData = parsedData;
-          console.log('Setting cultural preferences form data from session storage:', parsedData);
-        } catch (e) {
-          console.error('Error parsing session data:', e);
-        }
-      }
+      console.log('Loading cultural preferences data');
       
-      // Also load from localStorage to ensure data consistency
+      // First check if localStorage has data (source of truth)
       const savedProfileJson = localStorage.getItem('medicalProfile');
+      let localData = null;
+      
       if (savedProfileJson) {
         const savedProfile = JSON.parse(savedProfileJson);
         if (savedProfile && savedProfile.cultural) {
-          // If session storage data is older than localStorage data, update it
-          const localData = savedProfile.cultural;
-          
-          if (sessionData) {
-            const sessionParsed = JSON.parse(sessionData);
-            const sessionTime = new Date(sessionParsed.lastUpdated || 0).getTime();
-            const localTime = new Date(localData.lastUpdated || 0).getTime();
-            
-            if (localTime > sessionTime) {
-              (window as any).culturalPreferencesFormData = localData;
-              sessionStorage.setItem('culturalPreferencesFormData', JSON.stringify(localData));
-              console.log('Updated session storage with newer data from localStorage');
-            }
-          } else {
-            (window as any).culturalPreferencesFormData = localData;
-            sessionStorage.setItem('culturalPreferencesFormData', JSON.stringify(localData));
-          }
+          localData = savedProfile.cultural;
+          console.log('Found cultural preferences in localStorage:', localData);
         }
       }
       
-      // Dispatch a custom event to notify the form component to reload data
-      window.dispatchEvent(new Event('navigationChange'));
+      // Also check sessionStorage
+      const sessionData = sessionStorage.getItem('culturalPreferencesFormData');
+      let sessionParsed = null;
       
+      if (sessionData) {
+        try {
+          sessionParsed = JSON.parse(sessionData);
+          console.log('Found cultural preferences in sessionStorage:', sessionParsed);
+        } catch (e) {
+          console.error('Error parsing cultural preferences session data:', e);
+        }
+      }
+      
+      // Determine which data is more recent and use that
+      let dataToUse = null;
+      
+      if (localData && sessionParsed) {
+        const localTime = new Date(localData.lastUpdated || 0).getTime();
+        const sessionTime = new Date(sessionParsed.lastUpdated || 0).getTime();
+        
+        dataToUse = localTime >= sessionTime ? localData : sessionParsed;
+        console.log('Using more recent data, timestamp comparison:', { localTime, sessionTime });
+      } else {
+        dataToUse = localData || sessionParsed || {};
+      }
+      
+      // Set the data in window object for the form to use
+      (window as any).culturalPreferencesFormData = dataToUse;
+      console.log('Setting cultural preferences data in window object:', dataToUse);
+      
+      // Update session storage to match
+      sessionStorage.setItem('culturalPreferencesFormData', JSON.stringify(dataToUse));
+      
+      setIsLoaded(true);
     } catch (error) {
       console.error('Error loading cultural preferences data:', error);
     }
+  };
+  
+  // Initial load
+  useEffect(() => {
+    loadData();
+    
+    // Listen for navigation changes to reload data
+    const handleNavChange = () => {
+      console.log('Navigation change detected, reloading cultural preferences data');
+      loadData();
+    };
+    
+    window.addEventListener('navigationChange', handleNavChange);
+    window.addEventListener('popstate', handleNavChange);
+    
+    return () => {
+      window.removeEventListener('navigationChange', handleNavChange);
+      window.removeEventListener('popstate', handleNavChange);
+    };
   }, []);
   
-  // Save form data when component unmounts
+  // Save form data when component unmounts or before unload
   useEffect(() => {
-    return () => {
+    const saveData = () => {
       const currentFormData = (window as any).culturalPreferencesFormData;
       if (currentFormData) {
-        sessionStorage.setItem('culturalPreferencesFormData', JSON.stringify(currentFormData));
-        console.log('Saving cultural preferences form data to session storage on unmount:', currentFormData);
+        sessionStorage.setItem('culturalPreferencesFormData', JSON.stringify({
+          ...currentFormData,
+          lastUpdated: new Date().toISOString()
+        }));
+        console.log('Saving cultural preferences data on unmount/unload');
         
-        // Also save directly to localStorage for persistence
+        // Also save to localStorage for persistence
         try {
           const savedProfileJson = localStorage.getItem('medicalProfile');
           const savedProfile = savedProfileJson ? JSON.parse(savedProfileJson) : {};
           
           localStorage.setItem('medicalProfile', JSON.stringify({
             ...savedProfile,
-            cultural: currentFormData
+            cultural: {
+              ...currentFormData,
+              lastUpdated: new Date().toISOString()
+            }
           }));
         } catch (error) {
-          console.error('Error saving to localStorage on unmount:', error);
+          console.error('Error saving to localStorage:', error);
         }
       }
+    };
+    
+    const handleBeforeUnload = () => saveData();
+    
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      saveData();
     };
   }, []);
   
@@ -105,24 +149,28 @@ const CulturalSection = () => {
       });
       
       setTimeout(() => {
+        const currentTimestamp = new Date().toISOString();
         const updatedProfile = {
           ...existingProfile,
           cultural: {
             ...newFormData,
             completed: true,
-            lastUpdated: new Date().toISOString()
+            lastUpdated: currentTimestamp
           }
         };
         
         localStorage.setItem('medicalProfile', JSON.stringify(updatedProfile));
         console.log('Saved updated profile:', updatedProfile);
         
-        // Also update session storage
-        sessionStorage.setItem('culturalPreferencesFormData', JSON.stringify({
+        // Also update session storage and window object
+        const updatedFormData = {
           ...newFormData,
           completed: true,
-          lastUpdated: new Date().toISOString()
-        }));
+          lastUpdated: currentTimestamp
+        };
+        
+        sessionStorage.setItem('culturalPreferencesFormData', JSON.stringify(updatedFormData));
+        (window as any).culturalPreferencesFormData = updatedFormData;
         
         if (changes.length > 0) {
           logChanges('cultural', changes);
@@ -151,7 +199,7 @@ const CulturalSection = () => {
         </Button>
       </div>
       
-      <MedicalProfileCulturalPreferencesForm />
+      {isLoaded && <MedicalProfileCulturalPreferencesForm />}
       
       <div className="mt-8 flex justify-end gap-3">
         <Button 

@@ -8,63 +8,119 @@ import { logChanges } from '@/utils/changeLog';
 
 const AllergiesSection = () => {
   const [isSaving, setIsSaving] = useState(false);
+  const [isLoaded, setIsLoaded] = useState(false);
   
-  useEffect(() => {
+  // Load data on initial render and whenever navigation occurs
+  const loadData = () => {
     try {
-      // First check if session storage has any data
-      const sessionData = sessionStorage.getItem('allergiesFormData');
-      if (sessionData) {
-        try {
-          const parsedData = JSON.parse(sessionData);
-          (window as any).allergiesFormData = parsedData;
-          console.log('Setting allergies form data from session storage:', parsedData);
-          return;
-        } catch (e) {
-          console.error('Error parsing session data:', e);
-        }
-      }
+      console.log('Loading allergies data');
       
-      // Fall back to localStorage
+      // First check if localStorage has data (source of truth)
       const savedProfileJson = localStorage.getItem('medicalProfile');
+      let localData = null;
+      
       if (savedProfileJson) {
         const savedProfile = JSON.parse(savedProfileJson);
         if (savedProfile && savedProfile.allergies) {
-          (window as any).allergiesFormData = savedProfile.allergies;
-          console.log('Setting allergies form data in window object:', savedProfile.allergies);
-          
-          // Also save to session storage for better persistence
-          sessionStorage.setItem('allergiesFormData', JSON.stringify(savedProfile.allergies));
+          localData = savedProfile.allergies;
+          console.log('Found allergies in localStorage:', localData);
         }
       }
+      
+      // Also check sessionStorage
+      const sessionData = sessionStorage.getItem('allergiesFormData');
+      let sessionParsed = null;
+      
+      if (sessionData) {
+        try {
+          sessionParsed = JSON.parse(sessionData);
+          console.log('Found allergies in sessionStorage:', sessionParsed);
+        } catch (e) {
+          console.error('Error parsing allergies session data:', e);
+        }
+      }
+      
+      // Determine which data is more recent and use that
+      let dataToUse = null;
+      
+      if (localData && sessionParsed) {
+        const localTime = new Date(localData.lastUpdated || 0).getTime();
+        const sessionTime = new Date(sessionParsed.lastUpdated || 0).getTime();
+        
+        dataToUse = localTime >= sessionTime ? localData : sessionParsed;
+        console.log('Using more recent data, timestamp comparison:', { localTime, sessionTime });
+      } else {
+        dataToUse = localData || sessionParsed || {};
+      }
+      
+      // Set the data in window object for the form to use
+      (window as any).allergiesFormData = dataToUse;
+      console.log('Setting allergies data in window object:', dataToUse);
+      
+      // Update session storage to match
+      sessionStorage.setItem('allergiesFormData', JSON.stringify(dataToUse));
+      
+      setIsLoaded(true);
     } catch (error) {
-      console.error('Error loading allergies profile data:', error);
+      console.error('Error loading allergies data:', error);
     }
+  };
+  
+  // Initial load
+  useEffect(() => {
+    loadData();
+    
+    // Listen for navigation changes to reload data
+    const handleNavChange = () => {
+      console.log('Navigation change detected, reloading allergies data');
+      loadData();
+    };
+    
+    window.addEventListener('navigationChange', handleNavChange);
+    window.addEventListener('popstate', handleNavChange);
+    
+    return () => {
+      window.removeEventListener('navigationChange', handleNavChange);
+      window.removeEventListener('popstate', handleNavChange);
+    };
   }, []);
   
-  // Add event listener for page unload to save data
+  // Save form data when component unmounts or before unload
   useEffect(() => {
-    const handleBeforeUnload = () => {
+    const saveData = () => {
       const currentFormData = (window as any).allergiesFormData;
       if (currentFormData) {
-        sessionStorage.setItem('allergiesFormData', JSON.stringify(currentFormData));
-        console.log('Saving allergies form data to session storage before unload:', currentFormData);
+        sessionStorage.setItem('allergiesFormData', JSON.stringify({
+          ...currentFormData,
+          lastUpdated: new Date().toISOString()
+        }));
+        console.log('Saving allergies data on unmount/unload');
+        
+        // Also save to localStorage for persistence
+        try {
+          const savedProfileJson = localStorage.getItem('medicalProfile');
+          const savedProfile = savedProfileJson ? JSON.parse(savedProfileJson) : {};
+          
+          localStorage.setItem('medicalProfile', JSON.stringify({
+            ...savedProfile,
+            allergies: {
+              ...currentFormData,
+              lastUpdated: new Date().toISOString()
+            }
+          }));
+        } catch (error) {
+          console.error('Error saving to localStorage:', error);
+        }
       }
     };
     
+    const handleBeforeUnload = () => saveData();
+    
     window.addEventListener('beforeunload', handleBeforeUnload);
+    
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
-    };
-  }, []);
-  
-  // Save form data when component unmounts
-  useEffect(() => {
-    return () => {
-      const currentFormData = (window as any).allergiesFormData;
-      if (currentFormData) {
-        sessionStorage.setItem('allergiesFormData', JSON.stringify(currentFormData));
-        console.log('Saving allergies form data to session storage on unmount:', currentFormData);
-      }
+      saveData();
     };
   }, []);
   
@@ -93,22 +149,28 @@ const AllergiesSection = () => {
       });
       
       setTimeout(() => {
+        const currentTimestamp = new Date().toISOString();
         const updatedProfile = {
           ...existingProfile,
           allergies: {
             ...newFormData,
-            completed: true
+            completed: true,
+            lastUpdated: currentTimestamp
           }
         };
         
         localStorage.setItem('medicalProfile', JSON.stringify(updatedProfile));
         console.log('Saved updated profile:', updatedProfile);
         
-        // Also update session storage
-        sessionStorage.setItem('allergiesFormData', JSON.stringify({
+        // Also update session storage and window object
+        const updatedFormData = {
           ...newFormData,
-          completed: true
-        }));
+          completed: true,
+          lastUpdated: currentTimestamp
+        };
+        
+        sessionStorage.setItem('allergiesFormData', JSON.stringify(updatedFormData));
+        (window as any).allergiesFormData = updatedFormData;
         
         if (changes.length > 0) {
           logChanges('allergies', changes);
@@ -137,7 +199,7 @@ const AllergiesSection = () => {
         </Button>
       </div>
       
-      <MedicalProfileAllergiesForm />
+      {isLoaded && <MedicalProfileAllergiesForm />}
       
       <div className="mt-8 flex justify-end gap-3">
         <Button 
