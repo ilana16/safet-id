@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import PageLayout from '@/components/layout/PageLayout';
@@ -9,7 +8,7 @@ import { toast } from '@/lib/toast';
 import { logChanges } from '@/utils/changeLog';
 
 type SectionType = 'personal' | 'history' | 'medications' | 'allergies' | 'immunizations' | 'social' | 
-                   'reproductive' | 'mental' | 'functional' | 'cultural' | 'preventative';
+                   'reproductive' | 'mental' | 'functional' | 'cultural';
 
 const sections = [
   { id: 'personal', label: 'Personal' },
@@ -21,8 +20,7 @@ const sections = [
   { id: 'reproductive', label: 'Reproductive' },
   { id: 'mental', label: 'Mental Health' },
   { id: 'functional', label: 'Functional Status' },
-  { id: 'cultural', label: 'Cultural' },
-  { id: 'preventative', label: 'Preventative Care' }
+  { id: 'cultural', label: 'Cultural' }
 ];
 
 const MedicalProfile = () => {
@@ -183,7 +181,6 @@ const MedicalProfile = () => {
           currentSection === 'mental' || 
           currentSection === 'functional' ||
           currentSection === 'cultural' ||
-          currentSection === 'preventative' ||
           currentSection === 'allergies') {
         
         Object.keys(currentFormData).forEach(key => {
@@ -266,7 +263,6 @@ const MedicalProfile = () => {
       case 'mental': return 'mentalHealthFormData';
       case 'functional': return 'functionalStatusFormData';
       case 'cultural': return 'culturalPreferencesFormData';
-      case 'preventative': return 'preventativeCareFormData';
       default: return '';
     }
   };

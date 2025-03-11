@@ -1,4 +1,3 @@
-
 import { BrowserRouter as Router, Routes, Route, useLocation, useNavigationType } from 'react-router-dom';
 import { useEffect } from 'react';
 import Index from './pages/Index';
@@ -22,7 +21,6 @@ import ReproductiveSection from './pages/medical-profile/ReproductiveSection';
 import MentalSection from './pages/medical-profile/MentalSection';
 import FunctionalSection from './pages/medical-profile/FunctionalSection';
 import CulturalSection from './pages/medical-profile/CulturalSection';
-import PreventativeSection from './pages/medical-profile/PreventativeSection';
 import ImmuneSection from './pages/medical-profile/ImmuneSection';
 
 // This component watches for navigation changes and triggers events
@@ -73,7 +71,6 @@ function App() {
             <Route path="mental" element={<MentalSection />} />
             <Route path="functional" element={<FunctionalSection />} />
             <Route path="cultural" element={<CulturalSection />} />
-            <Route path="preventative" element={<PreventativeSection />} />
             <Route index element={<PersonalSection />} />
           </Route>
           
