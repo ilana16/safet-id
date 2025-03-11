@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import PageLayout from '@/components/layout/PageLayout';
@@ -30,7 +31,6 @@ const MedicalProfile = () => {
   const [hasMentalHealthHistory, setHasMentalHealthHistory] = useState('no');
   const [profileData, setProfileData] = useState({});
   const [isSaving, setIsSaving] = useState(false);
-  const [lastSaved, setLastSaved] = useState<{[key: string]: string | null}>({});
   const [isLoadingData, setIsLoadingData] = useState(true);
   
   const pathParts = location.pathname.split('/');
@@ -81,16 +81,6 @@ const MedicalProfile = () => {
       
       setProfileData(savedProfile);
       
-      const newLastSaved: {[key: string]: string | null} = {};
-      
-      Object.entries(savedProfile).forEach(([sectionKey, sectionData]: [string, any]) => {
-        if (sectionData && sectionData.lastUpdated) {
-          newLastSaved[sectionKey] = sectionData.lastUpdated;
-        }
-      });
-      
-      setLastSaved(newLastSaved);
-      
       if (savedProfile && savedProfile.history && savedProfile.history.hasMentalHealthHistory) {
         setHasMentalHealthHistory(savedProfile.history.hasMentalHealthHistory);
       }
@@ -119,10 +109,6 @@ const MedicalProfile = () => {
             (window as any)[windowKey] = parsedData;
           }
           
-          if (parsedData.lastUpdated) {
-            setLastSaved(prev => ({...prev, [currentSection]: parsedData.lastUpdated}));
-          }
-          
           return;
         } catch (e) {
           console.error(`Error parsing session data for ${currentSection}:`, e);
@@ -142,10 +128,6 @@ const MedicalProfile = () => {
           (window as any)[windowKey] = savedProfile[currentSection];
           
           sessionStorage.setItem(sessionKey, JSON.stringify(savedProfile[currentSection]));
-        }
-        
-        if (savedProfile[currentSection].lastUpdated) {
-          setLastSaved(prev => ({...prev, [currentSection]: savedProfile[currentSection].lastUpdated}));
         }
       }
     } catch (error) {
@@ -228,13 +210,10 @@ const MedicalProfile = () => {
         });
       }
       
-      const saveTimestamp = new Date().toISOString();
-      
       const updatedProfile = {
         ...existingProfile,
         [currentSection]: {
-          ...currentFormData,
-          lastUpdated: saveTimestamp
+          ...currentFormData
         }
       };
       
@@ -242,12 +221,9 @@ const MedicalProfile = () => {
       console.log('Auto-saved updated profile:', updatedProfile);
       
       sessionStorage.setItem(`${currentSection}FormData`, JSON.stringify({
-        ...currentFormData,
-        lastUpdated: saveTimestamp
+        ...currentFormData
       }));
       console.log(`Updated session storage for ${currentSection}FormData`);
-      
-      setLastSaved(prev => ({...prev, [currentSection]: saveTimestamp}));
       
       if (changes.length > 0) {
         logChanges(currentSection, changes);
@@ -257,8 +233,7 @@ const MedicalProfile = () => {
       setProfileData(prev => ({
         ...prev,
         [currentSection]: {
-          ...currentFormData,
-          lastUpdated: saveTimestamp
+          ...currentFormData
         }
       }));
       return true;
@@ -299,43 +274,6 @@ const MedicalProfile = () => {
   const getSectionTitle = (section: string): string => {
     const sectionObj = sections.find(s => s.id === section);
     return sectionObj ? sectionObj.label : 'Section';
-  };
-
-  const formatLastSaved = (timestamp: string | null) => {
-    if (!timestamp) return null;
-    
-    try {
-      const date = new Date(timestamp);
-      
-      if (isNaN(date.getTime())) return null;
-      
-      const now = new Date();
-      const isToday = date.getDate() === now.getDate() && 
-                     date.getMonth() === now.getMonth() && 
-                     date.getFullYear() === now.getFullYear();
-      
-      if (isToday) {
-        return `Today at ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
-      }
-      
-      const yesterday = new Date(now);
-      yesterday.setDate(now.getDate() - 1);
-      const isYesterday = date.getDate() === yesterday.getDate() && 
-                         date.getMonth() === yesterday.getMonth() && 
-                         date.getFullYear() === yesterday.getFullYear();
-      
-      if (isYesterday) {
-        return `Yesterday at ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
-      }
-      
-      return date.toLocaleDateString([], { 
-        month: 'short', 
-        day: 'numeric' 
-      });
-    } catch (e) {
-      console.error('Error formatting timestamp:', e);
-      return null;
-    }
   };
 
   useEffect(() => {
@@ -381,11 +319,6 @@ const MedicalProfile = () => {
                 {isSaving ? 'Saving...' : isLoadingData ? 'Loading...' : 'Save'}
                 {!isSaving && !isLoadingData && <Save className="h-3 w-3" />}
               </Button>
-              {lastSaved[currentSection] && (
-                <p className="text-xs text-gray-500 ml-2">
-                  Last saved: {formatLastSaved(lastSaved[currentSection])}
-                </p>
-              )}
             </div>
           </div>
         </div>
@@ -411,11 +344,6 @@ const MedicalProfile = () => {
                     >
                       <div className="flex justify-between w-full items-center">
                         <span>{section.label}</span>
-                        {lastSaved[section.id] && (
-                          <span className="text-xs text-gray-500 ml-1">
-                            {formatLastSaved(lastSaved[section.id])}
-                          </span>
-                        )}
                       </div>
                     </TabsTrigger>
                   ))

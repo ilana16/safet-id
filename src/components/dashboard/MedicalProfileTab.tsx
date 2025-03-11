@@ -1,7 +1,8 @@
+
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { ClipboardCheck, Filter, ArrowUpDown, FileText, Clock, History } from 'lucide-react';
+import { ClipboardCheck, Filter, ArrowUpDown, FileText, History } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { 
   Tooltip,
@@ -28,26 +29,6 @@ const MedicalProfileTab: React.FC<MedicalProfileTabProps> = ({ completionPercent
     setHasChangeLogs(logs.length > 0);
   }, []);
   
-  const lastUpdated = {
-    personal: '2023-10-15T14:30:00Z',
-    history: '2023-11-20T09:45:00Z',
-    medications: '2023-12-05T16:20:00Z',
-    allergies: '2024-01-10T11:15:00Z',
-    immunizations: '2024-02-15T12:00:00Z',
-  };
-  
-  const getRelativeTime = (dateString: string) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffInDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
-    
-    if (diffInDays === 0) return 'Today';
-    if (diffInDays === 1) return 'Yesterday';
-    if (diffInDays < 30) return `${diffInDays} days ago`;
-    if (diffInDays < 365) return `${Math.floor(diffInDays / 30)} months ago`;
-    return `${Math.floor(diffInDays / 365)} years ago`;
-  };
-  
   const sectionStatus = {
     personal: 100,
     history: 75,
@@ -63,7 +44,6 @@ const MedicalProfileTab: React.FC<MedicalProfileTabProps> = ({ completionPercent
       description: 'Basic details, emergency contacts, and insurance information',
       link: '/profile/personal',
       status: sectionStatus.personal,
-      lastUpdated: lastUpdated.personal,
     },
     {
       id: 'history',
@@ -71,7 +51,6 @@ const MedicalProfileTab: React.FC<MedicalProfileTabProps> = ({ completionPercent
       description: 'Past diagnoses, hospitalizations, surgeries, and conditions',
       link: '/profile/history',
       status: sectionStatus.history,
-      lastUpdated: lastUpdated.history,
     },
     {
       id: 'medications',
@@ -79,7 +58,6 @@ const MedicalProfileTab: React.FC<MedicalProfileTabProps> = ({ completionPercent
       description: 'Current prescriptions, supplements, and over-the-counter medications',
       link: '/profile/medications',
       status: sectionStatus.medications,
-      lastUpdated: lastUpdated.medications,
     },
     {
       id: 'allergies',
@@ -87,7 +65,6 @@ const MedicalProfileTab: React.FC<MedicalProfileTabProps> = ({ completionPercent
       description: 'Drug, food, environmental, and other allergic reactions',
       link: '/profile/allergies',
       status: sectionStatus.allergies,
-      lastUpdated: lastUpdated.allergies,
     },
     {
       id: 'immunizations',
@@ -95,7 +72,6 @@ const MedicalProfileTab: React.FC<MedicalProfileTabProps> = ({ completionPercent
       description: 'Vaccination history and immunization records',
       link: '/profile/immunizations',
       status: sectionStatus.immunizations || 0,
-      lastUpdated: lastUpdated.immunizations || null,
     },
   ];
   
@@ -176,8 +152,7 @@ const MedicalProfileTab: React.FC<MedicalProfileTabProps> = ({ completionPercent
                   completionPercentage={completionPercentage} 
                   filter={filter} 
                   setFilter={setFilter} 
-                  filteredSections={filteredSections} 
-                  getRelativeTime={getRelativeTime} 
+                  filteredSections={filteredSections}
                 />
               </TabsContent>
               <TabsContent value="logs">
@@ -191,8 +166,7 @@ const MedicalProfileTab: React.FC<MedicalProfileTabProps> = ({ completionPercent
               completionPercentage={completionPercentage} 
               filter={filter} 
               setFilter={setFilter} 
-              filteredSections={filteredSections} 
-              getRelativeTime={getRelativeTime} 
+              filteredSections={filteredSections}
             />
           )}
           
@@ -218,8 +192,7 @@ const SectionsTab: React.FC<{
   filter: 'all' | 'incomplete' | 'complete';
   setFilter: (filter: 'all' | 'incomplete' | 'complete') => void;
   filteredSections: any[];
-  getRelativeTime: (dateString: string) => string;
-}> = ({ completionPercentage, filter, setFilter, filteredSections, getRelativeTime }) => {
+}> = ({ completionPercentage, filter, setFilter, filteredSections }) => {
   return (
     <>
       <div className="flex items-center justify-between">
@@ -295,11 +268,6 @@ const SectionsTab: React.FC<{
                 </Badge>
               </div>
               <p className="text-xs text-gray-600 mb-3">{section.description}</p>
-              
-              <div className="flex items-center text-xs text-gray-500 mb-3">
-                <Clock className="h-3 w-3 mr-1" />
-                Last updated: {getRelativeTime(section.lastUpdated)}
-              </div>
               
               {section.status < 100 && (
                 <div className="w-full bg-gray-200 h-1 rounded mb-3">
