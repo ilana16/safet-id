@@ -14,9 +14,14 @@ const FunctionalSection = () => {
       // First check if session storage has any data
       const sessionData = sessionStorage.getItem('functionalStatusFormData');
       if (sessionData) {
-        (window as any).functionalStatusFormData = JSON.parse(sessionData);
-        console.log('Setting functional status form data from session storage:', JSON.parse(sessionData));
-        return;
+        try {
+          const parsedData = JSON.parse(sessionData);
+          (window as any).functionalStatusFormData = parsedData;
+          console.log('Setting functional status form data from session storage:', parsedData);
+          return;
+        } catch (e) {
+          console.error('Error parsing session data:', e);
+        }
       }
       
       // Fall back to localStorage
@@ -36,18 +41,45 @@ const FunctionalSection = () => {
     }
   }, []);
   
+  // Save form data periodically with auto-save
+  useEffect(() => {
+    const autoSaveInterval = setInterval(() => {
+      const currentFormData = (window as any).functionalStatusFormData;
+      if (currentFormData) {
+        sessionStorage.setItem('functionalStatusFormData', JSON.stringify(currentFormData));
+        console.log('Auto-saved functional status data to session storage:', currentFormData);
+      }
+    }, 30000); // Auto-save every 30 seconds
+    
+    return () => {
+      clearInterval(autoSaveInterval);
+    };
+  }, []);
+  
   // Add event listener for page unload to save data
   useEffect(() => {
     const handleBeforeUnload = () => {
       const currentFormData = (window as any).functionalStatusFormData;
       if (currentFormData) {
         sessionStorage.setItem('functionalStatusFormData', JSON.stringify(currentFormData));
+        console.log('Saving functional status form data to session storage before unload:', currentFormData);
       }
     };
     
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, []);
+  
+  // Save form data when component unmounts
+  useEffect(() => {
+    return () => {
+      const currentFormData = (window as any).functionalStatusFormData;
+      if (currentFormData) {
+        sessionStorage.setItem('functionalStatusFormData', JSON.stringify(currentFormData));
+        console.log('Saving functional status form data to session storage on unmount:', currentFormData);
+      }
     };
   }, []);
   

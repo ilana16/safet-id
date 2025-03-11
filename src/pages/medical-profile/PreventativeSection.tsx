@@ -14,9 +14,14 @@ const PreventativeSection = () => {
       // First check if session storage has any data
       const sessionData = sessionStorage.getItem('preventativeCareFormData');
       if (sessionData) {
-        (window as any).preventativeCareFormData = JSON.parse(sessionData);
-        console.log('Setting preventative care form data from session storage:', JSON.parse(sessionData));
-        return;
+        try {
+          const parsedData = JSON.parse(sessionData);
+          (window as any).preventativeCareFormData = parsedData;
+          console.log('Setting preventative care form data from session storage:', parsedData);
+          return;
+        } catch (e) {
+          console.error('Error parsing session data:', e);
+        }
       }
       
       // Fall back to localStorage
@@ -36,18 +41,45 @@ const PreventativeSection = () => {
     }
   }, []);
   
+  // Save form data periodically with auto-save
+  useEffect(() => {
+    const autoSaveInterval = setInterval(() => {
+      const currentFormData = (window as any).preventativeCareFormData;
+      if (currentFormData) {
+        sessionStorage.setItem('preventativeCareFormData', JSON.stringify(currentFormData));
+        console.log('Auto-saved preventative care data to session storage:', currentFormData);
+      }
+    }, 30000); // Auto-save every 30 seconds
+    
+    return () => {
+      clearInterval(autoSaveInterval);
+    };
+  }, []);
+  
   // Add event listener for page unload to save data
   useEffect(() => {
     const handleBeforeUnload = () => {
       const currentFormData = (window as any).preventativeCareFormData;
       if (currentFormData) {
         sessionStorage.setItem('preventativeCareFormData', JSON.stringify(currentFormData));
+        console.log('Saving preventative care form data to session storage before unload:', currentFormData);
       }
     };
     
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, []);
+  
+  // Save form data when component unmounts
+  useEffect(() => {
+    return () => {
+      const currentFormData = (window as any).preventativeCareFormData;
+      if (currentFormData) {
+        sessionStorage.setItem('preventativeCareFormData', JSON.stringify(currentFormData));
+        console.log('Saving preventative care form data to session storage on unmount:', currentFormData);
+      }
     };
   }, []);
   

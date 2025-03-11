@@ -41,6 +41,21 @@ const ImmuneSection = () => {
     }
   }, []);
   
+  // Save form data periodically with auto-save
+  useEffect(() => {
+    const autoSaveInterval = setInterval(() => {
+      const currentFormData = (window as any).immunizationsFormData;
+      if (currentFormData) {
+        sessionStorage.setItem('immunizationsFormData', JSON.stringify(currentFormData));
+        console.log('Auto-saved immunizations data to session storage:', currentFormData);
+      }
+    }, 30000); // Auto-save every 30 seconds
+    
+    return () => {
+      clearInterval(autoSaveInterval);
+    };
+  }, []);
+  
   // Add event listener for page unload to save data
   useEffect(() => {
     const handleBeforeUnload = () => {

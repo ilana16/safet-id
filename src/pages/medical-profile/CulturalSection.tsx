@@ -41,6 +41,21 @@ const CulturalSection = () => {
     }
   }, []);
   
+  // Save form data periodically with auto-save
+  useEffect(() => {
+    const autoSaveInterval = setInterval(() => {
+      const currentFormData = (window as any).culturalPreferencesFormData;
+      if (currentFormData) {
+        sessionStorage.setItem('culturalPreferencesFormData', JSON.stringify(currentFormData));
+        console.log('Auto-saved cultural preferences data to session storage:', currentFormData);
+      }
+    }, 30000); // Auto-save every 30 seconds
+    
+    return () => {
+      clearInterval(autoSaveInterval);
+    };
+  }, []);
+  
   // Add event listener for page unload to save data
   useEffect(() => {
     const handleBeforeUnload = () => {
