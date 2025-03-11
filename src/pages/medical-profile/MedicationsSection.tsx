@@ -2,7 +2,6 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Info, Save, Search, PlusCircle, Pill, ChevronRight, FilterX } from 'lucide-react';
-import MedicalProfileMedicationsForm from '@/components/forms/MedicalProfileMedicationsForm';
 import { toast } from '@/lib/toast';
 import { logChanges } from '@/utils/changeLog';
 import { useFieldPersistence } from '@/hooks/useFieldPersistence';
@@ -11,6 +10,7 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { TabsContent, Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
+import DrugsDotComMedicationsForm from '@/components/forms/DrugsDotComMedicationsForm';
 
 // Define the type for medications data
 interface MedicationsData {
@@ -138,23 +138,22 @@ const MedicationsSection = () => {
     (medicationsData?.otc?.length || 0) + 
     (medicationsData?.supplements?.length || 0);
 
-  // Changed this comment to force a difference in the file
   return (
     <div className="space-y-6">
-      {/* Header section */}
+      {/* Header section in drugs.com style */}
       <div className="bg-white border border-[#D1DEE8] rounded-xl overflow-hidden shadow-sm">
-        <div className="bg-safet-600 text-white px-6 py-4">
+        <div className="bg-[#335B95] text-white px-6 py-4">
           <h1 className="text-2xl font-bold">My Medications</h1>
           <p className="text-white/80 mt-1">
             Track your prescriptions, over-the-counter medicines, and supplements
           </p>
         </div>
         
-        <div className="p-4 border-b border-gray-200 bg-gray-50">
+        <div className="p-4 border-b border-gray-200 bg-[#F5F8FC]">
           <div className="relative">
             <Input 
               placeholder="Search medications database..." 
-              className="pl-10 pr-4 py-2 border-gray-300 focus:ring-safet-500 focus:border-safet-500"
+              className="pl-10 pr-4 py-2 border-gray-300 focus:ring-[#335B95] focus:border-[#335B95]"
               onClick={() => setActiveTab('drug-lookup')}
             />
             <Search className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
@@ -172,17 +171,17 @@ const MedicationsSection = () => {
         <TabsList className="bg-white border border-gray-200 rounded-md mb-4 p-1 overflow-x-auto flex">
           <TabsTrigger 
             value="my-meds" 
-            className="flex items-center data-[state=active]:bg-safet-50 data-[state=active]:text-safet-700 data-[state=active]:border-b-2 data-[state=active]:border-safet-500 rounded-none flex-1"
+            className="flex items-center data-[state=active]:bg-[#EBF2FA] data-[state=active]:text-[#335B95] data-[state=active]:border-b-2 data-[state=active]:border-[#335B95] rounded-none flex-1"
           >
             <Pill className="h-4 w-4 mr-2" />
             My Medications
             {totalMedicationsCount > 0 && (
-              <Badge className="ml-2 bg-safet-100 text-safet-700 border-safet-200">{totalMedicationsCount}</Badge>
+              <Badge className="ml-2 bg-[#EBF2FA] text-[#335B95] border-[#335B95]/20">{totalMedicationsCount}</Badge>
             )}
           </TabsTrigger>
           <TabsTrigger 
             value="drug-lookup" 
-            className="flex items-center data-[state=active]:bg-safet-50 data-[state=active]:text-safet-700 data-[state=active]:border-b-2 data-[state=active]:border-safet-500 rounded-none flex-1"
+            className="flex items-center data-[state=active]:bg-[#EBF2FA] data-[state=active]:text-[#335B95] data-[state=active]:border-b-2 data-[state=active]:border-[#335B95] rounded-none flex-1"
           >
             <Search className="h-4 w-4 mr-2" />
             Drug Information
@@ -191,12 +190,12 @@ const MedicationsSection = () => {
         
         <TabsContent value="my-meds" className="mt-0">
           <Card className="p-6 border border-gray-200">
-            {isLoaded && <MedicalProfileMedicationsForm />}
+            {isLoaded && <DrugsDotComMedicationsForm />}
             
             <div className="mt-8 flex justify-end gap-3">
               <Button 
                 onClick={handleSave} 
-                className="bg-safet-500 hover:bg-safet-600"
+                className="bg-[#335B95] hover:bg-[#26497C]"
                 disabled={isSaving}
               >
                 {isSaving ? 'Saving...' : 'Save'}
