@@ -1,156 +1,30 @@
 
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Save, Search } from 'lucide-react';
-import MedicalProfileMedicationsForm from '@/components/forms/MedicalProfileMedicationsForm';
-import { toast } from '@/lib/toast';
-import { logChanges } from '@/utils/changeLog';
+import { ExternalLink, Search, Plus, Info, AlertTriangle } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Separator } from '@/components/ui/separator';
+import { Badge } from '@/components/ui/badge';
+import { toast } from '@/lib/toast';
 import MedicationDetails from '@/components/medications/MedicationInfo';
-import { searchDrugInfo } from '@/utils/drugsComApi';
+import { searchDrugInfo, searchDrugsCom, getDrugsComInfo } from '@/utils/drugsComApi';
 import { MedicationInfo as MedicationInfoType } from '@/utils/medicationData';
 
 const MedicationsSection = () => {
-  const [isSaving, setIsSaving] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [isSearching, setIsSearching] = useState(false);
-  const [drugInfo, setDrugInfo] = useState<MedicationInfoType | null>(null);
+  const [searchResults, setSearchResults] = useState<string[]>([]);
+  const [selectedMedication, setSelectedMedication] = useState<string | null>(null);
+  const [medicationInfo, setMedicationInfo] = useState<MedicationInfoType | null>(null);
+  const [isLoadingInfo, setIsLoadingInfo] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState('search');
   
-  useEffect(() => {
-    try {
-      // First check if session storage has any data
-      const sessionData = sessionStorage.getItem('medicationsFormData');
-      if (sessionData) {
-        try {
-          const parsedData = JSON.parse(sessionData);
-          (window as any).medicationsFormData = parsedData;
-          console.log('Setting medications form data from session storage:', parsedData);
-          return;
-        } catch (e) {
-          console.error('Error parsing session data:', e);
-        }
-      }
-      
-      // Fall back to localStorage
-      const savedProfileJson = localStorage.getItem('medicalProfile');
-      if (savedProfileJson) {
-        const savedProfile = JSON.parse(savedProfileJson);
-        if (savedProfile && savedProfile.medications) {
-          (window as any).medicationsFormData = savedProfile.medications;
-          console.log('Setting medications form data in window object:', savedProfile.medications);
-          
-          // Also save to session storage for better persistence
-          sessionStorage.setItem('medicationsFormData', JSON.stringify(savedProfile.medications));
-        }
-      }
-    } catch (error) {
-      console.error('Error loading medications data:', error);
-    }
-  }, []);
-  
-  // Save form data periodically with auto-save
-  useEffect(() => {
-    const autoSaveInterval = setInterval(() => {
-      const currentFormData = (window as any).medicationsFormData;
-      if (currentFormData) {
-        sessionStorage.setItem('medicationsFormData', JSON.stringify(currentFormData));
-        console.log('Auto-saved medications data to session storage:', currentFormData);
-      }
-    }, 30000); // Auto-save every 30 seconds
-    
-    return () => {
-      clearInterval(autoSaveInterval);
-    };
-  }, []);
-  
-  // Add event listener for page unload to save data
-  useEffect(() => {
-    const handleBeforeUnload = () => {
-      const currentFormData = (window as any).medicationsFormData;
-      if (currentFormData) {
-        sessionStorage.setItem('medicationsFormData', JSON.stringify(currentFormData));
-        console.log('Saving medications form data to session storage before unload:', currentFormData);
-      }
-    };
-    
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    return () => {
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-    };
-  }, []);
-  
-  // Save form data when component unmounts
-  useEffect(() => {
-    return () => {
-      const currentFormData = (window as any).medicationsFormData;
-      if (currentFormData) {
-        sessionStorage.setItem('medicationsFormData', JSON.stringify(currentFormData));
-        console.log('Saving medications form data to session storage on unmount:', currentFormData);
-      }
-    };
-  }, []);
-  
-  const handleSave = () => {
-    setIsSaving(true);
-    
-    try {
-      const existingProfileJson = localStorage.getItem('medicalProfile');
-      const existingProfile = existingProfileJson ? JSON.parse(existingProfileJson) : {};
-      const existingSectionData = existingProfile.medications || {};
-      
-      let newFormData = (window as any).medicationsFormData || {};
-      
-      console.log('Saving medications form data:', newFormData);
-      
-      const changes: {field: string; oldValue: any; newValue: any}[] = [];
-      
-      Object.keys(newFormData).forEach(key => {
-        const oldValue = existingSectionData[key];
-        const newValue = newFormData[key];
-        
-        if (JSON.stringify(oldValue) !== JSON.stringify(newValue)) {
-          changes.push({
-            field: key,
-            oldValue: oldValue,
-            newValue: newValue
-          });
-        }
-      });
-      
-      setTimeout(() => {
-        const updatedProfile = {
-          ...existingProfile,
-          medications: {
-            ...newFormData,
-            completed: true
-          }
-        };
-        
-        localStorage.setItem('medicalProfile', JSON.stringify(updatedProfile));
-        console.log('Saved updated profile:', updatedProfile);
-        
-        // Also update session storage
-        sessionStorage.setItem('medicationsFormData', JSON.stringify({
-          ...newFormData,
-          completed: true
-        }));
-        
-        if (changes.length > 0) {
-          logChanges('medications', changes);
-        }
-        
-        setIsSaving(false);
-        toast.success('Medications information saved successfully');
-      }, 500);
-    } catch (error) {
-      console.error('Error saving medications information:', error);
-      setIsSaving(false);
-      toast.error('Error saving medications information');
-    }
-  };
-
-  const handleDrugSearch = async () => {
+  // Handle searching medications
+  const handleSearch = async () => {
     if (!searchTerm.trim()) {
       toast.error('Please enter a medication name to search');
       return;
@@ -158,85 +32,206 @@ const MedicationsSection = () => {
 
     setIsSearching(true);
     setError(null);
-    setDrugInfo(null);
+    setSearchResults([]);
 
     try {
-      const result = await searchDrugInfo(searchTerm);
-      setDrugInfo(result);
-      if (!result) {
-        setError(`No information found for "${searchTerm}"`);
+      const results = await searchDrugsCom(searchTerm);
+      setSearchResults(results);
+      if (results.length === 0) {
+        setError(`No medications found for "${searchTerm}"`);
       }
     } catch (err) {
-      console.error('Error searching drug information:', err);
+      console.error('Error searching medications:', err);
       setError(`Error searching for "${searchTerm}". Please try again.`);
     } finally {
       setIsSearching(false);
     }
   };
 
+  // Handle medication selection
+  const handleSelectMedication = async (medication: string) => {
+    setSelectedMedication(medication);
+    setIsLoadingInfo(true);
+    setMedicationInfo(null);
+    setError(null);
+    
+    try {
+      const info = await getDrugsComInfo(medication);
+      setMedicationInfo(info);
+      if (!info) {
+        setError(`No detailed information found for "${medication}"`);
+      } else {
+        setActiveTab('info');
+      }
+    } catch (err) {
+      console.error('Error fetching medication info:', err);
+      setError(`Error retrieving details for "${medication}". Please try again.`);
+    } finally {
+      setIsLoadingInfo(false);
+    }
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
-      handleDrugSearch();
+      handleSearch();
+    }
+  };
+
+  const handleAddToMedications = () => {
+    if (medicationInfo) {
+      // In a production app, this would save to the user's medication list
+      toast.success(`${medicationInfo.name} added to your medications list`);
     }
   };
 
   return (
-    <div>
-      <div className="flex justify-end mb-6">
-        <Button 
-          onClick={handleSave} 
-          className="bg-safet-500 hover:bg-safet-600"
-          disabled={isSaving}
-        >
-          {isSaving ? 'Saving...' : 'Save'}
-          {!isSaving && <Save className="ml-2 h-4 w-4" />}
-        </Button>
-      </div>
-      
-      <div className="bg-white p-6 rounded-lg border border-gray-200 mb-6">
-        <h2 className="text-lg font-medium text-gray-900 mb-4">Medication Information Lookup</h2>
-        <p className="text-sm text-gray-600 mb-4">
-          Search for medication information from Drugs.com database to learn about usage, side effects, and more.
-        </p>
-        <div className="flex gap-2 mb-4">
-          <Input
-            type="text"
-            placeholder="Enter medication name (e.g., Aspirin, Lisinopril)"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            onKeyDown={handleKeyDown}
-            className="flex-1"
-          />
-          <Button 
-            onClick={handleDrugSearch}
-            disabled={isSearching}
-            className="bg-safet-500 hover:bg-safet-600"
+    <div className="space-y-6">
+      <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-2xl font-bold text-gray-900">Medication Information</h2>
+          <a 
+            href="https://www.drugs.com" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="text-safet-600 hover:text-safet-800 flex items-center text-sm"
           >
-            {isSearching ? 'Searching...' : 'Search'}
-            {!isSearching && <Search className="ml-2 h-4 w-4" />}
-          </Button>
+            Powered by Drugs.com <ExternalLink className="h-4 w-4 ml-1" />
+          </a>
         </div>
         
-        {error && (
-          <div className="p-4 border border-amber-200 bg-amber-50 rounded-md text-amber-800 mb-4">
-            {error}
-          </div>
-        )}
+        <p className="text-gray-600 mb-6">
+          Search for medication information including usage, side effects, interactions, and more.
+        </p>
         
-        {drugInfo && <MedicationDetails medication={drugInfo} />}
+        <Tabs defaultValue="search" value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid w-full grid-cols-2 mb-6">
+            <TabsTrigger value="search">Search</TabsTrigger>
+            <TabsTrigger value="info" disabled={!medicationInfo}>Information</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="search" className="space-y-4">
+            <div className="flex gap-2">
+              <Input
+                type="text"
+                placeholder="Enter medication name (e.g., Aspirin, Lisinopril)"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                onKeyDown={handleKeyDown}
+                className="flex-1"
+              />
+              <Button 
+                onClick={handleSearch}
+                disabled={isSearching}
+                className="bg-safet-500 hover:bg-safet-600"
+              >
+                {isSearching ? 'Searching...' : 'Search'}
+                {!isSearching && <Search className="ml-2 h-4 w-4" />}
+              </Button>
+            </div>
+            
+            {error && (
+              <Alert variant="destructive">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
+            
+            {searchResults.length > 0 && (
+              <div className="mt-4">
+                <h3 className="text-lg font-medium mb-2">Search Results:</h3>
+                <div className="space-y-2">
+                  {searchResults.map((medication, index) => (
+                    <Card key={index} className="hover:bg-gray-50 cursor-pointer transition-colors" onClick={() => handleSelectMedication(medication)}>
+                      <CardContent className="p-4 flex justify-between items-center">
+                        <div>
+                          <p className="font-medium text-safet-700 capitalize">{medication}</p>
+                          <p className="text-sm text-gray-500">Click for more information</p>
+                        </div>
+                        <Info className="h-5 w-5 text-safet-500" />
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            )}
+          </TabsContent>
+          
+          <TabsContent value="info">
+            {isLoadingInfo && (
+              <div className="text-center py-8">
+                <p>Loading medication information...</p>
+              </div>
+            )}
+            
+            {medicationInfo && (
+              <div className="space-y-4">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h2 className="text-2xl font-bold text-safet-700">{medicationInfo.name}</h2>
+                    {medicationInfo.genericName && (
+                      <p className="text-gray-600">Generic: {medicationInfo.genericName}</p>
+                    )}
+                  </div>
+                  <Button 
+                    onClick={handleAddToMedications}
+                    className="bg-safet-500 hover:bg-safet-600"
+                  >
+                    <Plus className="mr-2 h-4 w-4" /> Add to My Medications
+                  </Button>
+                </div>
+                
+                <Separator />
+                
+                <MedicationDetails medication={medicationInfo} />
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
       </div>
       
-      <MedicalProfileMedicationsForm />
-      
-      <div className="mt-8 flex justify-end gap-3">
-        <Button 
-          onClick={handleSave} 
-          className="bg-safet-500 hover:bg-safet-600"
-          disabled={isSaving}
-        >
-          {isSaving ? 'Saving...' : 'Save'}
-          {!isSaving && <Save className="ml-2 h-4 w-4" />}
-        </Button>
+      <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+        <h3 className="text-xl font-bold text-gray-900 mb-4">Drug Information Resources</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Medication Guides</CardTitle>
+              <CardDescription>FDA-approved guides for medications</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p>Access important safety information about your medications directly from the FDA.</p>
+            </CardContent>
+            <CardFooter>
+              <a 
+                href="https://www.fda.gov/drugs/drug-safety-and-availability/medication-guides" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-safet-600 hover:underline flex items-center"
+              >
+                Visit FDA Medication Guides <ExternalLink className="ml-1 h-4 w-4" />
+              </a>
+            </CardFooter>
+          </Card>
+          
+          <Card>
+            <CardHeader>
+              <CardTitle>Drug Interactions</CardTitle>
+              <CardDescription>Check for potential interactions</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p>Identify potential interactions between your medications, foods, and medical conditions.</p>
+            </CardContent>
+            <CardFooter>
+              <a 
+                href="https://www.drugs.com/drug_interactions.html" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-safet-600 hover:underline flex items-center"
+              >
+                Check Interactions <ExternalLink className="ml-1 h-4 w-4" />
+              </a>
+            </CardFooter>
+          </Card>
+        </div>
       </div>
     </div>
   );
