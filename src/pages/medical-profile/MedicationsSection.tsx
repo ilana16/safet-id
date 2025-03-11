@@ -1,11 +1,12 @@
 
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Save } from 'lucide-react';
+import { Info, Save } from 'lucide-react';
 import MedicalProfileMedicationsForm from '@/components/forms/MedicalProfileMedicationsForm';
 import { toast } from '@/lib/toast';
 import { logChanges } from '@/utils/changeLog';
 import { useFieldPersistence } from '@/hooks/useFieldPersistence';
+import DrugInfoLookup from '@/components/medications/DrugInfoLookup';
 
 // Define the type for medications data
 interface MedicationsData {
@@ -64,6 +65,7 @@ const initialMedicationsData: MedicationsData = {
 const MedicationsSection = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
+  const [showDrugInfo, setShowDrugInfo] = useState(false);
   
   // Use the useFieldPersistence hook for medications data
   const [medicationsData, updateMedicationsData, saveMedicationsData] = useFieldPersistence<MedicationsData>(
@@ -128,7 +130,16 @@ const MedicationsSection = () => {
 
   return (
     <div>
-      <div className="flex justify-end mb-6">
+      <div className="flex justify-between mb-6">
+        <Button 
+          variant="outline" 
+          className="flex gap-2 items-center text-safet-700" 
+          onClick={() => setShowDrugInfo(!showDrugInfo)}
+        >
+          <Info className="h-4 w-4" />
+          {showDrugInfo ? 'Hide' : 'Show'} Medication Info
+        </Button>
+        
         <Button 
           onClick={handleSave} 
           className="bg-safet-500 hover:bg-safet-600"
@@ -138,6 +149,12 @@ const MedicationsSection = () => {
           {!isSaving && <Save className="ml-2 h-4 w-4" />}
         </Button>
       </div>
+      
+      {showDrugInfo && (
+        <div className="mb-6">
+          <DrugInfoLookup />
+        </div>
+      )}
       
       {isLoaded && <MedicalProfileMedicationsForm />}
       
