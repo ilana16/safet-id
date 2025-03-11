@@ -4,13 +4,11 @@ import * as TabsPrimitive from "@radix-ui/react-tabs"
 
 import { cn } from "@/lib/utils"
 
-interface TabsProps extends React.ComponentPropsWithoutRef<typeof TabsPrimitive.Root> {
-  orientation?: "horizontal" | "vertical"
-}
-
 const Tabs = React.forwardRef<
   React.ElementRef<typeof TabsPrimitive.Root>,
-  TabsProps
+  React.ComponentPropsWithoutRef<typeof TabsPrimitive.Root> & {
+    orientation?: "horizontal" | "vertical"
+  }
 >(({ className, orientation = "horizontal", ...props }, ref) => (
   <TabsPrimitive.Root
     ref={ref}
