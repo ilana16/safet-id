@@ -5,8 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Plus, Trash2, Calendar } from 'lucide-react';
-import { Textarea } from '@/components/ui/textarea';
+import { Plus, Trash2 } from 'lucide-react';
 
 const MedicalProfileAllergiesForm = () => {
   // State for allergies
@@ -15,13 +14,6 @@ const MedicalProfileAllergiesForm = () => {
     reaction: string,
     severity: string,
     otherSeverity?: string
-  }>>([]);
-  
-  // State for immunizations
-  const [immunizations, setImmunizations] = useState<Array<{
-    vaccine: string,
-    date: string,
-    otherVaccine?: string
   }>>([]);
   
   const [noKnownAllergies, setNoKnownAllergies] = useState(false);
@@ -42,15 +34,6 @@ const MedicalProfileAllergiesForm = () => {
           }
         }
         
-        // Load immunizations if available
-        if (data.immunizations) {
-          try {
-            setImmunizations(JSON.parse(data.immunizations));
-          } catch (e) {
-            console.error("Error parsing immunizations data:", e);
-          }
-        }
-        
         setNoKnownAllergies(data.noKnownAllergies === 'true' || false);
         console.log('Loaded allergies data from window object:', data);
       } 
@@ -66,15 +49,6 @@ const MedicalProfileAllergiesForm = () => {
               setAllergies(JSON.parse(data.allergies));
             } catch (e) {
               console.error("Error parsing allergies data:", e);
-            }
-          }
-          
-          // Load immunizations if available
-          if (data.immunizations) {
-            try {
-              setImmunizations(JSON.parse(data.immunizations));
-            } catch (e) {
-              console.error("Error parsing immunizations data:", e);
             }
           }
           
@@ -103,21 +77,6 @@ const MedicalProfileAllergiesForm = () => {
     setAllergies(allergies.filter((_, i) => i !== index));
   };
   
-  // Handler for immunizations
-  const handleAddImmunization = () => {
-    setImmunizations([...immunizations, { vaccine: '', date: '' }]);
-  };
-  
-  const handleUpdateImmunization = (index: number, field: keyof (typeof immunizations)[0], value: string) => {
-    const updatedImmunizations = [...immunizations];
-    updatedImmunizations[index][field] = value;
-    setImmunizations(updatedImmunizations);
-  };
-  
-  const handleRemoveImmunization = (index: number) => {
-    setImmunizations(immunizations.filter((_, i) => i !== index));
-  };
-  
   const handleNoKnownAllergiesChange = (checked: boolean) => {
     setNoKnownAllergies(checked);
     if (checked) {
@@ -129,7 +88,6 @@ const MedicalProfileAllergiesForm = () => {
   useEffect(() => {
     const formData = {
       allergies: JSON.stringify(allergies),
-      immunizations: JSON.stringify(immunizations),
       noKnownAllergies: noKnownAllergies.toString()
     };
     
@@ -140,26 +98,10 @@ const MedicalProfileAllergiesForm = () => {
       // Clean up when component unmounts
       delete (window as any).allergiesFormData;
     };
-  }, [allergies, immunizations, noKnownAllergies]);
+  }, [allergies, noKnownAllergies]);
   
   // Common severity options
   const severityOptions = ["Mild", "Moderate", "Severe", "Life-threatening", "Other"];
-  
-  // Common vaccine options
-  const commonVaccines = [
-    "COVID-19",
-    "Influenza (Flu)",
-    "Tetanus, Diphtheria, Pertussis (Tdap/Td)",
-    "Measles, Mumps, Rubella (MMR)",
-    "Hepatitis A",
-    "Hepatitis B",
-    "Human Papillomavirus (HPV)",
-    "Pneumococcal",
-    "Shingles (Herpes Zoster)",
-    "Varicella (Chickenpox)",
-    "Meningococcal",
-    "Other"
-  ];
 
   return (
     <div className="space-y-8">
@@ -250,72 +192,6 @@ const MedicalProfileAllergiesForm = () => {
             <Plus className="h-4 w-4 mr-1" /> Add Allergy
           </Button>
         )}
-      </div>
-      
-      <div>
-        <h3 className="text-lg font-medium mb-4">Immunizations & Vaccines</h3>
-        <p className="text-sm text-gray-600 mb-4">List your vaccination history.</p>
-        
-        {immunizations.map((immunization, index) => (
-          <div key={index} className="flex items-start gap-2 mb-3">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 flex-grow">
-              <div className="space-y-2">
-                <Label htmlFor={`vaccine-${index}`}>Vaccine</Label>
-                <Select
-                  value={immunization.vaccine}
-                  onValueChange={(value) => handleUpdateImmunization(index, 'vaccine', value)}
-                >
-                  <SelectTrigger id={`vaccine-${index}`}>
-                    <SelectValue placeholder="Select vaccine" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {commonVaccines.map((option) => (
-                      <SelectItem key={option} value={option}>{option}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {immunization.vaccine === "Other" && (
-                  <Input
-                    className="mt-2"
-                    placeholder="Specify vaccine name"
-                    value={immunization.otherVaccine || ''}
-                    onChange={(e) => handleUpdateImmunization(index, 'otherVaccine', e.target.value)}
-                  />
-                )}
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor={`vaccine-date-${index}`} className="flex items-center gap-1">
-                  <Calendar className="h-4 w-4" /> Date Received
-                </Label>
-                <Input
-                  id={`vaccine-date-${index}`}
-                  type="date"
-                  value={immunization.date}
-                  onChange={(e) => handleUpdateImmunization(index, 'date', e.target.value)}
-                />
-              </div>
-            </div>
-            
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => handleRemoveImmunization(index)}
-              className="flex-shrink-0 mt-7"
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
-          </div>
-        ))}
-        
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleAddImmunization}
-          className="mt-2"
-        >
-          <Plus className="h-4 w-4 mr-1" /> Add Immunization
-        </Button>
       </div>
     </div>
   );
