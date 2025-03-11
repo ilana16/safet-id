@@ -183,4 +183,3 @@ const CulturalSection = () => {
 };
 
 export default CulturalSection;
-
