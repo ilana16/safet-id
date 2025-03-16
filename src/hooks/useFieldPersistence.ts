@@ -13,11 +13,16 @@ export function useFieldPersistence<T>(
   // Load data on initial mount
   useEffect(() => {
     console.log(`Loading initial data for ${section}`);
-    const sectionData = loadSection(section);
-    
-    if (sectionData && Object.keys(sectionData).length > 0) {
-      console.log(`Found existing data for ${section}:`, sectionData);
-      setFormData(prev => ({ ...prev, ...sectionData }));
+    try {
+      const sectionData = loadSection(section);
+      
+      if (sectionData && Object.keys(sectionData).length > 0) {
+        console.log(`Found existing data for ${section}:`, sectionData);
+        setFormData(prev => ({ ...prev, ...sectionData }));
+      }
+    } catch (error) {
+      console.error(`Error loading initial data for ${section}:`, error);
+      // Fall back to initial data
     }
   }, [section, loadSection]);
   
