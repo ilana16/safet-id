@@ -58,9 +58,6 @@ export const getDrugsComUrl = (medicationName: string): string => {
   return `https://www.drugs.com/search.php?searchterm=${encodeURIComponent(medicationName)}`;
 };
 
-// Export the MedicationInfo type for use in other files
-export type { MedicationInfo };
-
 // Local implementation using our existing data (for demo purposes)
 const searchMedicationsLocal = (query: string): string[] => {
   if (!query || query.length < 2) return [];
