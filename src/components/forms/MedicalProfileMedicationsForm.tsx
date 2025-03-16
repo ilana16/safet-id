@@ -1,6 +1,5 @@
-
 import React, { useState, useEffect } from 'react';
-import { PlusCircle, Trash2, Clock, Pill, Search, ChevronDown, ChevronUp, Loader2, ExternalLink } from 'lucide-react';
+import { PlusCircle, Trash2, Clock, Pill, Search, ChevronDown, ChevronUp, Loader2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
@@ -53,11 +52,7 @@ const defaultMedication: Medication = {
   doseTimes: [{ id: `time_${Date.now()}`, time: '' }]
 };
 
-interface MedicalProfileMedicationsFormProps {
-  isEditing?: boolean;
-}
-
-const MedicalProfileMedicationsForm: React.FC<MedicalProfileMedicationsFormProps> = ({ isEditing = false }) => {
+const MedicalProfileMedicationsForm = () => {
   const [medications, setMedications] = useState<Medication[]>([]);
   const [filterType, setFilterType] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -204,122 +199,7 @@ const MedicalProfileMedicationsForm: React.FC<MedicalProfileMedicationsFormProps
     (window as any).medicationsFormData = prepareFormData();
   }, [medications]);
 
-  // Read-only view
-  if (!isEditing) {
-    if (medications.length === 0) {
-      return (
-        <div className="text-center py-12">
-          <Pill className="mx-auto h-12 w-12 text-gray-400" />
-          <h3 className="mt-4 text-lg font-medium text-gray-900">No medications added</h3>
-          <p className="mt-2 text-sm text-gray-500">No medications have been added to your profile yet.</p>
-        </div>
-      );
-    }
-
-    return (
-      <div className="space-y-6">
-        {filterType !== 'all' && (
-          <div className="flex justify-between items-center">
-            <Select value={filterType} onValueChange={setFilterType}>
-              <SelectTrigger id="filter-type" className="w-[180px]">
-                <SelectValue placeholder="All medications" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All medications</SelectItem>
-                <SelectItem value="prescription">Prescription only</SelectItem>
-                <SelectItem value="otc">Over-the-counter only</SelectItem>
-                <SelectItem value="supplement">Supplements only</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        )}
-
-        <div className="space-y-4">
-          {filteredMedications.map((med) => (
-            <Card key={med.id} className="p-4 border border-gray-200">
-              <div className="flex justify-between items-center mb-4">
-                <div className="flex items-center gap-2">
-                  <Pill className="h-5 w-5 text-[#335B95]" />
-                  <h3 className="font-medium text-lg">
-                    {med.name || 'Unnamed Medication'}
-                    {med.brandName && <span className="text-sm text-gray-500 ml-2">({med.brandName})</span>}
-                  </h3>
-                </div>
-                <Badge className={`
-                  ${med.type === 'prescription' ? 'bg-blue-100 text-blue-800 border-blue-200' : ''}
-                  ${med.type === 'otc' ? 'bg-green-100 text-green-800 border-green-200' : ''}
-                  ${med.type === 'supplement' ? 'bg-purple-100 text-purple-800 border-purple-200' : ''}
-                `}>
-                  {med.type === 'prescription' ? 'Prescription' : 
-                   med.type === 'otc' ? 'Over-the-counter' : 
-                   'Supplement'}
-                </Badge>
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {med.totalDosage && med.unit && (
-                  <div>
-                    <span className="font-medium text-gray-700">Dosage:</span> {med.totalDosage} {med.unit}
-                  </div>
-                )}
-                
-                {med.form && (
-                  <div>
-                    <span className="font-medium text-gray-700">Form:</span> {med.form === 'other' ? med.customForm : med.form}
-                  </div>
-                )}
-                
-                {med.withFood && med.withFood !== 'other' && (
-                  <div>
-                    <span className="font-medium text-gray-700">Taking:</span> {
-                      med.withFood === 'with' ? 'With food' : 
-                      med.withFood === 'without' ? 'Without food' : 'Either is fine'
-                    }
-                  </div>
-                )}
-                
-                {med.reason && (
-                  <div className="md:col-span-2">
-                    <span className="font-medium text-gray-700">Reason:</span> {med.reason}
-                  </div>
-                )}
-                
-                {med.doseTimes && med.doseTimes.length > 0 && med.doseTimes[0].time && (
-                  <div className="md:col-span-2">
-                    <span className="font-medium text-gray-700">Dose times:</span>
-                    <div className="flex flex-wrap gap-2 mt-1">
-                      {med.doseTimes.map((doseTime, index) => (
-                        doseTime.time ? (
-                          <Badge key={doseTime.id} variant="outline" className="bg-gray-50">
-                            <Clock className="h-3 w-3 mr-1" />
-                            {doseTime.time}
-                          </Badge>
-                        ) : null
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-              
-              <div className="mt-3 pt-3 border-t border-gray-100 flex">
-                <Button
-                  variant="link"
-                  size="sm"
-                  className="text-safet-600 p-0 h-auto"
-                  onClick={() => window.open(`https://www.drugs.com/search.php?searchterm=${encodeURIComponent(med.name)}`, '_blank')}
-                >
-                  View on Drugs.com <ExternalLink className="ml-1 h-3 w-3" />
-                </Button>
-              </div>
-            </Card>
-          ))}
-        </div>
-      </div>
-    );
-  }
-
-  // Edit mode, use the existing form
-  if (medications.length === 0 && isEditing) {
+  if (medications.length === 0) {
     return (
       <div className="text-center py-12">
         <Pill className="mx-auto h-12 w-12 text-gray-400" />
