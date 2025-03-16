@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { PlusCircle, Trash2, Clock, Pill, Search, ChevronDown, ChevronUp } from 'lucide-react';
 import { Input } from '@/components/ui/input';
@@ -49,9 +48,7 @@ const defaultMedication: Medication = {
 
 const MedicalProfileMedicationsForm = () => {
   // State for all medications (unified)
-  const [medications, setMedications] = useState<Medication[]>([
-    { ...defaultMedication }
-  ]);
+  const [medications, setMedications] = useState<Medication[]>([]);
   
   const [filterType, setFilterType] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -182,6 +179,30 @@ const MedicalProfileMedicationsForm = () => {
     // Attach the form data to the window object for the parent component to access
     (window as any).medicationsFormData = prepareFormData();
   }, [medications]);
+
+  // Render empty state when no medications
+  if (medications.length === 0) {
+    return (
+      <div className="text-center py-12">
+        <Pill className="mx-auto h-12 w-12 text-gray-400" />
+        <h3 className="mt-4 text-lg font-medium text-gray-900">No medications added</h3>
+        <p className="mt-2 text-sm text-gray-500">Get started by adding your first medication.</p>
+        <Button
+          onClick={() => {
+            const newMed: Medication = {
+              ...defaultMedication,
+              id: `med_${Date.now()}`
+            };
+            setMedications([newMed]);
+          }}
+          className="mt-6"
+        >
+          <PlusCircle className="mr-2 h-4 w-4" />
+          Add Medication
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Info, Save, Search, PlusCircle, Pill, ChevronRight, FilterX } from 'lucide-react';
@@ -21,49 +20,9 @@ interface MedicationsData {
 }
 
 const initialMedicationsData: MedicationsData = {
-  prescriptions: [{
-    id: `med_${Date.now()}`,
-    name: '',
-    totalDosage: '',
-    unit: '',
-    pillsPerDose: '',
-    dosagePerPill: '',
-    form: '',
-    customForm: '',
-    withFood: 'with',
-    prescriptionType: 'prescription',
-    brandName: '',
-    reason: '',
-    doseTimes: [{ id: `time_${Date.now()}`, time: '' }]
-  }],
-  otc: [{
-    id: `otc_${Date.now()}`,
-    name: '',
-    totalDosage: '',
-    unit: '',
-    pillsPerDose: '',
-    dosagePerPill: '',
-    form: '',
-    customForm: '',
-    withFood: 'with',
-    brandName: '',
-    reason: '',
-    doseTimes: [{ id: `time_${Date.now()}`, time: '' }]
-  }],
-  supplements: [{
-    id: `supp_${Date.now()}`,
-    name: '',
-    totalDosage: '',
-    unit: '',
-    pillsPerDose: '',
-    dosagePerPill: '',
-    form: '',
-    customForm: '',
-    withFood: 'with',
-    brandName: '',
-    reason: '',
-    doseTimes: [{ id: `time_${Date.now()}`, time: '' }]
-  }]
+  prescriptions: [],
+  otc: [],
+  supplements: []
 };
 
 const MedicationsSection = () => {
