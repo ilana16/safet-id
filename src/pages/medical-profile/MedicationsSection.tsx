@@ -2,8 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Save, Pill, PlusCircle, Edit, Clock, AlertCircle, Calendar, Info } from 'lucide-react';
-import { Card, CardContent } from '@/components/ui/card';
+import { Save, Pill, PlusCircle, Edit, Clock, AlertCircle, Calendar, Info, Search, ExternalLink } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { toast } from '@/lib/toast';
 import { useMedicalProfile } from '@/contexts/MedicalProfileContext';
@@ -11,6 +11,9 @@ import { loadSectionData, saveSectionData } from '@/utils/medicalProfileService'
 import MedicalProfileMedicationsForm from '@/components/forms/MedicalProfileMedicationsForm';
 import { Separator } from '@/components/ui/separator';
 import { useNavigate } from 'react-router-dom';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { searchDrugsCom, getDrugsComInfo, getDrugsComUrl, MedicationInfo } from '@/utils/drugsComApi';
 
 const MedicationsSection = () => {
   const [isSaving, setIsSaving] = useState(false);
@@ -19,6 +22,14 @@ const MedicationsSection = () => {
   const [activeTab, setActiveTab] = useState('myMeds');
   const { profileData, updateSectionData } = useMedicalProfile();
   const navigate = useNavigate();
+  
+  // Drug information states
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<string[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [selectedDrug, setSelectedDrug] = useState<string | null>(null);
+  const [drugInfo, setDrugInfo] = useState<MedicationInfo | null>(null);
+  const [isLoadingDrugInfo, setIsLoadingDrugInfo] = useState(false);
   
   useEffect(() => {
     const loadMedicationsData = () => {
@@ -111,6 +122,50 @@ const MedicationsSection = () => {
       case 'supplement': return 'bg-purple-100 text-purple-800 border-purple-200';
       default: return 'bg-gray-100 text-gray-800 border-gray-200';
     }
+  };
+
+  // Handle drug search
+  const handleDrugSearch = async () => {
+    if (!searchQuery || searchQuery.trim().length < 2) {
+      toast.error('Please enter at least 2 characters to search');
+      return;
+    }
+    
+    setIsSearching(true);
+    setSearchResults([]);
+    setSelectedDrug(null);
+    setDrugInfo(null);
+    
+    try {
+      const results = await searchDrugsCom(searchQuery);
+      setSearchResults(results);
+    } catch (error) {
+      console.error('Error searching for medications:', error);
+      toast.error('Error searching for medications');
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  // Handle selecting a drug from search results
+  const handleSelectDrug = async (drugName: string) => {
+    setSelectedDrug(drugName);
+    setIsLoadingDrugInfo(true);
+    
+    try {
+      const info = await getDrugsComInfo(drugName);
+      setDrugInfo(info);
+    } catch (error) {
+      console.error('Error fetching drug information:', error);
+      toast.error('Error fetching drug information');
+    } finally {
+      setIsLoadingDrugInfo(false);
+    }
+  };
+
+  // Open external link to Drugs.com
+  const openDrugsComPage = (drugName: string) => {
+    window.open(getDrugsComUrl(drugName), '_blank');
   };
 
   const renderMedicationCard = (med: any) => {
@@ -291,18 +346,196 @@ const MedicationsSection = () => {
             
             <Card className="border border-gray-200">
               <CardContent className="p-6">
-                <div className="text-center py-6">
-                  <Calendar className="mx-auto h-12 w-12 text-gray-400" />
-                  <h3 className="mt-4 text-lg font-medium text-gray-900">Drug Information Feature</h3>
-                  <p className="mt-2 text-sm text-gray-500 max-w-md mx-auto">
-                    Search for medications to view detailed information about dosage, side effects, interactions, and more.
-                  </p>
-                  <Button
-                    onClick={() => navigate('/profile/medications')}
-                    className="mt-6"
-                  >
-                    Search Medications
-                  </Button>
+                <div className="space-y-4">
+                  <div className="flex flex-col md:flex-row gap-4">
+                    <div className="relative flex-1">
+                      <Input
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        placeholder="Search for a medication..."
+                        className="pl-10 pr-4 py-2 w-full"
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            handleDrugSearch();
+                          }
+                        }}
+                      />
+                      <Search className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
+                    </div>
+                    <Button 
+                      onClick={handleDrugSearch}
+                      disabled={isSearching}
+                      className="bg-safet-500 hover:bg-safet-600 text-white"
+                    >
+                      {isSearching ? 'Searching...' : 'Search'}
+                    </Button>
+                  </div>
+                  
+                  {isSearching ? (
+                    <div className="text-center py-8">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-safet-500 mx-auto"></div>
+                      <p className="mt-4 text-gray-600">Searching for medications...</p>
+                    </div>
+                  ) : searchResults.length > 0 ? (
+                    <div className="space-y-4">
+                      <h4 className="font-medium">Search Results</h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {searchResults.map((result, idx) => (
+                          <Button 
+                            key={idx} 
+                            variant="outline" 
+                            className="justify-start text-left"
+                            onClick={() => handleSelectDrug(result)}
+                          >
+                            <Pill className="mr-2 h-4 w-4 text-safet-500" />
+                            {result}
+                          </Button>
+                        ))}
+                      </div>
+                    </div>
+                  ) : searchQuery && !isSearching && searchResults.length === 0 ? (
+                    <div className="text-center py-8">
+                      <AlertCircle className="mx-auto h-8 w-8 text-amber-500" />
+                      <p className="mt-2 text-gray-600">No medications found matching "{searchQuery}"</p>
+                    </div>
+                  ) : null}
+                  
+                  {/* Drug Information Display */}
+                  {selectedDrug && (
+                    <div className="mt-6 pt-6 border-t border-gray-200">
+                      {isLoadingDrugInfo ? (
+                        <div className="text-center py-8">
+                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-safet-500 mx-auto"></div>
+                          <p className="mt-4 text-gray-600">Loading information for {selectedDrug}...</p>
+                        </div>
+                      ) : drugInfo ? (
+                        <Card className="border border-gray-200">
+                          <CardHeader className="bg-gray-50 border-b border-gray-200">
+                            <div className="flex justify-between items-center">
+                              <CardTitle className="text-lg font-semibold flex items-center">
+                                <Pill className="mr-2 h-5 w-5 text-safet-600" />
+                                {drugInfo.name}
+                              </CardTitle>
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                onClick={() => openDrugsComPage(drugInfo.name)}
+                                className="text-safet-600"
+                              >
+                                View on Drugs.com
+                                <ExternalLink className="ml-2 h-4 w-4" />
+                              </Button>
+                            </div>
+                            {drugInfo.genericName && drugInfo.genericName !== drugInfo.name && (
+                              <CardDescription className="text-sm">
+                                Generic Name: {drugInfo.genericName}
+                              </CardDescription>
+                            )}
+                            {drugInfo.drugClass && (
+                              <Badge className="mt-2 bg-blue-100 text-blue-800 border-blue-200">
+                                {drugInfo.drugClass}
+                              </Badge>
+                            )}
+                          </CardHeader>
+                          <CardContent className="p-5">
+                            <div className="space-y-6">
+                              <div>
+                                <h4 className="font-medium mb-2">Description</h4>
+                                <p className="text-gray-700">{drugInfo.description}</p>
+                              </div>
+                              
+                              {drugInfo.usedFor && drugInfo.usedFor.length > 0 && (
+                                <div>
+                                  <h4 className="font-medium mb-2">Used For</h4>
+                                  <ul className="list-disc pl-5 space-y-1">
+                                    {drugInfo.usedFor.map((use, idx) => (
+                                      <li key={idx} className="text-gray-700">{use}</li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              )}
+                              
+                              <div>
+                                <h4 className="font-medium mb-2">Dosage Information</h4>
+                                <div className="bg-gray-50 p-4 rounded-md space-y-2">
+                                  {drugInfo.dosage.adult && (
+                                    <div>
+                                      <span className="font-medium text-sm">Adult:</span>
+                                      <p className="text-gray-700">{drugInfo.dosage.adult}</p>
+                                    </div>
+                                  )}
+                                  {drugInfo.dosage.child && (
+                                    <div>
+                                      <span className="font-medium text-sm">Child:</span>
+                                      <p className="text-gray-700">{drugInfo.dosage.child}</p>
+                                    </div>
+                                  )}
+                                  {drugInfo.dosage.elderly && (
+                                    <div>
+                                      <span className="font-medium text-sm">Elderly:</span>
+                                      <p className="text-gray-700">{drugInfo.dosage.elderly}</p>
+                                    </div>
+                                  )}
+                                  {drugInfo.dosage.frequency && (
+                                    <div>
+                                      <span className="font-medium text-sm">Frequency:</span>
+                                      <p className="text-gray-700">{drugInfo.dosage.frequency}</p>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                              
+                              {drugInfo.sideEffects && drugInfo.sideEffects.length > 0 && (
+                                <div>
+                                  <h4 className="font-medium mb-2">Side Effects</h4>
+                                  <div className="flex flex-wrap gap-2">
+                                    {drugInfo.sideEffects.map((effect, idx) => (
+                                      <Badge key={idx} variant="outline" className="bg-amber-50">
+                                        {effect}
+                                      </Badge>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                              
+                              {drugInfo.warnings && drugInfo.warnings.length > 0 && (
+                                <div>
+                                  <h4 className="font-medium mb-2 text-red-600 flex items-center">
+                                    <AlertCircle className="mr-2 h-4 w-4" />
+                                    Warnings
+                                  </h4>
+                                  <ul className="list-disc pl-5 space-y-1">
+                                    {drugInfo.warnings.map((warning, idx) => (
+                                      <li key={idx} className="text-gray-700">{warning}</li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              )}
+                              
+                              {drugInfo.interactions && drugInfo.interactions.length > 0 && (
+                                <div>
+                                  <h4 className="font-medium mb-2">Drug Interactions</h4>
+                                  <ul className="list-disc pl-5 space-y-1">
+                                    {drugInfo.interactions.map((interaction, idx) => (
+                                      <li key={idx} className="text-gray-700">{interaction}</li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              )}
+                            </div>
+                          </CardContent>
+                          <CardFooter className="bg-gray-50 border-t border-gray-200 text-xs text-gray-500">
+                            Source: {drugInfo.source || 'Drugs.com (Simulated Data)'}
+                          </CardFooter>
+                        </Card>
+                      ) : (
+                        <div className="text-center py-8">
+                          <AlertCircle className="mx-auto h-8 w-8 text-red-500" />
+                          <p className="mt-2 text-gray-600">Could not retrieve information for {selectedDrug}</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
