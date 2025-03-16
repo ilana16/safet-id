@@ -4,7 +4,15 @@ import { Card } from '@/components/ui/card';
 import { MedicationInfo as MedicationInfoType } from '@/utils/medicationData';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { ExternalLink, AlertTriangle, Check, Info, Pill } from 'lucide-react';
+import { ExternalLink, AlertTriangle, Info, Pill, Clock, ShieldCheck } from 'lucide-react';
+import { 
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow 
+} from "@/components/ui/table";
 
 interface MedicationInfoProps {
   medication: MedicationInfoType;
@@ -43,6 +51,13 @@ const MedicationInfo: React.FC<MedicationInfoProps> = ({ medication }) => {
                   <span className="text-gray-600">{medication.drugClass}</span>
                 </div>
               )}
+
+              {medication.pregnancy && (
+                <div className="mt-3">
+                  <span className="font-medium text-gray-700">Pregnancy category: </span>
+                  <span className="text-gray-600">{medication.pregnancy}</span>
+                </div>
+              )}
               
               {medication.usedFor && medication.usedFor.length > 0 && (
                 <div className="mt-3">
@@ -79,7 +94,7 @@ const MedicationInfo: React.FC<MedicationInfoProps> = ({ medication }) => {
                   <li className="flex items-start">
                     <span className="font-medium w-24 text-gray-700">Rx Status:</span>
                     <span className="text-gray-600">
-                      {medication.name.toLowerCase().includes('prescription') ? 'Prescription only' : 'Available OTC'}
+                      {medication.prescriptionOnly ? 'Prescription only' : 'Available OTC'}
                     </span>
                   </li>
                   {medication.drugClass && (
@@ -88,9 +103,24 @@ const MedicationInfo: React.FC<MedicationInfoProps> = ({ medication }) => {
                       <span className="text-gray-600">{medication.drugClass}</span>
                     </li>
                   )}
+                  {medication.halfLife && (
+                    <li className="flex items-start">
+                      <span className="font-medium w-24 text-gray-700">Half Life:</span>
+                      <span className="text-gray-600">{medication.halfLife}</span>
+                    </li>
+                  )}
+                  {medication.controlledSubstance && (
+                    <li className="flex items-start">
+                      <span className="font-medium w-24 text-gray-700">Controlled:</span>
+                      <span className="text-gray-600">{medication.controlledSubstance}</span>
+                    </li>
+                  )}
                   <li className="flex items-start">
                     <span className="font-medium w-24 text-gray-700">Format:</span>
-                    <span className="text-gray-600">Tablet, Capsule</span>
+                    <span className="text-gray-600">{medication.forms && medication.forms.length > 0 
+                      ? medication.forms.join(', ') 
+                      : 'Tablet, Capsule'}
+                    </span>
                   </li>
                 </ul>
               </Card>
@@ -102,7 +132,7 @@ const MedicationInfo: React.FC<MedicationInfoProps> = ({ medication }) => {
           {/* Dosage Information */}
           <div className="mb-6">
             <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
-              <Info className="h-5 w-5 text-safet-500 mr-2" />
+              <Clock className="h-5 w-5 text-safet-500 mr-2" />
               Dosage Information
             </h2>
             
@@ -150,6 +180,24 @@ const MedicationInfo: React.FC<MedicationInfoProps> = ({ medication }) => {
                       </p>
                     </div>
                   )}
+
+                  {medication.dosage.renal && (
+                    <div>
+                      <h3 className="font-medium text-gray-800 mb-2">Renal Dose Adjustment:</h3>
+                      <p className="text-gray-700 bg-gray-50 p-3 rounded-md border border-gray-200">
+                        {medication.dosage.renal}
+                      </p>
+                    </div>
+                  )}
+
+                  {medication.dosage.hepatic && (
+                    <div>
+                      <h3 className="font-medium text-gray-800 mb-2">Hepatic Dose Adjustment:</h3>
+                      <p className="text-gray-700 bg-gray-50 p-3 rounded-md border border-gray-200">
+                        {medication.dosage.hepatic}
+                      </p>
+                    </div>
+                  )}
                 </>
               )}
             </div>
@@ -158,26 +206,67 @@ const MedicationInfo: React.FC<MedicationInfoProps> = ({ medication }) => {
           <Separator className="my-6" />
           
           {/* Side Effects */}
-          {medication.sideEffects && medication.sideEffects.length > 0 && (
+          {medication.sideEffects && Object.keys(medication.sideEffects).length > 0 && (
             <div className="mb-6">
               <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
                 <AlertTriangle className="h-5 w-5 text-amber-500 mr-2" />
                 Side Effects
               </h2>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {medication.sideEffects.map((effect, index) => (
-                  <div key={index} className="flex items-start">
-                    <div className="mt-1 mr-3 text-amber-500">•</div>
-                    <div className="text-gray-700">{effect}</div>
-                  </div>
-                ))}
-              </div>
-              
-              <div className="mt-4 bg-amber-50 border border-amber-100 rounded-md p-4">
+              <div className="bg-amber-50 border border-amber-100 rounded-md p-4 mb-4">
                 <p className="text-amber-800 text-sm">
                   <strong>Note:</strong> This is not a complete list of side effects and others may occur. Call your doctor for medical advice about side effects.
                 </p>
+              </div>
+
+              <div className="space-y-4">
+                {medication.sideEffects.common && medication.sideEffects.common.length > 0 && (
+                  <div>
+                    <h3 className="font-medium text-gray-800 mb-2">Common Side Effects:</h3>
+                    <div className="bg-gray-50 p-3 rounded-md border border-gray-200">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                        {medication.sideEffects.common.map((effect, index) => (
+                          <div key={index} className="flex items-start">
+                            <div className="mt-1 mr-2 text-amber-500">•</div>
+                            <div className="text-gray-700">{effect}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {medication.sideEffects.serious && medication.sideEffects.serious.length > 0 && (
+                  <div>
+                    <h3 className="font-medium text-gray-800 mb-2">Serious Side Effects:</h3>
+                    <div className="bg-red-50 p-3 rounded-md border border-red-100">
+                      <div className="space-y-2">
+                        {medication.sideEffects.serious.map((effect, index) => (
+                          <div key={index} className="flex items-start">
+                            <div className="mt-1 mr-2 text-red-500">•</div>
+                            <div className="text-red-700">{effect}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {medication.sideEffects.rare && medication.sideEffects.rare.length > 0 && (
+                  <div>
+                    <h3 className="font-medium text-gray-800 mb-2">Rare Side Effects:</h3>
+                    <div className="bg-gray-50 p-3 rounded-md border border-gray-200">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                        {medication.sideEffects.rare.map((effect, index) => (
+                          <div key={index} className="flex items-start">
+                            <div className="mt-1 mr-2 text-purple-500">•</div>
+                            <div className="text-gray-700">{effect}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -199,6 +288,15 @@ const MedicationInfo: React.FC<MedicationInfoProps> = ({ medication }) => {
                   </div>
                 ))}
               </div>
+
+              {medication.blackBoxWarning && (
+                <div className="mt-4">
+                  <h3 className="font-medium text-gray-800 mb-2">Black Box Warning:</h3>
+                  <div className="bg-black text-white p-4 rounded-md border border-gray-900">
+                    <p>{medication.blackBoxWarning}</p>
+                  </div>
+                </div>
+              )}
             </div>
           )}
           
@@ -218,6 +316,40 @@ const MedicationInfo: React.FC<MedicationInfoProps> = ({ medication }) => {
                 </p>
               </div>
               
+              {medication.interactionSeverity && (
+                <div className="mb-6">
+                  <h3 className="font-medium text-gray-800 mb-3">Interaction Severity</h3>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-1/4">Severity</TableHead>
+                        <TableHead>Medications</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {medication.interactionSeverity.major && (
+                        <TableRow>
+                          <TableCell className="font-medium bg-red-50 text-red-700">Major</TableCell>
+                          <TableCell>{medication.interactionSeverity.major.join(', ')}</TableCell>
+                        </TableRow>
+                      )}
+                      {medication.interactionSeverity.moderate && (
+                        <TableRow>
+                          <TableCell className="font-medium bg-amber-50 text-amber-700">Moderate</TableCell>
+                          <TableCell>{medication.interactionSeverity.moderate.join(', ')}</TableCell>
+                        </TableRow>
+                      )}
+                      {medication.interactionSeverity.minor && (
+                        <TableRow>
+                          <TableCell className="font-medium bg-green-50 text-green-700">Minor</TableCell>
+                          <TableCell>{medication.interactionSeverity.minor.join(', ')}</TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+              
               <div className="space-y-2">
                 {medication.interactions.map((interaction, index) => (
                   <div key={index} className="flex items-start p-2 border-b border-gray-100">
@@ -225,6 +357,55 @@ const MedicationInfo: React.FC<MedicationInfoProps> = ({ medication }) => {
                     <div className="text-gray-700">{interaction}</div>
                   </div>
                 ))}
+              </div>
+            </div>
+          )}
+
+          {/* Pharmacokinetics Information */}
+          {medication.pharmacokinetics && (
+            <div className="mt-6">
+              <Separator className="my-6" />
+              <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
+                <Info className="h-5 w-5 text-blue-500 mr-2" />
+                Pharmacokinetics
+              </h2>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {medication.pharmacokinetics.absorption && (
+                  <div>
+                    <h3 className="font-medium text-gray-800 mb-2">Absorption:</h3>
+                    <p className="text-gray-700 bg-gray-50 p-3 rounded-md border border-gray-200">
+                      {medication.pharmacokinetics.absorption}
+                    </p>
+                  </div>
+                )}
+                
+                {medication.pharmacokinetics.distribution && (
+                  <div>
+                    <h3 className="font-medium text-gray-800 mb-2">Distribution:</h3>
+                    <p className="text-gray-700 bg-gray-50 p-3 rounded-md border border-gray-200">
+                      {medication.pharmacokinetics.distribution}
+                    </p>
+                  </div>
+                )}
+                
+                {medication.pharmacokinetics.metabolism && (
+                  <div>
+                    <h3 className="font-medium text-gray-800 mb-2">Metabolism:</h3>
+                    <p className="text-gray-700 bg-gray-50 p-3 rounded-md border border-gray-200">
+                      {medication.pharmacokinetics.metabolism}
+                    </p>
+                  </div>
+                )}
+                
+                {medication.pharmacokinetics.elimination && (
+                  <div>
+                    <h3 className="font-medium text-gray-800 mb-2">Elimination:</h3>
+                    <p className="text-gray-700 bg-gray-50 p-3 rounded-md border border-gray-200">
+                      {medication.pharmacokinetics.elimination}
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
           )}
