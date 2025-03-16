@@ -20,7 +20,6 @@ import {
 } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { 
   Form, 
   FormControl, 
@@ -44,6 +43,7 @@ import { toast } from 'sonner';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 // Form validation schemas
 const passwordFormSchema = z.object({
@@ -63,15 +63,20 @@ const passwordFormSchema = z.object({
 const SettingsTab: React.FC = () => {
   // Load preferences from localStorage on mount
   useEffect(() => {
-    const savedPreferences = localStorage.getItem('emailPreferences');
-    if (savedPreferences) {
-      setEmailPreferences(JSON.parse(savedPreferences));
-    }
-    
-    const savedSecurity = localStorage.getItem('securitySettings');
-    if (savedSecurity) {
-      const { twoFactor } = JSON.parse(savedSecurity);
-      setTwoFactorEnabled(twoFactor);
+    try {
+      const savedPreferences = localStorage.getItem('emailPreferences');
+      if (savedPreferences) {
+        setEmailPreferences(JSON.parse(savedPreferences));
+      }
+      
+      const savedSecurity = localStorage.getItem('securitySettings');
+      if (savedSecurity) {
+        const { twoFactor } = JSON.parse(savedSecurity);
+        setTwoFactorEnabled(twoFactor);
+      }
+    } catch (error) {
+      console.error("Error loading settings from localStorage:", error);
+      toast.error("Failed to load settings");
     }
   }, []);
 
@@ -92,6 +97,7 @@ const SettingsTab: React.FC = () => {
   // Delete account
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Password form
   const passwordForm = useForm({
@@ -104,48 +110,63 @@ const SettingsTab: React.FC = () => {
   });
 
   const handleSaveEmailPreferences = () => {
-    // Save to localStorage
-    localStorage.setItem('emailPreferences', JSON.stringify(emailPreferences));
-    
-    toast.success('Email preferences updated successfully', {
-      description: 'Your notification settings have been saved.'
-    });
-    setNotificationDialogOpen(false);
+    try {
+      // Save to localStorage
+      localStorage.setItem('emailPreferences', JSON.stringify(emailPreferences));
+      
+      toast.success('Email preferences updated successfully', {
+        description: 'Your notification settings have been saved.'
+      });
+      setNotificationDialogOpen(false);
+    } catch (error) {
+      console.error("Error saving email preferences:", error);
+      toast.error("Failed to save email preferences");
+    }
   };
 
   const handleSaveSecuritySettings = async () => {
-    const formValid = await passwordForm.trigger();
-    
-    if (!formValid) {
-      return; // Form validation failed
-    }
-    
-    const { newPassword, confirmPassword } = passwordForm.getValues();
-    
-    if (newPassword && newPassword !== confirmPassword) {
-      toast.error('New passwords do not match');
-      return;
-    }
-    
-    // Save 2FA setting to localStorage
-    localStorage.setItem('securitySettings', JSON.stringify({ 
-      twoFactor: twoFactorEnabled 
-    }));
-    
-    // If password fields are filled, handle password change
-    if (newPassword) {
-      // In a real app, this would call an API to update the password
-      setPasswordChangeSuccess(true);
-      
-      // Reset after 3 seconds
-      setTimeout(() => {
-        setPasswordChangeSuccess(false);
+    try {
+      // If updating password
+      if (passwordForm.getValues().currentPassword || 
+          passwordForm.getValues().newPassword || 
+          passwordForm.getValues().confirmPassword) {
+        
+        const formValid = await passwordForm.trigger();
+        
+        if (!formValid) {
+          return; // Form validation failed
+        }
+        
+        const { newPassword, confirmPassword } = passwordForm.getValues();
+        
+        if (newPassword && newPassword !== confirmPassword) {
+          toast.error('New passwords do not match');
+          return;
+        }
+        
+        // In a real app, this would call an API to update the password
+        // For this demo, we'll just simulate a success
+        setPasswordChangeSuccess(true);
+        
+        // Reset after 3 seconds
+        setTimeout(() => {
+          setPasswordChangeSuccess(false);
+          setSecurityDialogOpen(false);
+          passwordForm.reset();
+        }, 3000);
+      } else {
+        // Just saving 2FA setting
+        // Save 2FA setting to localStorage
+        localStorage.setItem('securitySettings', JSON.stringify({ 
+          twoFactor: twoFactorEnabled 
+        }));
+        
+        toast.success('Security settings updated successfully');
         setSecurityDialogOpen(false);
-        passwordForm.reset();
-      }, 3000);
-    } else {
-      toast.success('Security settings updated successfully');
-      setSecurityDialogOpen(false);
+      }
+    } catch (error) {
+      console.error("Error saving security settings:", error);
+      toast.error("Failed to save security settings");
     }
   };
 
@@ -155,15 +176,32 @@ const SettingsTab: React.FC = () => {
       return;
     }
     
-    // In a real app, this would call an API to delete the account
-    toast.success('Account deleted successfully', {
-      description: 'Your account and all associated data have been permanently removed.'
-    });
-    setDeleteDialogOpen(false);
-    setDeleteConfirmText('');
+    setIsDeleting(true);
     
-    // In a real app, this would redirect to the home page after deletion
-    // or perform additional cleanup
+    // Simulate API call with a delay
+    setTimeout(() => {
+      try {
+        // In a real app, this would call an API to delete the account
+        
+        // Clear all user data from localStorage
+        localStorage.clear();
+        
+        toast.success('Account deleted successfully', {
+          description: 'Your account and all associated data have been permanently removed.'
+        });
+        
+        setDeleteDialogOpen(false);
+        setDeleteConfirmText('');
+        setIsDeleting(false);
+        
+        // In a real app, this would redirect to the home page after deletion
+        // window.location.href = '/';
+      } catch (error) {
+        console.error("Error deleting account:", error);
+        toast.error("Failed to delete account");
+        setIsDeleting(false);
+      }
+    }, 1500);
   };
 
   return (
@@ -296,7 +334,13 @@ const SettingsTab: React.FC = () => {
       </Dialog>
 
       {/* Security Settings Dialog */}
-      <Dialog open={securityDialogOpen} onOpenChange={setSecurityDialogOpen}>
+      <Dialog open={securityDialogOpen} onOpenChange={(open) => {
+        if (!open) {
+          passwordForm.reset();
+          setPasswordChangeSuccess(false);
+        }
+        setSecurityDialogOpen(open);
+      }}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
             <DialogTitle>Security Settings</DialogTitle>
@@ -318,14 +362,20 @@ const SettingsTab: React.FC = () => {
             </div>
             
             <Form {...passwordForm}>
-              <form className="space-y-4 mt-6">
+              <form className="space-y-4 mt-6" onSubmit={(e) => {
+                e.preventDefault();
+                handleSaveSecuritySettings();
+              }}>
                 <h3 className="text-sm font-medium">Change Password</h3>
                 
                 {passwordChangeSuccess ? (
-                  <div className="p-3 bg-green-50 border border-green-100 rounded-md flex items-center space-x-2">
+                  <Alert variant="default" className="bg-green-50 border-green-100">
                     <CheckCircle className="h-4 w-4 text-green-500" />
-                    <p className="text-sm text-green-600">Password updated successfully!</p>
-                  </div>
+                    <AlertTitle className="text-green-700">Success</AlertTitle>
+                    <AlertDescription className="text-green-600">
+                      Password updated successfully!
+                    </AlertDescription>
+                  </Alert>
                 ) : (
                   <>
                     <FormField
@@ -403,7 +453,12 @@ const SettingsTab: React.FC = () => {
       </Dialog>
 
       {/* Delete Account Dialog */}
-      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+      <AlertDialog open={deleteDialogOpen} onOpenChange={(open) => {
+        if (!open) {
+          setDeleteConfirmText('');
+        }
+        setDeleteDialogOpen(open);
+      }}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle className="text-red-500">Delete Account</AlertDialogTitle>
@@ -435,14 +490,16 @@ const SettingsTab: React.FC = () => {
               onClick={() => {
                 setDeleteConfirmText('');
               }}
+              disabled={isDeleting}
             >
               Cancel
             </AlertDialogCancel>
             <AlertDialogAction 
               className="bg-red-500 hover:bg-red-600"
               onClick={handleAccountDeletion}
+              disabled={isDeleting}
             >
-              Delete Account
+              {isDeleting ? 'Deleting...' : 'Delete Account'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
