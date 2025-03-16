@@ -67,13 +67,14 @@ export const getDrugsComInfo = async (medicationKey: string): Promise<Medication
     
     if (!medicationInfo) {
       console.error(`Medication information not found for: ${medicationKey}`);
-      throw new Error(`Medication information not found for: ${medicationKey}`);
+      return null; // Changed from throwing error to returning null
     }
     
     return medicationInfo;
   } catch (error) {
     console.error('Error fetching medication information:', error);
-    throw new Error(`Could not fetch medication information for ${medicationKey}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    // Instead of throwing error, return null so the calling code can handle it
+    return null;
   }
 };
 
@@ -115,7 +116,7 @@ const getMedicationInfoLocal = (medicationKey: string): MedicationInfo | null =>
     // Import the medications database directly to avoid circular dependencies
     const { medicationDatabase } = require('./medicationData');
     
-    const normalizedKey = medicationKey.toLowerCase();
+    const normalizedKey = medicationKey.toLowerCase().trim();
     
     // Try to find the exact match first
     if (medicationDatabase[normalizedKey]) {
@@ -137,6 +138,7 @@ const getMedicationInfoLocal = (medicationKey: string): MedicationInfo | null =>
     }
     
     // Fall back to a mock entry if nothing is found
+    console.log(`Creating mock entry for medication: ${medicationKey}`);
     return {
       name: medicationKey,
       genericName: `Generic ${medicationKey}`,

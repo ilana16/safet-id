@@ -55,16 +55,20 @@ const DrugInfoLookup: React.FC<DrugInfoLookupProps> = ({ onAddMedication }) => {
     saveHistory(medication);
     
     try {
+      console.log('Fetching information for medication:', medication);
       const info = await getDrugsComInfo(medication);
+      
       if (info) {
+        console.log('Medication info received:', info.name);
         setMedicationInfo(info);
-        setNewMedication({
-          ...newMedication,
+        setNewMedication(prev => ({
+          ...prev,
           name: info.name
-        });
+        }));
         toast.success(`Information loaded for ${info.name}`);
       } else {
-        throw new Error("Could not retrieve medication information");
+        console.error('No information returned for:', medication);
+        throw new Error(`No information found for ${medication}`);
       }
     } catch (error) {
       console.error('Error fetching medication information:', error);
@@ -159,7 +163,7 @@ const DrugInfoLookup: React.FC<DrugInfoLookupProps> = ({ onAddMedication }) => {
         />
       )}
 
-      {medicationInfo && (
+      {medicationInfo && showAddForm && (
         <MedicationAddForm 
           medicationInfo={medicationInfo}
           open={showAddForm}
