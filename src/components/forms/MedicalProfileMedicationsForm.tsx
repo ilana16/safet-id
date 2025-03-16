@@ -1,6 +1,5 @@
-
 import React, { useState, useEffect } from 'react';
-import { PlusCircle, Trash2, Clock, Pill, Search, ChevronDown, ChevronUp } from 'lucide-react';
+import { PlusCircle, Trash2, Clock, Pill, Search, ChevronDown, ChevronUp, Loader2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
@@ -14,8 +13,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { searchDrugsCom } from '@/utils/drugsComApi';
 
-// Define types
 interface DoseTime {
   id: string;
   time: string;
@@ -54,20 +53,19 @@ const defaultMedication: Medication = {
 };
 
 const MedicalProfileMedicationsForm = () => {
-  // State for all medications (unified)
   const [medications, setMedications] = useState<Medication[]>([]);
-  
   const [filterType, setFilterType] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [searchResults, setSearchResults] = useState<string[]>([]);
+  const [activeSearchMedicationId, setActiveSearchMedicationId] = useState<string | null>(null);
+  const [isSearching, setIsSearching] = useState(false);
 
-  // Load saved data when component mounts
   useEffect(() => {
     const savedProfile = JSON.parse(localStorage.getItem('medicalProfile') || '{}');
     
     if (savedProfile && savedProfile.medications) {
       const allMeds: Medication[] = [];
       
-      // Load saved prescriptions
       if (savedProfile.medications.prescriptions && savedProfile.medications.prescriptions.length > 0) {
         const prescriptions = savedProfile.medications.prescriptions.map((med: any) => ({
           ...med,
@@ -76,7 +74,6 @@ const MedicalProfileMedicationsForm = () => {
         allMeds.push(...prescriptions);
       }
       
-      // Load saved OTC medications
       if (savedProfile.medications.otc && savedProfile.medications.otc.length > 0) {
         const otcMeds = savedProfile.medications.otc.map((med: any) => ({
           ...med,
@@ -85,7 +82,6 @@ const MedicalProfileMedicationsForm = () => {
         allMeds.push(...otcMeds);
       }
       
-      // Load saved supplements
       if (savedProfile.medications.supplements && savedProfile.medications.supplements.length > 0) {
         const supplements = savedProfile.medications.supplements.map((med: any) => ({
           ...med,
@@ -100,7 +96,33 @@ const MedicalProfileMedicationsForm = () => {
     }
   }, []);
 
-  // Handler for adding a new medication
+  const handleSearchMedication = async (query: string, medicationId: string) => {
+    if (query.length < 2) {
+      setSearchResults([]);
+      setActiveSearchMedicationId(null);
+      return;
+    }
+
+    setIsSearching(true);
+    setActiveSearchMedicationId(medicationId);
+
+    try {
+      const results = await searchDrugsCom(query);
+      setSearchResults(results);
+    } catch (error) {
+      console.error('Error searching medications:', error);
+      setSearchResults([]);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  const selectDrugSuggestion = (medicationId: string, drugName: string) => {
+    updateMedication(medicationId, 'name', drugName);
+    setSearchResults([]);
+    setActiveSearchMedicationId(null);
+  };
+
   const addMedication = () => {
     const newMed: Medication = {
       ...defaultMedication,
@@ -109,19 +131,16 @@ const MedicalProfileMedicationsForm = () => {
     setMedications([...medications, newMed]);
   };
 
-  // Handler for removing a medication
   const removeMedication = (id: string) => {
     setMedications(medications.filter(med => med.id !== id));
   };
 
-  // Handler for updating medication fields
   const updateMedication = (id: string, field: keyof Medication, value: string) => {
     setMedications(medications.map(med => 
       med.id === id ? { ...med, [field]: value } : med
     ));
   };
 
-  // Handler for adding a dose time to a medication
   const addDoseTime = (medId: string) => {
     const newDoseTime = { id: `time_${Date.now()}`, time: '' };
     
@@ -130,7 +149,6 @@ const MedicalProfileMedicationsForm = () => {
     ));
   };
 
-  // Handler for removing a dose time from a medication
   const removeDoseTime = (medId: string, timeId: string) => {
     setMedications(medications.map(med => {
       if (med.id === medId && med.doseTimes.length > 1) {
@@ -143,7 +161,6 @@ const MedicalProfileMedicationsForm = () => {
     }));
   };
 
-  // Handler for updating a dose time
   const updateDoseTime = (medId: string, timeId: string, value: string) => {
     setMedications(medications.map(med => {
       if (med.id === medId) {
@@ -158,7 +175,6 @@ const MedicalProfileMedicationsForm = () => {
     }));
   };
 
-  // Filter medications based on type and search query
   const filteredMedications = medications.filter(med => {
     const matchesType = filterType === 'all' || med.type === filterType;
     const matchesSearch = searchQuery === '' || 
@@ -167,9 +183,7 @@ const MedicalProfileMedicationsForm = () => {
     return matchesType && matchesSearch;
   });
 
-  // This function prepares the form data for submission
   const prepareFormData = () => {
-    // Group medications by type
     const prescriptions = medications.filter(med => med.type === 'prescription');
     const otc = medications.filter(med => med.type === 'otc');
     const supplements = medications.filter(med => med.type === 'supplement');
@@ -181,13 +195,10 @@ const MedicalProfileMedicationsForm = () => {
     };
   };
 
-  // Export the form data for the parent component to access
   React.useEffect(() => {
-    // Attach the form data to the window object for the parent component to access
     (window as any).medicationsFormData = prepareFormData();
   }, [medications]);
 
-  // Render empty state when no medications
   if (medications.length === 0) {
     return (
       <div className="text-center py-12">
@@ -213,7 +224,6 @@ const MedicalProfileMedicationsForm = () => {
 
   return (
     <div className="space-y-6">
-      {/* Search and filter bar */}
       <div className="space-y-4">
         <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
           <div className="relative w-full md:w-2/3">
@@ -268,7 +278,6 @@ const MedicalProfileMedicationsForm = () => {
         </div>
       </div>
 
-      {/* Medications list */}
       <div className="space-y-4">
         {filteredMedications.length === 0 ? (
           <Card className="p-6 text-center">
@@ -312,12 +321,41 @@ const MedicalProfileMedicationsForm = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor={`med-name-${med.id}`}>Medication Name</Label>
-                  <Input
-                    id={`med-name-${med.id}`}
-                    value={med.name}
-                    onChange={(e) => updateMedication(med.id, 'name', e.target.value)}
-                    placeholder="Enter medication name"
-                  />
+                  <div className="relative">
+                    <Input
+                      id={`med-name-${med.id}`}
+                      value={med.name}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        updateMedication(med.id, 'name', value);
+                        handleSearchMedication(value, med.id);
+                      }}
+                      placeholder="Enter medication name"
+                      autoComplete="off"
+                    />
+                    {isSearching && activeSearchMedicationId === med.id && (
+                      <div className="absolute right-2 top-2">
+                        <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
+                      </div>
+                    )}
+                    
+                    {searchResults.length > 0 && activeSearchMedicationId === med.id && (
+                      <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-auto">
+                        <ul>
+                          {searchResults.map((result, idx) => (
+                            <li 
+                              key={idx}
+                              className="px-4 py-2 cursor-pointer hover:bg-gray-100 flex items-center"
+                              onClick={() => selectDrugSuggestion(med.id, result)}
+                            >
+                              <Pill className="h-4 w-4 text-[#335B95] mr-2" />
+                              {result}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
                 </div>
                 
                 <div className="space-y-2">
@@ -498,7 +536,6 @@ const MedicalProfileMedicationsForm = () => {
         )}
       </div>
       
-      {/* Add medication button at bottom for convenience */}
       {filteredMedications.length > 0 && (
         <Button
           type="button"
