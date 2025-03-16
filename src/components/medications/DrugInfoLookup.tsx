@@ -43,9 +43,15 @@ const DrugInfoLookup: React.FC<DrugInfoLookupProps> = ({ onAddMedication }) => {
   };
 
   const selectMedication = async (medication: string) => {
+    if (!medication || medication.trim() === '') {
+      toast.error('Please enter a valid medication name');
+      return;
+    }
+    
     setSelectedMedication(medication);
     setIsLoading(true);
     setError(null);
+    setMedicationInfo(null);
     saveHistory(medication);
     
     try {
@@ -56,7 +62,7 @@ const DrugInfoLookup: React.FC<DrugInfoLookupProps> = ({ onAddMedication }) => {
           ...newMedication,
           name: info.name
         });
-        toast.success(`Information loaded from Drugs.com for ${medication}`);
+        toast.success(`Information loaded for ${info.name}`);
       } else {
         throw new Error("Could not retrieve medication information");
       }
@@ -64,7 +70,6 @@ const DrugInfoLookup: React.FC<DrugInfoLookupProps> = ({ onAddMedication }) => {
       console.error('Error fetching medication information:', error);
       setError('Unable to load medication information from Drugs.com. Please try another medication or try again later.');
       toast.error('Error loading medication information');
-      setMedicationInfo(null);
     } finally {
       setIsLoading(false);
     }
@@ -87,6 +92,13 @@ const DrugInfoLookup: React.FC<DrugInfoLookupProps> = ({ onAddMedication }) => {
     setMedicationInfo(null);
     setSelectedMedication(null);
     setError(null);
+    setNewMedication({
+      id: uuidv4(),
+      dosage: '',
+      frequency: 'Once daily',
+      reason: '',
+      startDate: new Date().toISOString().split('T')[0],
+    });
   };
 
   const handleAddMedication = (medication: Medication) => {
@@ -95,13 +107,6 @@ const DrugInfoLookup: React.FC<DrugInfoLookupProps> = ({ onAddMedication }) => {
         onAddMedication(medication);
         setShowAddForm(false);
         resetSearch();
-        setNewMedication({
-          id: uuidv4(),
-          dosage: '',
-          frequency: 'Once daily',
-          reason: '',
-          startDate: new Date().toISOString().split('T')[0],
-        });
         toast.success(`${medication.name} added to your medications`);
       } catch (error) {
         console.error('Error adding medication:', error);

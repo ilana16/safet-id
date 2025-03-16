@@ -43,6 +43,7 @@ export const searchDrugsCom = async (query: string): Promise<string[]> => {
     return searchMedicationsLocal(query);
   } catch (error) {
     console.error('Error searching medications:', error);
+    toast.error('Error searching medications from Drugs.com');
     return [];
   }
 };
@@ -65,6 +66,7 @@ export const getDrugsComInfo = async (medicationKey: string): Promise<Medication
     const medicationInfo = getMedicationInfoLocal(medicationKey);
     
     if (!medicationInfo) {
+      console.error(`Medication information not found for: ${medicationKey}`);
       throw new Error(`Medication information not found for: ${medicationKey}`);
     }
     
@@ -129,7 +131,7 @@ const getMedicationInfoLocal = (medicationKey: string): MedicationInfo | null =>
       if (key.startsWith(normalizedKey)) {
         return {
           ...medicationDatabase[key],
-          drugsComUrl: getDrugsComUrl(medicationKey)
+          drugsComUrl: getDrugsComUrl(key)
         };
       }
     }

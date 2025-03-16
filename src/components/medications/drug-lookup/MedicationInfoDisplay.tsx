@@ -38,14 +38,35 @@ const MedicationInfoDisplay: React.FC<MedicationInfoDisplayProps> = ({
     );
   }
 
-  if (error || !medicationInfo) {
+  if (error) {
     return (
       <div className="p-6">
         <Alert variant="destructive" className="mb-4">
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>Error</AlertTitle>
           <AlertDescription>
-            {error || "Could not load medication information. Please try again."}
+            {error}
+          </AlertDescription>
+        </Alert>
+        <Button 
+          variant="outline" 
+          className="mt-2" 
+          onClick={onResetSearch}
+        >
+          Back to Search
+        </Button>
+      </div>
+    );
+  }
+
+  if (!medicationInfo) {
+    return (
+      <div className="p-6">
+        <Alert variant="destructive" className="mb-4">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>No Data Found</AlertTitle>
+          <AlertDescription>
+            Could not load medication information. Please try again.
           </AlertDescription>
         </Alert>
         <Button 
