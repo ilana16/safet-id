@@ -42,7 +42,8 @@ const MedicalProfile = () => {
     isEditing, 
     toggleEditMode, 
     saveCurrentSectionData, 
-    getSectionTitle 
+    getSectionTitle,
+    setIsEditing 
   } = useMedicalProfileSection(currentSection as string);
 
   useEffect(() => {
@@ -59,7 +60,9 @@ const MedicalProfile = () => {
     saveCurrentSectionData();
     navigate(`/profile/${value}`);
     
-    setIsEditing(value === 'medications');
+    if (value === 'medications') {
+      setIsEditing(true);
+    }
   };
 
   const handleBackToDashboard = () => {

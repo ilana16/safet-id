@@ -80,6 +80,7 @@ export const useMedicalProfileSection = (currentSection: string) => {
     isLoadingData,
     isSaving,
     isEditing,
+    setIsEditing,
     toggleEditMode,
     saveCurrentSectionData,
     getSectionTitle
