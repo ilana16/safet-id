@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { PlusCircle, Trash2, Clock, Pill, Search, ChevronDown, ChevronUp } from 'lucide-react';
 import { Input } from '@/components/ui/input';
@@ -7,6 +8,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 // Define types
 interface DoseTime {
@@ -325,17 +332,17 @@ const MedicalProfileMedicationsForm = () => {
 
                 <div className="space-y-2">
                   <Label htmlFor={`med-type-${med.id}`}>Medication Type</Label>
-                  <Select
-                    value={med.type}
-                    onValueChange={(value: 'prescription' | 'otc' | 'supplement') => updateMedication(med.id, 'type', value)}
+                  <Select 
+                    value={med.type} 
+                    onValueChange={(value: any) => updateMedication(med.id, 'type', value)}
                   >
-                    <SelectTrigger id={`med-type-${med.id}`}>
+                    <SelectTrigger id={`med-type-${med.id}`} className="w-full">
                       <SelectValue placeholder="Select type" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="prescription">Prescription</SelectItem>
                       <SelectItem value="otc">Over-the-counter</SelectItem>
-                      <SelectItem value="supplement">Supplement</SelectItem>
+                      <SelectItem value="supplement">Vitamin/Supplement</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
