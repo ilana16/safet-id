@@ -23,6 +23,13 @@ export const useMedicalProfileSection = (currentSection: string) => {
     }
   }, [currentSection, loadSection]);
 
+  // Always set medications section to editing mode
+  useEffect(() => {
+    if (currentSection === 'medications') {
+      setIsEditing(true);
+    }
+  }, [currentSection]);
+
   const saveCurrentSectionData = () => {
     console.log(`Attempting to save data for section: ${currentSection}`);
     setIsSaving(true);
