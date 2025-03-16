@@ -1,16 +1,18 @@
 
 import React, { useState, useEffect } from 'react';
-import { PlusCircle, Trash2, Clock, Pill, Search, ChevronDown, ChevronUp, Loader2, Info } from 'lucide-react';
+import { PlusCircle, Trash2, Clock, Info } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Card } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { searchDrugsCom } from '@/utils/drugsComApi';
+import { Form, FormField, FormItem, FormLabel, FormControl } from '@/components/ui/form';
+import { useForm } from 'react-hook-form';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
 // Define types
 interface DoseTime {
