@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -32,7 +31,7 @@ const MedicalProfileTab: React.FC<MedicalProfileTabProps> = ({ completionPercent
   const sectionStatus = {
     personal: 100,
     history: 75,
-    medications: 100,
+    medications: 0,
     allergies: 60,
     immunizations: 0,
   };

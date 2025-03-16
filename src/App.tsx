@@ -1,3 +1,4 @@
+
 import { BrowserRouter as Router, Routes, Route, useLocation, useNavigationType } from 'react-router-dom';
 import { useEffect } from 'react';
 import Index from './pages/Index';
@@ -15,6 +16,7 @@ import MedicalProfile from './pages/MedicalProfile';
 import PersonalSection from './pages/medical-profile/PersonalSection';
 import HistorySection from './pages/medical-profile/HistorySection';
 import AllergiesSection from './pages/medical-profile/AllergiesSection';
+import MedicationsSection from './pages/medical-profile/MedicationsSection';
 import SocialSection from './pages/medical-profile/SocialSection';
 import ReproductiveSection from './pages/medical-profile/ReproductiveSection';
 import MentalSection from './pages/medical-profile/MentalSection';
@@ -108,6 +110,7 @@ function App() {
             <Route path="personal" element={<PersonalSection />} />
             <Route path="history" element={<HistorySection />} />
             <Route path="allergies" element={<AllergiesSection />} />
+            <Route path="medications" element={<MedicationsSection />} />
             <Route path="immunizations" element={<ImmuneSection />} />
             <Route path="social" element={<SocialSection />} />
             <Route path="reproductive" element={<ReproductiveSection />} />
