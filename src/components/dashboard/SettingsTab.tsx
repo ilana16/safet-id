@@ -1,6 +1,6 @@
 
-import React, { useState } from 'react';
-import { Settings, Shield, Mail, AlertTriangle } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Settings, Shield, Mail, AlertTriangle, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { 
   Dialog, 
@@ -42,8 +42,39 @@ import {
 } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
 import { useForm } from 'react-hook-form';
+import * as z from 'zod';
+import { zodResolver } from '@hookform/resolvers/zod';
+
+// Form validation schemas
+const passwordFormSchema = z.object({
+  currentPassword: z.string().min(1, 'Current password is required'),
+  newPassword: z.string()
+    .min(8, 'Password must be at least 8 characters')
+    .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
+    .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
+    .regex(/[0-9]/, 'Password must contain at least one number')
+    .regex(/[^A-Za-z0-9]/, 'Password must contain at least one special character'),
+  confirmPassword: z.string().min(1, 'Please confirm your password')
+}).refine(data => data.newPassword === data.confirmPassword, {
+  message: "Passwords don't match",
+  path: ['confirmPassword'],
+});
 
 const SettingsTab: React.FC = () => {
+  // Load preferences from localStorage on mount
+  useEffect(() => {
+    const savedPreferences = localStorage.getItem('emailPreferences');
+    if (savedPreferences) {
+      setEmailPreferences(JSON.parse(savedPreferences));
+    }
+    
+    const savedSecurity = localStorage.getItem('securitySettings');
+    if (savedSecurity) {
+      const { twoFactor } = JSON.parse(savedSecurity);
+      setTwoFactorEnabled(twoFactor);
+    }
+  }, []);
+
   // Email notification preferences
   const [notificationDialogOpen, setNotificationDialogOpen] = useState(false);
   const [emailPreferences, setEmailPreferences] = useState({
@@ -52,17 +83,19 @@ const SettingsTab: React.FC = () => {
     medicalReminders: false,
     marketingEmails: false
   });
-
+  
   // Security settings
   const [securityDialogOpen, setSecurityDialogOpen] = useState(false);
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
+  const [passwordChangeSuccess, setPasswordChangeSuccess] = useState(false);
 
   // Delete account
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
 
-  // Forms
+  // Password form
   const passwordForm = useForm({
+    resolver: zodResolver(passwordFormSchema),
     defaultValues: {
       currentPassword: '',
       newPassword: '',
@@ -71,19 +104,49 @@ const SettingsTab: React.FC = () => {
   });
 
   const handleSaveEmailPreferences = () => {
-    toast.success('Email preferences updated successfully');
+    // Save to localStorage
+    localStorage.setItem('emailPreferences', JSON.stringify(emailPreferences));
+    
+    toast.success('Email preferences updated successfully', {
+      description: 'Your notification settings have been saved.'
+    });
     setNotificationDialogOpen(false);
   };
 
-  const handleSaveSecuritySettings = () => {
-    if (passwordForm.getValues('newPassword') !== passwordForm.getValues('confirmPassword')) {
+  const handleSaveSecuritySettings = async () => {
+    const formValid = await passwordForm.trigger();
+    
+    if (!formValid) {
+      return; // Form validation failed
+    }
+    
+    const { newPassword, confirmPassword } = passwordForm.getValues();
+    
+    if (newPassword && newPassword !== confirmPassword) {
       toast.error('New passwords do not match');
       return;
     }
     
-    toast.success('Security settings updated successfully');
-    setSecurityDialogOpen(false);
-    passwordForm.reset();
+    // Save 2FA setting to localStorage
+    localStorage.setItem('securitySettings', JSON.stringify({ 
+      twoFactor: twoFactorEnabled 
+    }));
+    
+    // If password fields are filled, handle password change
+    if (newPassword) {
+      // In a real app, this would call an API to update the password
+      setPasswordChangeSuccess(true);
+      
+      // Reset after 3 seconds
+      setTimeout(() => {
+        setPasswordChangeSuccess(false);
+        setSecurityDialogOpen(false);
+        passwordForm.reset();
+      }, 3000);
+    } else {
+      toast.success('Security settings updated successfully');
+      setSecurityDialogOpen(false);
+    }
   };
 
   const handleAccountDeletion = () => {
@@ -92,7 +155,10 @@ const SettingsTab: React.FC = () => {
       return;
     }
     
-    toast.success('Account deleted successfully');
+    // In a real app, this would call an API to delete the account
+    toast.success('Account deleted successfully', {
+      description: 'Your account and all associated data have been permanently removed.'
+    });
     setDeleteDialogOpen(false);
     setDeleteConfirmText('');
     
@@ -251,43 +317,86 @@ const SettingsTab: React.FC = () => {
               />
             </div>
             
-            <div className="space-y-4 mt-6">
-              <h3 className="text-sm font-medium">Change Password</h3>
-              
-              <div className="space-y-2">
-                <FormLabel htmlFor="currentPassword">Current Password</FormLabel>
-                <Input 
-                  id="currentPassword"
-                  type="password" 
-                  placeholder="Enter your current password" 
-                  {...passwordForm.register('currentPassword')}
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <FormLabel htmlFor="newPassword">New Password</FormLabel>
-                <Input 
-                  id="newPassword"
-                  type="password" 
-                  placeholder="Enter new password" 
-                  {...passwordForm.register('newPassword')}
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <FormLabel htmlFor="confirmPassword">Confirm Password</FormLabel>
-                <Input 
-                  id="confirmPassword"
-                  type="password" 
-                  placeholder="Confirm new password" 
-                  {...passwordForm.register('confirmPassword')}
-                />
-              </div>
-            </div>
+            <Form {...passwordForm}>
+              <form className="space-y-4 mt-6">
+                <h3 className="text-sm font-medium">Change Password</h3>
+                
+                {passwordChangeSuccess ? (
+                  <div className="p-3 bg-green-50 border border-green-100 rounded-md flex items-center space-x-2">
+                    <CheckCircle className="h-4 w-4 text-green-500" />
+                    <p className="text-sm text-green-600">Password updated successfully!</p>
+                  </div>
+                ) : (
+                  <>
+                    <FormField
+                      control={passwordForm.control}
+                      name="currentPassword"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Current Password</FormLabel>
+                          <FormControl>
+                            <Input 
+                              type="password" 
+                              placeholder="Enter your current password" 
+                              {...field} 
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={passwordForm.control}
+                      name="newPassword"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>New Password</FormLabel>
+                          <FormControl>
+                            <Input 
+                              type="password" 
+                              placeholder="Enter new password" 
+                              {...field} 
+                            />
+                          </FormControl>
+                          <FormDescription className="text-xs">
+                            At least 8 characters with uppercase, lowercase, number and special character
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={passwordForm.control}
+                      name="confirmPassword"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Confirm Password</FormLabel>
+                          <FormControl>
+                            <Input 
+                              type="password" 
+                              placeholder="Confirm new password" 
+                              {...field} 
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </>
+                )}
+              </form>
+            </Form>
           </div>
           
           <DialogFooter>
-            <Button variant="outline" onClick={() => setSecurityDialogOpen(false)}>Cancel</Button>
+            <Button variant="outline" onClick={() => {
+              setSecurityDialogOpen(false);
+              passwordForm.reset();
+            }}>
+              Cancel
+            </Button>
             <Button onClick={handleSaveSecuritySettings}>Save Changes</Button>
           </DialogFooter>
         </DialogContent>
@@ -322,7 +431,13 @@ const SettingsTab: React.FC = () => {
           </div>
           
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel 
+              onClick={() => {
+                setDeleteConfirmText('');
+              }}
+            >
+              Cancel
+            </AlertDialogCancel>
             <AlertDialogAction 
               className="bg-red-500 hover:bg-red-600"
               onClick={handleAccountDeletion}
