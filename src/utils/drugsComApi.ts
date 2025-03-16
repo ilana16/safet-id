@@ -5,7 +5,7 @@
  * actual API calls to a proper medication database or use a dedicated API
  */
 
-import { MedicationInfo } from './medicationData';
+import { MedicationInfo, medicationDatabase } from './medicationData';
 import { toast } from 'sonner';
 
 // Function to search for drug information
@@ -112,13 +112,11 @@ const getMedicationInfoLocal = (medicationKey: string): MedicationInfo | null =>
   if (!medicationKey) return null;
   
   try {
-    // Import the medications database directly to avoid circular dependencies
-    const { medicationDatabase } = require('./medicationData');
-    
     const normalizedKey = medicationKey.toLowerCase().trim();
     
     // Try to find the exact match first
     if (medicationDatabase[normalizedKey]) {
+      console.log(`Found exact match for: ${normalizedKey}`);
       return {
         ...medicationDatabase[normalizedKey],
         drugsComUrl: getDrugsComUrl(normalizedKey)
@@ -129,6 +127,7 @@ const getMedicationInfoLocal = (medicationKey: string): MedicationInfo | null =>
     const keys = Object.keys(medicationDatabase);
     for (const key of keys) {
       if (key.startsWith(normalizedKey)) {
+        console.log(`Found partial match (starts with) for: ${normalizedKey} -> ${key}`);
         return {
           ...medicationDatabase[key],
           drugsComUrl: getDrugsComUrl(key)
@@ -139,6 +138,7 @@ const getMedicationInfoLocal = (medicationKey: string): MedicationInfo | null =>
     // If still not found, try to find a medication that contains the query
     for (const key of keys) {
       if (key.includes(normalizedKey)) {
+        console.log(`Found partial match (contains) for: ${normalizedKey} -> ${key}`);
         return {
           ...medicationDatabase[key],
           drugsComUrl: getDrugsComUrl(key)

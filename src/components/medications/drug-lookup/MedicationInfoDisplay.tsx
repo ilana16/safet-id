@@ -71,7 +71,7 @@ const MedicationInfoDisplay: React.FC<MedicationInfoDisplayProps> = ({
             <AlertCircle className="h-4 w-4" />
             <AlertTitle>No Data Found</AlertTitle>
             <AlertDescription>
-              Could not load medication information. Please try again.
+              Could not load medication information. Please try again or search for a different medication.
             </AlertDescription>
           </Alert>
           <Button 
@@ -137,7 +137,12 @@ const MedicationInfoDisplay: React.FC<MedicationInfoDisplayProps> = ({
         <MedicationInfo medication={medicationInfo} />
         
         <div className="mt-4 text-right">
-          <p className="text-sm text-gray-500">Source: Drugs.com (simulated)</p>
+          <p className="text-sm text-gray-500">
+            Source: {medicationInfo.source || 'Drugs.com (simulated)'}
+          </p>
+          <p className="text-xs text-gray-400 mt-1">
+            Note: This is demonstration data. In a production app, this information would be sourced directly from Drugs.com's API.
+          </p>
         </div>
       </div>
     </div>
