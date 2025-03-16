@@ -21,6 +21,8 @@ export function useFieldPersistence<T>(
       if (sectionData && Object.keys(sectionData).length > 0) {
         console.log(`Found existing data for ${section}:`, sectionData);
         setFormData(prev => ({ ...prev, ...sectionData }));
+      } else {
+        console.log(`No existing data found for ${section}, using initial data`);
       }
     } catch (error) {
       console.error(`Error loading initial data for ${section}:`, error);
@@ -32,23 +34,27 @@ export function useFieldPersistence<T>(
   
   // Update form data and sync with context
   const updateFormData = (newData: Partial<T>) => {
+    console.log(`Updating form data for ${section}:`, newData);
+    
     setFormData(prev => {
       const updated = { ...prev, ...newData };
       
       // Update context data which will propagate to other components
       updateSectionData(section, updated);
       
+      // Auto-save if enabled
+      if (autoSave) {
+        console.log(`Auto-saving section ${section}`);
+        setTimeout(() => saveSection(section), 300);
+      }
+      
       return updated;
     });
-    
-    // Auto-save if enabled
-    if (autoSave) {
-      setTimeout(() => saveSection(section), 300);
-    }
   };
   
   // Manually save data
   const saveData = () => {
+    console.log(`Manually saving section ${section}`);
     saveSection(section);
   };
   
