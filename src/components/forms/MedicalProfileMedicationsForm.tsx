@@ -364,9 +364,8 @@ const MedicalProfileMedicationsForm = () => {
                     <Select
                       value={med.unit}
                       onValueChange={(value) => updateMedication(med.id, 'unit', value)}
-                      className="w-1/3"
                     >
-                      <SelectTrigger id={`med-unit-${med.id}`}>
+                      <SelectTrigger id={`med-unit-${med.id}`} className="w-1/3">
                         <SelectValue placeholder="Unit" />
                       </SelectTrigger>
                       <SelectContent>
