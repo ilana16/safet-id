@@ -121,7 +121,7 @@ const getMedicationInfoLocal = (medicationKey: string): MedicationInfo | null =>
     if (medicationDatabase[normalizedKey]) {
       return {
         ...medicationDatabase[normalizedKey],
-        drugsComUrl: getDrugsComUrl(medicationKey)
+        drugsComUrl: getDrugsComUrl(normalizedKey)
       };
     }
     
