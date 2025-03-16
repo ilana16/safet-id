@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import PageLayout from '@/components/layout/PageLayout';
@@ -7,13 +8,14 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from '@/lib/toast';
 import { useMedicalProfile } from '@/contexts/MedicalProfileContext';
 
-type SectionType = 'personal' | 'history' | 'allergies' | 'immunizations' | 'social' | 
+type SectionType = 'personal' | 'history' | 'allergies' | 'medications' | 'immunizations' | 'social' | 
                    'reproductive' | 'mental' | 'functional' | 'cultural';
 
 const sections = [
   { id: 'personal', label: 'Personal' },
   { id: 'history', label: 'Medical History' },
   { id: 'allergies', label: 'Allergies' },
+  { id: 'medications', label: 'Medications' },
   { id: 'immunizations', label: 'Immunizations & Vaccines' },
   { id: 'social', label: 'Social History' },
   { id: 'reproductive', label: 'Reproductive' },

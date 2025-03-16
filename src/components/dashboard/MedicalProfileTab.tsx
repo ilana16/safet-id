@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { ClipboardCheck, Filter, ArrowUpDown, FileText, History } from 'lucide-react';
+import { ClipboardCheck, Filter, ArrowUpDown, FileText, History, Pill } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { 
   Tooltip,
@@ -32,7 +32,7 @@ const MedicalProfileTab: React.FC<MedicalProfileTabProps> = ({ completionPercent
   const sectionStatus = {
     personal: 100,
     history: 75,
-    medications: 100,
+    medications: 0,
     allergies: 60,
     immunizations: 0,
   };
@@ -58,6 +58,7 @@ const MedicalProfileTab: React.FC<MedicalProfileTabProps> = ({ completionPercent
       description: 'Current prescriptions, supplements, and over-the-counter medications',
       link: '/profile/medications',
       status: sectionStatus.medications,
+      icon: <Pill className="h-4 w-4 mr-2 text-safet-500" />
     },
     {
       id: 'allergies',
