@@ -1,5 +1,6 @@
+
 import React, { useState, useEffect } from 'react';
-import { searchDrugsCom, getDrugsComInfo } from '@/utils/drugsComApi';
+import { searchDrugsCom, getDrugsComInfo, getDrugsComUrl } from '@/utils/drugsComApi';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Search, ArrowRight, Loader2, PillIcon, Pill, ExternalLink } from 'lucide-react';
@@ -7,6 +8,7 @@ import MedicationInfo from './MedicationInfo';
 import { MedicationInfo as MedicationInfoType } from '@/utils/medicationData';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { toast } from '@/lib/toast';
 
 const DrugInfoLookup: React.FC = () => {
   const [query, setQuery] = useState('');
@@ -88,18 +90,37 @@ const DrugInfoLookup: React.FC = () => {
     try {
       const info = await getDrugsComInfo(medication);
       setMedicationInfo(info);
+      toast.success(`Information loaded from Drugs.com for ${medication}`);
     } catch (error) {
       console.error('Error fetching medication information:', error);
+      toast.error('Error loading medication information');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const openDrugsComPage = () => {
+    if (selectedMedication) {
+      const drugsComUrl = getDrugsComUrl(selectedMedication);
+      window.open(drugsComUrl, '_blank', 'noopener,noreferrer');
     }
   };
 
   return (
     <div className="space-y-6">
       <div className="bg-white border border-[#D1DEE8] rounded-md overflow-hidden">
-        <div className="bg-safet-600 text-white px-5 py-3 font-medium">
-          Search Medications Database
+        <div className="bg-safet-600 text-white px-5 py-3 font-medium flex items-center justify-between">
+          <span>Search Drugs.com Database</span>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="bg-white/10 hover:bg-white/20 text-white border-white/20"
+            onClick={openDrugsComPage}
+            disabled={!selectedMedication}
+          >
+            <ExternalLink className="h-4 w-4 mr-1" />
+            Visit Drugs.com
+          </Button>
         </div>
         <div className="p-5">
           <form onSubmit={handleSearch} className="flex gap-2">
@@ -194,7 +215,7 @@ const DrugInfoLookup: React.FC = () => {
         <div className="flex justify-center p-8">
           <div className="flex items-center space-x-2">
             <Loader2 className="h-6 w-6 animate-spin text-safet-500" />
-            <span className="text-gray-600">Loading medication information...</span>
+            <span className="text-gray-600">Loading medication information from Drugs.com...</span>
           </div>
         </div>
       )}
@@ -229,6 +250,10 @@ const DrugInfoLookup: React.FC = () => {
           </div>
           
           <MedicationInfo medication={medicationInfo} />
+          
+          <div className="mt-4 text-right">
+            <p className="text-sm text-gray-500">Source: Drugs.com (simulated)</p>
+          </div>
         </div>
       )}
     </div>

@@ -15,6 +15,7 @@ export interface MedicationInfo {
   sideEffects?: string[];
   warnings?: string[];
   interactions?: string[];
+  source?: string;
 }
 
 // Mock database for the demo
@@ -49,7 +50,8 @@ export const medicationDatabase: Record<string, MedicationInfo> = {
       "NSAIDs (like ibuprofen, naproxen) may reduce the blood pressure-lowering effect of lisinopril",
       "Potassium supplements or salt substitutes may increase potassium levels in your blood",
       "Lithium levels may increase when taken with lisinopril"
-    ]
+    ],
+    source: "Drugs.com"
   },
   metformin: {
     name: "Metformin",
@@ -80,7 +82,8 @@ export const medicationDatabase: Record<string, MedicationInfo> = {
       "Carbonic anhydrase inhibitors (such as topiramate) may increase the risk of lactic acidosis",
       "Cimetidine may increase metformin levels",
       "Alcohol may increase the risk of lactic acidosis and low blood sugar"
-    ]
+    ],
+    source: "Drugs.com"
   },
   atorvastatin: {
     name: "Atorvastatin",
@@ -111,6 +114,74 @@ export const medicationDatabase: Record<string, MedicationInfo> = {
       "Grapefruit juice may increase atorvastatin levels",
       "Certain antibiotics and antifungals may increase the risk of muscle problems",
       "Cyclosporine, fibrates, and niacin may increase the risk of myopathy"
-    ]
+    ],
+    source: "Drugs.com"
+  },
+  aspirin: {
+    name: "Aspirin",
+    genericName: "Acetylsalicylic Acid",
+    drugClass: "NSAID, Antiplatelet",
+    description: "Aspirin is used to treat pain, fever, and inflammation. Low-dose aspirin is also used as a blood thinner to prevent blood clots.",
+    drugsComUrl: "https://www.drugs.com/aspirin.html",
+    usedFor: ["Pain Relief", "Fever Reduction", "Anti-inflammatory", "Heart Attack Prevention", "Stroke Prevention"],
+    dosage: {
+      adult: "Pain/fever: 325-650 mg every 4-6 hours. Heart disease prevention: 81-325 mg once daily.",
+      child: "Not recommended for children under 12 years due to risk of Reye's syndrome.",
+      elderly: "Use lowest effective dose. Increased risk of bleeding.",
+      frequency: "Varies by indication"
+    },
+    sideEffects: [
+      "Upset stomach",
+      "Heartburn",
+      "Easy bruising or bleeding",
+      "Ringing in ears",
+      "Allergic reactions",
+      "Gastrointestinal bleeding"
+    ],
+    warnings: [
+      "Reye's syndrome: Do not give to children or teenagers with viral infections.",
+      "Bleeding risk: Can cause serious gastrointestinal bleeding.",
+      "Pregnancy category D: Use only if clearly needed in pregnancy.",
+      "Alcohol warning: Increases risk of bleeding when combined with aspirin."
+    ],
+    interactions: [
+      "Other blood thinners increase bleeding risk",
+      "Other NSAIDs may increase side effects",
+      "ACE inhibitors may have decreased effectiveness",
+      "May increase methotrexate toxicity"
+    ],
+    source: "Drugs.com"
+  },
+  "vitamin d": {
+    name: "Vitamin D",
+    genericName: "Cholecalciferol (Vitamin D3)",
+    drugClass: "Vitamin/Supplement",
+    description: "Vitamin D is essential for calcium absorption and bone health. It also plays roles in immune function, cell growth, and inflammation reduction.",
+    drugsComUrl: "https://www.drugs.com/vitamin-d.html",
+    usedFor: ["Vitamin D Deficiency", "Bone Health", "Osteoporosis Prevention", "Immune Support"],
+    dosage: {
+      adult: "RDA: 600-800 IU daily. For deficiency: 1,000-4,000 IU daily or as directed by doctor.",
+      child: "RDA: 400-600 IU daily. For deficiency: As directed by doctor.",
+      elderly: "RDA: 800 IU daily. For deficiency: 1,000-4,000 IU daily or as directed by doctor.",
+      frequency: "Daily"
+    },
+    sideEffects: [
+      "Usually well-tolerated at recommended doses",
+      "High doses may cause nausea, vomiting",
+      "Excessive intake may cause hypercalcemia",
+      "Kidney stones with prolonged high doses"
+    ],
+    warnings: [
+      "Do not exceed recommended dosage without medical supervision.",
+      "People with certain conditions (sarcoidosis, hyperparathyroidism, kidney disease) should use with caution.",
+      "Vitamin D toxicity can occur with excessive supplementation."
+    ],
+    interactions: [
+      "Certain seizure medications may decrease vitamin D effectiveness",
+      "Steroids may interfere with vitamin D metabolism",
+      "Cholesterol-lowering medications may reduce absorption",
+      "Some weight loss drugs may decrease absorption"
+    ],
+    source: "Drugs.com"
   }
 };

@@ -47,6 +47,11 @@ export const getDrugsComInfo = async (medicationKey: string): Promise<Medication
   return getMedicationInfoLocal(medicationKey);
 };
 
+// Enhanced function to generate Drugs.com URL for a medication
+export const getDrugsComUrl = (medicationName: string): string => {
+  return `https://www.drugs.com/search.php?searchterm=${encodeURIComponent(medicationName)}`;
+};
+
 // Local implementation using our existing data (for demo purposes)
 const searchMedicationsLocal = (query: string): string[] => {
   if (!query || query.length < 2) return [];
@@ -61,7 +66,11 @@ const searchMedicationsLocal = (query: string): string[] => {
     "zolpidem", "azithromycin", "montelukast", "furosemide", "citalopram",
     "trazodone", "pantoprazole", "duloxetine", "clopidogrel", "rosuvastatin",
     "tramadol", "warfarin", "venlafaxine", "carvedilol", "cyclobenzaprine",
-    "meloxicam", "bupropion", "lorazepam", "clonazepam", "tamsulosin"
+    "meloxicam", "bupropion", "lorazepam", "clonazepam", "tamsulosin",
+    "aspirin", "vitamin d", "fish oil", "magnesium", "calcium", "zinc",
+    "vitamin c", "vitamin b12", "multivitamin", "potassium", "melatonin",
+    "iron", "folic acid", "probiotics", "biotin", "collagen", "turmeric",
+    "coq10", "glucosamine", "vitamin e"
   ];
   
   return medications.filter(med => med.includes(normalizedQuery));
@@ -76,14 +85,20 @@ const getMedicationInfoLocal = (medicationKey: string): MedicationInfo | null =>
   
   // Try to find the exact match first
   if (medicationDatabase[normalizedKey]) {
-    return medicationDatabase[normalizedKey];
+    return {
+      ...medicationDatabase[normalizedKey],
+      drugsComUrl: getDrugsComUrl(medicationKey)
+    };
   }
   
   // If not found, try to find a medication that starts with the query
   const keys = Object.keys(medicationDatabase);
   for (const key of keys) {
     if (key.startsWith(normalizedKey)) {
-      return medicationDatabase[key];
+      return {
+        ...medicationDatabase[key],
+        drugsComUrl: getDrugsComUrl(medicationKey)
+      };
     }
   }
   
@@ -92,8 +107,8 @@ const getMedicationInfoLocal = (medicationKey: string): MedicationInfo | null =>
     name: medicationKey,
     genericName: `Generic ${medicationKey}`,
     drugClass: "Not specified (demo data)",
-    description: `This is a simulated entry for ${medicationKey}. In a production environment, this would contain actual drug information from a comprehensive database.`,
-    drugsComUrl: `https://www.drugs.com/search.php?searchterm=${encodeURIComponent(medicationKey)}`,
+    description: `This is a simulated entry for ${medicationKey}. In a production environment, this would contain actual drug information from Drugs.com database.`,
+    drugsComUrl: getDrugsComUrl(medicationKey),
     usedFor: ["Simulated condition 1", "Simulated condition 2"],
     dosage: {
       adult: "Consult your doctor for proper dosage information.",
@@ -114,9 +129,10 @@ const getMedicationInfoLocal = (medicationKey: string): MedicationInfo | null =>
     interactions: [
       "This is a simulated drug interaction warning.",
       "Actual interactions would be listed here in a production environment."
-    ]
+    ],
+    source: "Drugs.com (Simulated)"
   };
 };
 
 // Export these local functions to allow direct use when needed
-export { searchMedicationsLocal, getMedicationInfoLocal };
+export { searchMedicationsLocal, getMedicationInfoLocal, getDrugsComUrl };
