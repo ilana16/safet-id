@@ -1,4 +1,3 @@
-
 import { BrowserRouter as Router, Routes, Route, useLocation, useNavigationType } from 'react-router-dom';
 import { useEffect } from 'react';
 import Index from './pages/Index';
@@ -15,7 +14,6 @@ import ProxyRegister from './pages/ProxyRegister';
 import MedicalProfile from './pages/MedicalProfile';
 import PersonalSection from './pages/medical-profile/PersonalSection';
 import HistorySection from './pages/medical-profile/HistorySection';
-import MedicationsSection from './pages/medical-profile/MedicationsSection';
 import AllergiesSection from './pages/medical-profile/AllergiesSection';
 import SocialSection from './pages/medical-profile/SocialSection';
 import ReproductiveSection from './pages/medical-profile/ReproductiveSection';
@@ -32,7 +30,6 @@ import {
 } from './utils/medicalProfileService';
 import { MedicalProfileProvider } from './contexts/MedicalProfileContext';
 
-// This component manages data persistence and navigation events
 function DataPersistenceManager() {
   const location = useLocation();
   const navigationType = useNavigationType();
@@ -41,16 +38,12 @@ function DataPersistenceManager() {
     console.log('Navigation change detected at', new Date().toISOString());
     console.log('Current location:', location.pathname);
     
-    // Always save all section data on navigation
     saveAllSectionData();
     
-    // Load all data for the new location
     loadAllSectionData();
     
-    // Dispatch event for components to respond to
     window.dispatchEvent(new Event('navigationChange'));
     
-    // If we're navigating to a specific section, load that section data
     const pathParts = location.pathname.split('/');
     const currentSection = pathParts[pathParts.length - 1];
     
@@ -58,11 +51,9 @@ function DataPersistenceManager() {
       console.log(`Loading specific section data for: ${currentSection}`);
       loadSectionData(currentSection);
       
-      // Dispatch section-specific event
       window.dispatchEvent(new Event(`${currentSection}DataRequest`));
     }
     
-    // Set up auto-save (every 15 seconds) and data sync
     const clearAutoSave = initializeAutoSave(15000);
     const clearDataSync = initializeDataSyncListeners();
     
@@ -76,7 +67,6 @@ function DataPersistenceManager() {
   return null;
 }
 
-// Handles saving data when the page is unloaded
 function PageUnloadHandler() {
   useEffect(() => {
     const handleBeforeUnload = () => {
@@ -95,7 +85,6 @@ function PageUnloadHandler() {
 }
 
 function App() {
-  // Initialize data when the app starts
   useEffect(() => {
     console.log('App initialized - loading all medical profile data');
     loadAllSectionData();
@@ -118,7 +107,6 @@ function App() {
           <Route path="/profile" element={<MedicalProfile />}>
             <Route path="personal" element={<PersonalSection />} />
             <Route path="history" element={<HistorySection />} />
-            <Route path="medications" element={<MedicationsSection />} />
             <Route path="allergies" element={<AllergiesSection />} />
             <Route path="immunizations" element={<ImmuneSection />} />
             <Route path="social" element={<SocialSection />} />

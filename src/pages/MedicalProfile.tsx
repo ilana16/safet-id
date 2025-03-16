@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import PageLayout from '@/components/layout/PageLayout';
@@ -8,13 +7,12 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from '@/lib/toast';
 import { useMedicalProfile } from '@/contexts/MedicalProfileContext';
 
-type SectionType = 'personal' | 'history' | 'medications' | 'allergies' | 'immunizations' | 'social' | 
+type SectionType = 'personal' | 'history' | 'allergies' | 'immunizations' | 'social' | 
                    'reproductive' | 'mental' | 'functional' | 'cultural';
 
 const sections = [
   { id: 'personal', label: 'Personal' },
   { id: 'history', label: 'Medical History' },
-  { id: 'medications', label: 'Medications' },
   { id: 'allergies', label: 'Allergies' },
   { id: 'immunizations', label: 'Immunizations & Vaccines' },
   { id: 'social', label: 'Social History' },
@@ -36,7 +34,6 @@ const MedicalProfile = () => {
   const pathParts = location.pathname.split('/');
   const currentSection = pathParts[pathParts.length - 1] === 'profile' ? 'personal' : pathParts[pathParts.length - 1];
 
-  // Initial data load
   useEffect(() => {
     console.log('Loading profile data on component mount');
     setIsLoadingData(true);
@@ -48,13 +45,11 @@ const MedicalProfile = () => {
     setIsLoadingData(false);
   }, [profileData]);
 
-  // Handle route changes
   useEffect(() => {
     console.log(`Route changed to ${location.pathname}, loading section: ${currentSection}`);
     setIsLoadingData(true);
     
     try {
-      // Load current section data
       loadSection(currentSection);
       
       if (profileData && profileData.history && profileData.history.hasMentalHealthHistory) {
@@ -67,7 +62,6 @@ const MedicalProfile = () => {
     }
   }, [location.pathname, currentSection, loadSection]);
 
-  // Handle saving current section data
   const saveCurrentSectionData = () => {
     console.log(`Attempting to save data for section: ${currentSection}`);
     setIsSaving(true);
@@ -77,7 +71,6 @@ const MedicalProfile = () => {
       
       if (saved) {
         toast.success(`${getSectionTitle(currentSection)} information saved successfully`);
-        // Switch to view mode after saving if not in medications section
         if (currentSection !== 'medications') {
           setIsEditing(false);
         }
@@ -95,14 +88,12 @@ const MedicalProfile = () => {
     }
   };
 
-  // Handle tab changes
   const handleTabChange = (value: string) => {
     if (currentSection === value) return;
     
     saveCurrentSectionData();
     navigate(`/profile/${value}`);
     
-    // Reset to edit mode for medications, view mode for others
     setIsEditing(value === 'medications');
   };
 
@@ -111,19 +102,15 @@ const MedicalProfile = () => {
     return sectionObj ? sectionObj.label : 'Section';
   };
 
-  // Toggle edit mode
   const toggleEditMode = () => {
     if (isEditing) {
-      // If currently editing, save data before exiting edit mode
       saveCurrentSectionData();
     } else {
-      // Enter edit mode
       setIsEditing(true);
     }
   };
 
-  // Determine if we should show edit controls
-  const showEditControls = currentSection !== 'medications';
+  const showEditControls = true;
 
   return (
     <PageLayout className="bg-gray-50">
@@ -182,7 +169,6 @@ const MedicalProfile = () => {
           
           <div className="md:col-span-3 bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
             <div className="p-0">
-              {/* Section header with action buttons */}
               <div className="bg-gray-50 border-b border-gray-200 px-6 py-3 flex justify-between items-center">
                 <h2 className="text-lg font-medium text-gray-900">
                   {getSectionTitle(currentSection)}
@@ -231,7 +217,6 @@ const MedicalProfile = () => {
                 )}
               </div>
               
-              {/* Footer action buttons for non-medication sections */}
               {showEditControls && isEditing && (
                 <div className="border-t border-gray-200 px-6 py-4 bg-gray-50 flex justify-end">
                   <Button 
