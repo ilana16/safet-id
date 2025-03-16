@@ -1,8 +1,10 @@
+
 import React, { useState, useEffect } from 'react';
 import { searchDrugsCom, getDrugsComInfo, getDrugsComUrl } from '@/utils/drugsComApi';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Search, ArrowRight, Loader2, PillIcon, Pill, ExternalLink, PlusCircle } from 'lucide-react';
+import { Search, ArrowRight, Loader2, ExternalLink } from 'lucide-react';
+import { Pill, PillIcon, PlusCircle } from 'lucide-react';
 import MedicationInfo from './MedicationInfo';
 import { MedicationInfo as MedicationInfoType } from '@/utils/medicationData';
 import { Card } from '@/components/ui/card';
@@ -112,15 +114,20 @@ const DrugInfoLookup: React.FC<DrugInfoLookupProps> = ({ onAddMedication }) => {
     
     try {
       const info = await getDrugsComInfo(medication);
-      setMedicationInfo(info);
-      setNewMedication({
-        ...newMedication,
-        name: info.name
-      });
-      toast.success(`Information loaded from Drugs.com for ${medication}`);
+      if (info) {
+        setMedicationInfo(info);
+        setNewMedication({
+          ...newMedication,
+          name: info.name
+        });
+        toast.success(`Information loaded from Drugs.com for ${medication}`);
+      } else {
+        throw new Error("Could not retrieve medication information");
+      }
     } catch (error) {
       console.error('Error fetching medication information:', error);
       toast.error('Error loading medication information');
+      setMedicationInfo(null);
     } finally {
       setIsLoading(false);
     }
