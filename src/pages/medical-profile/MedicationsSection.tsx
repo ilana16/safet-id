@@ -1,6 +1,7 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Info, Save, Search, PlusCircle, Pill, ChevronRight, FilterX } from 'lucide-react';
+import { Info, Save, Search, PlusCircle, Pill, ChevronRight, FilterX, ExternalLink } from 'lucide-react';
 import { toast } from '@/lib/toast';
 import { logChanges } from '@/utils/changeLog';
 import { useFieldPersistence } from '@/hooks/useFieldPersistence';
@@ -9,7 +10,7 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { TabsContent, Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import MedicalProfileMedicationsForm from '@/components/forms/MedicalProfileMedicationsForm';
+import DrugsDotComMedicationsForm from '@/components/forms/DrugsDotComMedicationsForm';
 
 // Define the type for medications data
 interface MedicationsData {
@@ -28,7 +29,6 @@ const initialMedicationsData: MedicationsData = {
 const MedicationsSection = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
-  const [showDrugInfo, setShowDrugInfo] = useState(false);
   const [activeTab, setActiveTab] = useState<string>("my-meds");
   
   // Use the useFieldPersistence hook for medications data
@@ -40,7 +40,7 @@ const MedicationsSection = () => {
   useEffect(() => {
     setIsLoaded(true);
     
-    // Make the medications data available to the MedicalProfileMedicationsForm
+    // Make the medications data available to the DrugsDotComMedicationsForm
     if (medicationsData) {
       (window as any).medicationsFormData = medicationsData;
     }
@@ -149,7 +149,7 @@ const MedicationsSection = () => {
         
         <TabsContent value="my-meds" className="mt-0">
           <Card className="p-6 border border-gray-200">
-            {isLoaded && <MedicalProfileMedicationsForm />}
+            {isLoaded && <DrugsDotComMedicationsForm />}
             
             <div className="mt-8 flex justify-end gap-3">
               <Button 
