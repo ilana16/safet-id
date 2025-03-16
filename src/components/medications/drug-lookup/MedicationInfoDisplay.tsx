@@ -7,7 +7,7 @@ import MedicationInfo from '../MedicationInfo';
 import { toast } from 'sonner';
 
 interface MedicationInfoDisplayProps {
-  medicationInfo: MedicationInfoType;
+  medicationInfo: MedicationInfoType | null;
   selectedMedication: string | null;
   onResetSearch: () => void;
   onAddToProfile: () => void;
@@ -47,8 +47,8 @@ const MedicationInfoDisplay: React.FC<MedicationInfoDisplayProps> = ({
   };
 
   return (
-    <div>
-      <div className="flex justify-between items-center mb-4">
+    <div className="bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm">
+      <div className="flex justify-between items-center mb-4 p-4 border-b border-gray-200">
         <Button 
           variant="outline" 
           className="text-safet-600" 
@@ -84,10 +84,12 @@ const MedicationInfoDisplay: React.FC<MedicationInfoDisplayProps> = ({
         </div>
       </div>
       
-      <MedicationInfo medication={medicationInfo} />
-      
-      <div className="mt-4 text-right">
-        <p className="text-sm text-gray-500">Source: Drugs.com (simulated)</p>
+      <div className="px-4 pb-4">
+        <MedicationInfo medication={medicationInfo} />
+        
+        <div className="mt-4 text-right">
+          <p className="text-sm text-gray-500">Source: Drugs.com (simulated)</p>
+        </div>
       </div>
     </div>
   );
