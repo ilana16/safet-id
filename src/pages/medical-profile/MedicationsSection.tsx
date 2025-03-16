@@ -16,40 +16,37 @@ const MedicationsSection = () => {
         Keep track of your medications and access detailed information about drugs from the Drugs.com database.
       </p>
 
-      <Tabs defaultValue="medications" value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="mb-6 bg-gray-100">
-          <TabsTrigger value="medications" className="flex items-center data-[state=active]:bg-white">
-            <PenLine className="h-4 w-4 mr-2" />
-            My Medications
-          </TabsTrigger>
-          <TabsTrigger value="search" className="flex items-center data-[state=active]:bg-white">
+      <div className="space-y-8">
+        {/* Search section always visible at the top */}
+        <div className="bg-white border border-[#D1DEE8] rounded-xl overflow-hidden shadow-sm">
+          <div className="bg-safet-600 text-white px-5 py-3 font-medium flex items-center">
             <Search className="h-4 w-4 mr-2" />
-            Medication Search
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="medications" className="space-y-6">
-          <div>
-            <h3 className="text-lg font-medium text-gray-900 mb-4">Manage Your Medications</h3>
-            <p className="text-gray-500 text-sm mb-6">
-              Add and track your current prescriptions, over-the-counter medications, and supplements.
-            </p>
-            
-            <MedicalProfileMedicationsForm />
+            <span>Medication Search</span>
           </div>
-        </TabsContent>
-
-        <TabsContent value="search" className="space-y-6">
-          <div>
-            <h3 className="text-lg font-medium text-gray-900 mb-4">Medication Information</h3>
-            <p className="text-gray-500 text-sm mb-6">
+          <div className="p-5">
+            <p className="text-gray-500 text-sm mb-4">
               Search for medications to view detailed information about uses, side effects, and interactions.
             </p>
             
             <DrugInfoLookup />
           </div>
-        </TabsContent>
-      </Tabs>
+        </div>
+
+        {/* My Medications section */}
+        <div className="bg-white border border-[#D1DEE8] rounded-xl overflow-hidden shadow-sm">
+          <div className="bg-safet-600 text-white px-5 py-3 font-medium flex items-center">
+            <PenLine className="h-4 w-4 mr-2" />
+            <span>My Medications</span>
+          </div>
+          <div className="p-5">
+            <p className="text-gray-500 text-sm mb-4">
+              Add and track your current prescriptions, over-the-counter medications, and supplements.
+            </p>
+            
+            <MedicalProfileMedicationsForm />
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
