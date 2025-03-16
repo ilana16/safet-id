@@ -135,4 +135,4 @@ const getMedicationInfoLocal = (medicationKey: string): MedicationInfo | null =>
 };
 
 // Export these local functions to allow direct use when needed
-export { searchMedicationsLocal, getMedicationInfoLocal, getDrugsComUrl };
+export { searchMedicationsLocal, getMedicationInfoLocal };
