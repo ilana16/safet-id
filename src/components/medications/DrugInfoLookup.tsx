@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { searchDrugsCom, getDrugsComInfo, getDrugsComUrl } from '@/utils/drugsComApi';
 import { Input } from '@/components/ui/input';
