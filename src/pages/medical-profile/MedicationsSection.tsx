@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Info, Save, Search, PlusCircle, Pill, ChevronRight, FilterX, ExternalLink } from 'lucide-react';
+import { Info, Save, Search, PlusCircle, Pill, ChevronRight, FilterX, ExternalLink, Loader2 } from 'lucide-react';
 import { toast } from '@/lib/toast';
 import { logChanges } from '@/utils/changeLog';
 import { useFieldPersistence } from '@/hooks/useFieldPersistence';
@@ -11,6 +11,8 @@ import { Input } from '@/components/ui/input';
 import { TabsContent, Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import DrugsDotComMedicationsForm from '@/components/forms/DrugsDotComMedicationsForm';
+import { searchDrugsCom, getDrugsComInfo } from '@/utils/drugsComApi';
+import MedicationInfo from '@/components/medications/MedicationInfo';
 
 // Define the type for medications data
 interface MedicationsData {
@@ -30,6 +32,12 @@ const MedicationsSection = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
   const [activeTab, setActiveTab] = useState<string>("my-meds");
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<string[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [selectedMedication, setSelectedMedication] = useState<string | null>(null);
+  const [medicationInfo, setMedicationInfo] = useState<any | null>(null);
+  const [isLoadingMedInfo, setIsLoadingMedInfo] = useState(false);
   
   // Use the useFieldPersistence hook for medications data
   const [medicationsData, updateMedicationsData, saveMedicationsData] = useFieldPersistence<MedicationsData>(
@@ -45,6 +53,83 @@ const MedicationsSection = () => {
       (window as any).medicationsFormData = medicationsData;
     }
   }, [medicationsData]);
+  
+  const handleSearch = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const query = e.target.value;
+    setSearchQuery(query);
+    
+    if (query.length < 2) {
+      setSearchResults([]);
+      return;
+    }
+    
+    setIsSearching(true);
+    try {
+      const results = await searchDrugsCom(query);
+      setSearchResults(results);
+    } catch (error) {
+      console.error('Error searching medications:', error);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+  
+  const handleSelectMedication = async (medication: string) => {
+    setSelectedMedication(medication);
+    setSearchQuery(medication);
+    setSearchResults([]);
+    setIsLoadingMedInfo(true);
+    
+    try {
+      const info = await getDrugsComInfo(medication);
+      setMedicationInfo(info);
+      setActiveTab('drug-lookup');
+    } catch (error) {
+      console.error('Error fetching medication information:', error);
+      toast.error('Error loading medication information');
+    } finally {
+      setIsLoadingMedInfo(false);
+    }
+  };
+  
+  const addMedicationToProfile = () => {
+    if (!medicationInfo) return;
+    
+    // Determine medication type
+    let type = 'prescription';
+    if (medicationInfo.drugClass && 
+        (medicationInfo.drugClass.includes('Over-the-counter') || 
+         medicationInfo.drugClass.includes('OTC'))) {
+      type = 'otc';
+    } else if (medicationInfo.drugClass && 
+               (medicationInfo.drugClass.includes('Supplement') || 
+                medicationInfo.drugClass.includes('Vitamin'))) {
+      type = 'supplement';
+    }
+    
+    // Create new medication object
+    const newMedication = {
+      id: `med_${Date.now()}`,
+      name: medicationInfo.name,
+      brandName: medicationInfo.genericName || '',
+      reason: medicationInfo.usedFor ? medicationInfo.usedFor.join(', ') : '',
+      type,
+      form: '',
+      totalDosage: '',
+      unit: '',
+      withFood: 'with',
+      doseTimes: [{ id: `time_${Date.now()}`, time: '' }]
+    };
+    
+    // Update medications data
+    const updatedData = { ...medicationsData };
+    updatedData[type].push(newMedication);
+    updateMedicationsData(updatedData);
+    
+    // Switch to my-meds tab
+    setActiveTab('my-meds');
+    toast.success(`Added ${medicationInfo.name} to your medications`);
+  };
   
   const handleSave = () => {
     setIsSaving(true);
@@ -112,10 +197,34 @@ const MedicationsSection = () => {
           <div className="relative">
             <Input 
               placeholder="Search medications database..." 
+              value={searchQuery}
+              onChange={handleSearch}
               className="pl-10 pr-4 py-2 border-gray-300 focus:ring-[#335B95] focus:border-[#335B95]"
-              onClick={() => setActiveTab('drug-lookup')}
             />
             <Search className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
+            
+            {searchResults.length > 0 && (
+              <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-auto">
+                <ul>
+                  {searchResults.map((result, idx) => (
+                    <li 
+                      key={idx}
+                      className="px-4 py-2 cursor-pointer hover:bg-gray-100 flex items-center"
+                      onClick={() => handleSelectMedication(result)}
+                    >
+                      <Pill className="h-4 w-4 text-[#335B95] mr-2" />
+                      {result}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            
+            {isSearching && (
+              <div className="absolute right-3 top-2.5">
+                <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -167,11 +276,69 @@ const MedicationsSection = () => {
         <TabsContent value="drug-lookup" className="mt-0">
           <Card className="border border-gray-200">
             <div className="p-6">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">Medication Information Database</h2>
-              <p className="text-gray-600 mb-6">
-                Search for detailed information about prescription drugs, over-the-counter medicines, and supplements.
-              </p>
-              <DrugInfoLookup />
+              {isLoadingMedInfo ? (
+                <div className="flex justify-center items-center py-12">
+                  <Loader2 className="h-8 w-8 animate-spin text-[#335B95] mr-2" />
+                  <span>Loading medication information...</span>
+                </div>
+              ) : medicationInfo ? (
+                <div>
+                  <div className="flex justify-between items-center mb-6">
+                    <h2 className="text-xl font-semibold text-gray-900">
+                      {medicationInfo.name}
+                      {medicationInfo.genericName && medicationInfo.genericName !== medicationInfo.name && (
+                        <span className="text-sm font-normal text-gray-500 ml-2">
+                          ({medicationInfo.genericName})
+                        </span>
+                      )}
+                    </h2>
+                    <div className="flex gap-2">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => setMedicationInfo(null)}
+                      >
+                        Back to Search
+                      </Button>
+                      {medicationInfo.drugsComUrl && (
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="bg-[#EBF2FA] text-[#335B95] border-[#335B95]/20"
+                          asChild
+                        >
+                          <a 
+                            href={medicationInfo.drugsComUrl} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                          >
+                            <ExternalLink className="h-4 w-4 mr-1" />
+                            Drugs.com
+                          </a>
+                        </Button>
+                      )}
+                      <Button 
+                        size="sm" 
+                        className="bg-[#335B95] hover:bg-[#26497C]"
+                        onClick={addMedicationToProfile}
+                      >
+                        <PlusCircle className="h-4 w-4 mr-1" />
+                        Add to My Medications
+                      </Button>
+                    </div>
+                  </div>
+                  
+                  <MedicationInfo medication={medicationInfo} />
+                </div>
+              ) : (
+                <>
+                  <h2 className="text-xl font-semibold text-gray-900 mb-4">Medication Information Database</h2>
+                  <p className="text-gray-600 mb-6">
+                    Search for detailed information about prescription drugs, over-the-counter medicines, and supplements.
+                  </p>
+                  <DrugInfoLookup />
+                </>
+              )}
             </div>
           </Card>
         </TabsContent>
