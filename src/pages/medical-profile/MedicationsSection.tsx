@@ -3,11 +3,14 @@ import React, { useState } from 'react';
 import DrugInfoLookup from '@/components/medications/DrugInfoLookup';
 import MedicalProfileMedicationsForm from '@/components/forms/MedicalProfileMedicationsForm';
 import { Button } from '@/components/ui/button';
-import { Pill, ListChecks, Search } from 'lucide-react';
+import { Pill, ListChecks, Search, PlusCircle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import AddMedicationForm from '@/components/medications/AddMedicationForm';
 
 const MedicationsSection = ({ isEditing }: { isEditing?: boolean }) => {
   const [activeTab, setActiveTab] = useState<'search' | 'myMeds'>('search');
+  const [addMedicationOpen, setAddMedicationOpen] = useState(false);
 
   return (
     <div className="space-y-6">
@@ -35,9 +38,33 @@ const MedicationsSection = ({ isEditing }: { isEditing?: boolean }) => {
         </div>
       </div>
       
-      <p className="text-gray-500 text-sm">
-        Keep track of your medications and search for detailed information about drugs you're taking.
-      </p>
+      <div className="flex justify-between items-center">
+        <p className="text-gray-500 text-sm">
+          Keep track of your medications and search for detailed information about drugs you're taking.
+        </p>
+        
+        <Dialog open={addMedicationOpen} onOpenChange={setAddMedicationOpen}>
+          <DialogTrigger asChild>
+            <Button 
+              variant="default" 
+              size="sm" 
+              className="bg-safet-500 hover:bg-safet-600 border-none"
+            >
+              <PlusCircle className="h-4 w-4 mr-2" />
+              Add Medication
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[550px] max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="text-lg font-semibold text-safet-700 flex items-center">
+                <Pill className="h-5 w-5 mr-2 text-safet-500" />
+                Add Medication
+              </DialogTitle>
+            </DialogHeader>
+            <AddMedicationForm onComplete={() => setAddMedicationOpen(false)} />
+          </DialogContent>
+        </Dialog>
+      </div>
       
       {activeTab === 'search' ? (
         <Card className="border border-gray-200">
