@@ -42,9 +42,15 @@ export const getDrugsComInfo = async (medicationKey: string): Promise<Medication
   
   console.log('Fetching medication info from Drugs.com for:', medicationKey);
   
-  // Return from our local database for demo purposes
-  // In production, this would fetch from Drugs.com's API
-  return getMedicationInfoLocal(medicationKey);
+  try {
+    // Return from our local database for demo purposes
+    // In production, this would fetch from Drugs.com's API
+    const medicationInfo = getMedicationInfoLocal(medicationKey);
+    return medicationInfo;
+  } catch (error) {
+    console.error('Error fetching medication information:', error);
+    return null;
+  }
 };
 
 // Enhanced function to generate Drugs.com URL for a medication
