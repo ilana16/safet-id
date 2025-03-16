@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import PageLayout from '@/components/layout/PageLayout';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, Save, Edit } from 'lucide-react';
+import { ChevronLeft, Save, Edit, Eye } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { useMedicalProfile } from '@/contexts/MedicalProfileContext';
@@ -27,11 +27,18 @@ const sections = [
 const MedicalProfile = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { profileData, saveSection, loadSection } = useMedicalProfile();
+  const { 
+    profileData, 
+    saveSection, 
+    loadSection, 
+    isEditing, 
+    setIsEditing,
+    saveCurrentSection 
+  } = useMedicalProfile();
+  
   const [hasMentalHealthHistory, setHasMentalHealthHistory] = useState('no');
   const [isSaving, setIsSaving] = useState(false);
   const [isLoadingData, setIsLoadingData] = useState(true);
-  const [isEditing, setIsEditing] = useState(true);
   
   const pathParts = location.pathname.split('/');
   const currentSection = pathParts[pathParts.length - 1] === 'profile' ? 'personal' : pathParts[pathParts.length - 1];
@@ -64,22 +71,12 @@ const MedicalProfile = () => {
     }
   }, [location.pathname, currentSection, loadSection]);
 
-  const saveCurrentSectionData = () => {
+  const saveCurrentSectionData = async () => {
     console.log(`Attempting to save data for section: ${currentSection}`);
     setIsSaving(true);
     
     try {
-      const saved = saveSection(currentSection);
-      
-      if (saved) {
-        toast.success(`${getSectionTitle(currentSection)} information saved successfully`);
-        if (currentSection !== 'medications') {
-          setIsEditing(false);
-        }
-      } else {
-        toast.error(`No data found to save for ${getSectionTitle(currentSection)}`);
-      }
-      
+      const saved = await saveCurrentSection(currentSection);
       setIsSaving(false);
       return saved;
     } catch (error) {
@@ -93,10 +90,14 @@ const MedicalProfile = () => {
   const handleTabChange = (value: string) => {
     if (currentSection === value) return;
     
-    saveCurrentSectionData();
-    navigate(`/profile/${value}`);
-    
-    setIsEditing(value === 'medications');
+    // If in edit mode, save before navigating
+    if (isEditing) {
+      saveCurrentSectionData().then(() => {
+        navigate(`/profile/${value}`);
+      });
+    } else {
+      navigate(`/profile/${value}`);
+    }
   };
 
   const getSectionTitle = (section: string): string => {
@@ -106,13 +107,15 @@ const MedicalProfile = () => {
 
   const toggleEditMode = () => {
     if (isEditing) {
-      saveCurrentSectionData();
+      saveCurrentSectionData().then(success => {
+        if (success) {
+          setIsEditing(false);
+        }
+      });
     } else {
       setIsEditing(true);
     }
   };
-
-  const showEditControls = true;
 
   return (
     <PageLayout className="bg-gray-50">
@@ -121,8 +124,13 @@ const MedicalProfile = () => {
           <Button 
             variant="ghost" 
             onClick={() => {
-              saveCurrentSectionData();
-              navigate('/dashboard');
+              if (isEditing) {
+                saveCurrentSectionData().then(() => {
+                  navigate('/dashboard');
+                });
+              } else {
+                navigate('/dashboard');
+              }
             }} 
             className="mb-4"
           >
@@ -135,8 +143,16 @@ const MedicalProfile = () => {
           </h1>
           <div className="flex justify-between items-center">
             <p className="text-gray-600 mt-1">
-              Update your comprehensive medical information with our new section-by-section editor
+              Update your comprehensive medical information with our section-by-section editor
             </p>
+            <div className="flex items-center gap-2">
+              <Link to="/profile/view">
+                <Button variant="outline" size="sm" className="text-safet-700 border-safet-200">
+                  <Eye className="mr-2 h-4 w-4" />
+                  View Full Record
+                </Button>
+              </Link>
+            </div>
           </div>
         </div>
 
@@ -176,31 +192,29 @@ const MedicalProfile = () => {
                   {getSectionTitle(currentSection)}
                 </h2>
                 
-                {showEditControls && (
-                  <div className="flex items-center gap-2">
-                    {isEditing ? (
-                      <Button 
-                        onClick={saveCurrentSectionData} 
-                        className="bg-safet-500 hover:bg-safet-600 text-white"
-                        size="sm"
-                        disabled={isSaving}
-                      >
-                        {isSaving ? 'Saving...' : 'Save'}
-                        {!isSaving && <Save className="ml-2 h-4 w-4" />}
-                      </Button>
-                    ) : (
-                      <Button 
-                        onClick={toggleEditMode} 
-                        variant="outline"
-                        size="sm"
-                        className="text-safet-600 border-safet-300 hover:bg-safet-50"
-                      >
-                        Edit
-                        <Edit className="ml-2 h-4 w-4" />
-                      </Button>
-                    )}
-                  </div>
-                )}
+                <div className="flex items-center gap-2">
+                  {isEditing ? (
+                    <Button 
+                      onClick={saveCurrentSectionData} 
+                      className="bg-safet-500 hover:bg-safet-600 text-white"
+                      size="sm"
+                      disabled={isSaving}
+                    >
+                      {isSaving ? 'Saving...' : 'Save'}
+                      {!isSaving && <Save className="ml-2 h-4 w-4" />}
+                    </Button>
+                  ) : (
+                    <Button 
+                      onClick={toggleEditMode} 
+                      variant="outline"
+                      size="sm"
+                      className="text-safet-600 border-safet-300 hover:bg-safet-50"
+                    >
+                      Edit
+                      <Edit className="ml-2 h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
               </div>
 
               <div className="p-6">
@@ -213,13 +227,11 @@ const MedicalProfile = () => {
                     </div>
                   </div>
                 ) : (
-                  <div className={`${showEditControls && !isEditing ? 'pointer-events-none opacity-90' : ''}`}>
-                    <Outlet context={{ isEditing }} />
-                  </div>
+                  <Outlet context={{ isEditing }} />
                 )}
               </div>
               
-              {showEditControls && isEditing && (
+              {isEditing && (
                 <div className="border-t border-gray-200 px-6 py-4 bg-gray-50 flex justify-end">
                   <Button 
                     onClick={saveCurrentSectionData} 

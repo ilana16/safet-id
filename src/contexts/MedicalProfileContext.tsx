@@ -8,12 +8,17 @@ interface MedicalProfileContextType {
   updateSectionData: (section: string, data: any) => void;
   loadSection: (section: string) => any;
   saveSection: (section: string) => boolean;
+  isEditing: boolean;
+  setIsEditing: (editing: boolean) => void;
+  saveCurrentSection: (section: string) => Promise<boolean>;
 }
 
 const MedicalProfileContext = createContext<MedicalProfileContextType | undefined>(undefined);
 
 export const MedicalProfileProvider = ({ children }: { children: ReactNode }) => {
   const [profileData, setProfileData] = useState<Record<string, any>>({});
+  const [isEditing, setIsEditing] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
 
   // Load all profile data on initial mount
   useEffect(() => {
@@ -108,6 +113,27 @@ export const MedicalProfileProvider = ({ children }: { children: ReactNode }) =>
     }
   };
 
+  // Save the current section with loading state
+  const saveCurrentSection = async (section: string): Promise<boolean> => {
+    setIsSaving(true);
+    try {
+      const success = saveSection(section);
+      
+      if (success) {
+        toast.success(`${getSectionTitle(section)} saved successfully`);
+        setIsEditing(false);
+      }
+      
+      return success;
+    } catch (error) {
+      console.error(`Error saving ${section}:`, error);
+      toast.error(`Failed to save ${section}`);
+      return false;
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   // Helper function to get window key for section
   const getWindowKeyForSection = (section: string): string => {
     switch (section) {
@@ -125,13 +151,33 @@ export const MedicalProfileProvider = ({ children }: { children: ReactNode }) =>
     }
   };
 
+  // Helper function to get human-readable section title
+  const getSectionTitle = (section: string): string => {
+    switch (section) {
+      case 'personal': return 'Personal Information';
+      case 'history': return 'Medical History';
+      case 'medications': return 'Medications';
+      case 'allergies': return 'Allergies';
+      case 'immunizations': return 'Immunizations & Vaccines';
+      case 'social': return 'Social History';
+      case 'reproductive': return 'Reproductive History';
+      case 'mental': return 'Mental Health';
+      case 'functional': return 'Functional Status';
+      case 'cultural': return 'Cultural Preferences';
+      default: return 'Section';
+    }
+  };
+
   return (
     <MedicalProfileContext.Provider 
       value={{ 
         profileData, 
         updateSectionData, 
         loadSection, 
-        saveSection 
+        saveSection,
+        isEditing,
+        setIsEditing,
+        saveCurrentSection
       }}
     >
       {children}

@@ -6,14 +6,16 @@ export function useFieldPersistence<T>(
   section: string,
   initialData: T,
   autoSave: boolean = true
-): [T, (data: Partial<T>) => void, () => void] {
+): [T, (data: Partial<T>) => void, () => void, boolean] {
   const { loadSection, updateSectionData, saveSection } = useMedicalProfile();
   const [formData, setFormData] = useState<T>(initialData);
+  const [isLoading, setIsLoading] = useState(true);
   
   // Load data on initial mount
   useEffect(() => {
     console.log(`Loading initial data for ${section}`);
     try {
+      setIsLoading(true);
       const sectionData = loadSection(section);
       
       if (sectionData && Object.keys(sectionData).length > 0) {
@@ -23,6 +25,8 @@ export function useFieldPersistence<T>(
     } catch (error) {
       console.error(`Error loading initial data for ${section}:`, error);
       // Fall back to initial data
+    } finally {
+      setIsLoading(false);
     }
   }, [section, loadSection]);
   
@@ -48,5 +52,5 @@ export function useFieldPersistence<T>(
     saveSection(section);
   };
   
-  return [formData, updateFormData, saveData];
+  return [formData, updateFormData, saveData, isLoading];
 }

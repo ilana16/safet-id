@@ -1,10 +1,10 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Save } from 'lucide-react';
+import { Save, PencilIcon } from 'lucide-react';
 import MedicalProfilePersonalForm from '@/components/forms/MedicalProfilePersonalForm';
-import { toast } from '@/lib/toast';
+import { toast } from 'sonner';
 import { logChanges } from '@/utils/changeLog';
 import { useFieldPersistence } from '@/hooks/useFieldPersistence';
 import { useMedicalProfile } from '@/contexts/MedicalProfileContext';
@@ -16,47 +16,10 @@ interface SectionContext {
 const PersonalSection = () => {
   const { isEditing } = useOutletContext<SectionContext>();
   const [isSaving, setIsSaving] = useState(false);
-  const [isLoaded, setIsLoaded] = useState(false);
-  const { loadSection, saveSection } = useMedicalProfile();
-  const [formData, updateFormData, saveData] = useFieldPersistence('personal', {});
+  const { saveSection } = useMedicalProfile();
+  const [formData, updateFormData, saveData, isLoading] = useFieldPersistence('personal', {});
   
-  // Load data on initial render
-  useEffect(() => {
-    const loadPersonalData = () => {
-      try {
-        console.log('Loading personal data');
-        loadSection('personal');
-        setIsLoaded(true);
-        
-        // Trigger a UI refresh
-        window.dispatchEvent(new CustomEvent('personalDataLoaded'));
-      } catch (error) {
-        console.error('Error loading personal data:', error);
-        setIsLoaded(true);
-      }
-    };
-    
-    loadPersonalData();
-    
-    // Listen for navigation changes and data requests
-    const handleNavChange = () => {
-      console.log('Navigation change detected, reloading personal data');
-      loadPersonalData();
-    };
-    
-    window.addEventListener('navigationChange', handleNavChange);
-    window.addEventListener('personalDataRequest', handleNavChange);
-    
-    return () => {
-      window.removeEventListener('navigationChange', handleNavChange);
-      window.removeEventListener('personalDataRequest', handleNavChange);
-      
-      // Save data when component unmounts
-      saveData();
-    };
-  }, []);
-  
-  const handleSave = () => {
+  const handleSave = async () => {
     setIsSaving(true);
     
     try {
@@ -105,24 +68,46 @@ const PersonalSection = () => {
           logChanges('personal', changes);
         }
         
-        setIsSaving(false);
         toast.success('Personal information saved successfully');
       } else {
-        setIsSaving(false);
         toast.error('Error saving personal information');
       }
     } catch (error) {
       console.error('Error saving personal information:', error);
-      setIsSaving(false);
       toast.error('Error saving personal information');
+    } finally {
+      setIsSaving(false);
     }
   };
 
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center py-10">
+        <div className="animate-pulse flex flex-col items-center">
+          <div className="h-8 w-8 bg-safet-200 rounded-full mb-4"></div>
+          <div className="h-4 w-32 bg-safet-100 rounded mb-3"></div>
+          <div className="h-3 w-24 bg-safet-50 rounded"></div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className={`${!isEditing ? 'opacity-90' : ''}`}>
-      {isLoaded && (
-        <div className={`${!isEditing ? 'pointer-events-none' : ''}`}>
-          <MedicalProfilePersonalForm />
+      <div className={`${!isEditing ? 'pointer-events-none' : ''}`}>
+        <MedicalProfilePersonalForm />
+      </div>
+      
+      {isEditing && (
+        <div className="mt-8 flex justify-end">
+          <Button 
+            onClick={handleSave} 
+            className="bg-safet-500 hover:bg-safet-600 text-white"
+            disabled={isSaving}
+          >
+            {isSaving ? 'Saving...' : 'Save Information'}
+            {!isSaving && <Save className="ml-2 h-4 w-4" />}
+          </Button>
         </div>
       )}
     </div>
