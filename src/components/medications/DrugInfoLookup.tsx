@@ -21,6 +21,7 @@ const DrugInfoLookup: React.FC<DrugInfoLookupProps> = ({ onAddMedication }) => {
   const [selectedMedication, setSelectedMedication] = useState<string | null>(null);
   const [medicationInfo, setMedicationInfo] = useState<MedicationInfoType | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
   const [newMedication, setNewMedication] = useState<Partial<Medication>>({
     id: uuidv4(),
@@ -44,6 +45,7 @@ const DrugInfoLookup: React.FC<DrugInfoLookupProps> = ({ onAddMedication }) => {
   const selectMedication = async (medication: string) => {
     setSelectedMedication(medication);
     setIsLoading(true);
+    setError(null);
     saveHistory(medication);
     
     try {
@@ -60,6 +62,7 @@ const DrugInfoLookup: React.FC<DrugInfoLookupProps> = ({ onAddMedication }) => {
       }
     } catch (error) {
       console.error('Error fetching medication information:', error);
+      setError('Unable to load medication information from Drugs.com. Please try another medication or try again later.');
       toast.error('Error loading medication information');
       setMedicationInfo(null);
     } finally {
@@ -83,20 +86,27 @@ const DrugInfoLookup: React.FC<DrugInfoLookupProps> = ({ onAddMedication }) => {
   const resetSearch = () => {
     setMedicationInfo(null);
     setSelectedMedication(null);
+    setError(null);
   };
 
   const handleAddMedication = (medication: Medication) => {
     if (onAddMedication) {
-      onAddMedication(medication);
-      setShowAddForm(false);
-      resetSearch();
-      setNewMedication({
-        id: uuidv4(),
-        dosage: '',
-        frequency: 'Once daily',
-        reason: '',
-        startDate: new Date().toISOString().split('T')[0],
-      });
+      try {
+        onAddMedication(medication);
+        setShowAddForm(false);
+        resetSearch();
+        setNewMedication({
+          id: uuidv4(),
+          dosage: '',
+          frequency: 'Once daily',
+          reason: '',
+          startDate: new Date().toISOString().split('T')[0],
+        });
+        toast.success(`${medication.name} added to your medications`);
+      } catch (error) {
+        console.error('Error adding medication:', error);
+        toast.error('Failed to add medication. Please try again.');
+      }
     }
   };
 
@@ -117,7 +127,7 @@ const DrugInfoLookup: React.FC<DrugInfoLookupProps> = ({ onAddMedication }) => {
           </Button>
         </div>
         <div className="p-5">
-          {!medicationInfo && !isLoading && (
+          {!medicationInfo && !isLoading && !error && (
             <MedicationSearch onSelectMedication={selectMedication} />
           )}
           
@@ -132,13 +142,15 @@ const DrugInfoLookup: React.FC<DrugInfoLookupProps> = ({ onAddMedication }) => {
         </div>
       </div>
       
-      {medicationInfo && (
+      {(medicationInfo || error || isLoading) && (
         <MedicationInfoDisplay 
           medicationInfo={medicationInfo}
           selectedMedication={selectedMedication}
           onResetSearch={resetSearch}
           onAddToProfile={handleAddToProfile}
           canAddToProfile={Boolean(onAddMedication)}
+          isLoading={isLoading}
+          error={error}
         />
       )}
 

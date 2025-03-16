@@ -1,10 +1,11 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { ExternalLink, PlusCircle } from 'lucide-react';
+import { ExternalLink, PlusCircle, AlertCircle } from 'lucide-react';
 import { MedicationInfo as MedicationInfoType } from '@/utils/medicationData';
 import MedicationInfo from '../MedicationInfo';
 import { toast } from 'sonner';
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 
 interface MedicationInfoDisplayProps {
   medicationInfo: MedicationInfoType | null;
@@ -12,6 +13,8 @@ interface MedicationInfoDisplayProps {
   onResetSearch: () => void;
   onAddToProfile: () => void;
   canAddToProfile: boolean;
+  isLoading?: boolean;
+  error?: string | null;
 }
 
 const MedicationInfoDisplay: React.FC<MedicationInfoDisplayProps> = ({
@@ -19,15 +22,35 @@ const MedicationInfoDisplay: React.FC<MedicationInfoDisplayProps> = ({
   selectedMedication,
   onResetSearch,
   onAddToProfile,
-  canAddToProfile
+  canAddToProfile,
+  isLoading = false,
+  error = null
 }) => {
-  if (!medicationInfo) {
+  if (isLoading) {
     return (
       <div className="p-6 text-center">
-        <p className="text-red-500">Could not load medication information. Please try again.</p>
+        <div className="animate-pulse flex flex-col items-center">
+          <div className="h-10 w-full bg-gray-200 rounded mb-4"></div>
+          <div className="h-32 w-full bg-gray-200 rounded mb-4"></div>
+          <div className="h-16 w-full bg-gray-200 rounded"></div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !medicationInfo) {
+    return (
+      <div className="p-6">
+        <Alert variant="destructive" className="mb-4">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription>
+            {error || "Could not load medication information. Please try again."}
+          </AlertDescription>
+        </Alert>
         <Button 
           variant="outline" 
-          className="mt-4" 
+          className="mt-2" 
           onClick={onResetSearch}
         >
           Back to Search
