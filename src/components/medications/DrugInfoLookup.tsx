@@ -1,15 +1,14 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { searchDrugsCom, getDrugsComInfo, getDrugsComUrl } from '@/utils/drugsComApi';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Search, ArrowRight, Loader2, PillIcon, Pill, ExternalLink, ChevronDown, AlertCircle } from 'lucide-react';
+import { Search, ArrowRight, Loader2, PillIcon, Pill, ExternalLink } from 'lucide-react';
 import MedicationInfo from './MedicationInfo';
 import { MedicationInfo as MedicationInfoType } from '@/utils/medicationData';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { toast } from '@/lib/toast';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
 const DrugInfoLookup: React.FC = () => {
   const [query, setQuery] = useState('');
@@ -19,9 +18,6 @@ const DrugInfoLookup: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const [history, setHistory] = useState<string[]>([]);
-  const [showSuggestions, setShowSuggestions] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
-  const suggestionsRef = useRef<HTMLDivElement>(null);
   
   useEffect(() => {
     const savedHistory = localStorage.getItem('medicationSearchHistory');
@@ -32,23 +28,6 @@ const DrugInfoLookup: React.FC = () => {
         console.error('Error parsing medication search history:', e);
       }
     }
-    
-    // Close suggestions when clicking outside
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        suggestionsRef.current && 
-        !suggestionsRef.current.contains(event.target as Node) &&
-        inputRef.current && 
-        !inputRef.current.contains(event.target as Node)
-      ) {
-        setShowSuggestions(false);
-      }
-    };
-    
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
   }, []);
   
   const saveHistory = (medication: string) => {
@@ -70,7 +49,6 @@ const DrugInfoLookup: React.FC = () => {
     
     if (value.length >= 2) {
       setIsSearching(true);
-      setShowSuggestions(true);
       try {
         const results = await searchDrugsCom(value);
         setSearchResults(results);
@@ -81,7 +59,6 @@ const DrugInfoLookup: React.FC = () => {
       }
     } else {
       setSearchResults([]);
-      setShowSuggestions(false);
     }
   };
 
@@ -90,7 +67,6 @@ const DrugInfoLookup: React.FC = () => {
     if (query.length < 2) return;
     
     setIsLoading(true);
-    setShowSuggestions(false);
     
     try {
       const results = await searchDrugsCom(query);
@@ -109,14 +85,12 @@ const DrugInfoLookup: React.FC = () => {
   const selectMedication = async (medication: string) => {
     setSelectedMedication(medication);
     setIsLoading(true);
-    setShowSuggestions(false);
-    setQuery(medication);
     saveHistory(medication);
     
     try {
       const info = await getDrugsComInfo(medication);
       setMedicationInfo(info);
-      toast.success(`Information loaded for ${medication}`);
+      toast.success(`Information loaded from Drugs.com for ${medication}`);
     } catch (error) {
       console.error('Error fetching medication information:', error);
       toast.error('Error loading medication information');
@@ -132,17 +106,11 @@ const DrugInfoLookup: React.FC = () => {
     }
   };
 
-  const handleInputFocus = () => {
-    if (query.length >= 2 && searchResults.length > 0) {
-      setShowSuggestions(true);
-    }
-  };
-
   return (
     <div className="space-y-6">
-      <div className="bg-white border border-[#D1DEE8] rounded-md overflow-hidden shadow-sm">
+      <div className="bg-white border border-[#D1DEE8] rounded-md overflow-hidden">
         <div className="bg-safet-600 text-white px-5 py-3 font-medium flex items-center justify-between">
-          <span>Drugs.com Medication Search</span>
+          <span>Search Drugs.com Database</span>
           <Button 
             variant="outline" 
             size="sm" 
@@ -151,56 +119,38 @@ const DrugInfoLookup: React.FC = () => {
             disabled={!selectedMedication}
           >
             <ExternalLink className="h-4 w-4 mr-1" />
-            View on Drugs.com
+            Visit Drugs.com
           </Button>
         </div>
         <div className="p-5">
           <form onSubmit={handleSearch} className="flex gap-2">
             <div className="relative flex-1">
               <Input
-                ref={inputRef}
                 type="text"
                 placeholder="Enter medication name..."
                 value={query}
                 onChange={handleSearchChange}
-                onFocus={handleInputFocus}
-                className="pl-10 w-full pr-4"
-                autoComplete="off"
+                className="pl-10 w-full"
               />
               <Search className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
               
-              {showSuggestions && searchResults.length > 0 && (
-                <div 
-                  ref={suggestionsRef}
-                  className="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-auto"
-                >
-                  <div className="flex items-center justify-between px-3 py-1.5 bg-gray-50 border-b border-gray-100">
-                    <span className="text-xs text-gray-500 font-medium">Suggestions</span>
-                    <button 
-                      onClick={() => setShowSuggestions(false)}
-                      className="text-xs text-gray-500 hover:text-gray-700"
-                    >
-                      Close
-                    </button>
-                  </div>
+              {searchResults.length > 0 && query.length >= 2 && !medicationInfo && (
+                <div className="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-auto">
                   <ul className="py-1">
-                    {isSearching ? (
-                      <li className="px-4 py-2 text-gray-500 flex items-center">
-                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                        Searching...
+                    {searchResults.map((result, index) => (
+                      <li 
+                        key={index}
+                        className="px-4 py-2 hover:bg-gray-100 cursor-pointer flex items-center"
+                        onClick={() => {
+                          selectMedication(result);
+                          setQuery(result);
+                          setSearchResults([]);
+                        }}
+                      >
+                        <Pill className="h-4 w-4 text-safet-500 mr-2" />
+                        {result}
                       </li>
-                    ) : (
-                      searchResults.map((result, index) => (
-                        <li 
-                          key={index}
-                          className="px-4 py-2 hover:bg-gray-100 cursor-pointer flex items-center"
-                          onClick={() => selectMedication(result)}
-                        >
-                          <Pill className="h-4 w-4 text-safet-500 mr-2" />
-                          {result}
-                        </li>
-                      ))
-                    )}
+                    ))}
                   </ul>
                 </div>
               )}
@@ -223,7 +173,10 @@ const DrugInfoLookup: React.FC = () => {
                   <Badge 
                     key={index}
                     className="bg-gray-100 text-gray-700 hover:bg-gray-200 cursor-pointer"
-                    onClick={() => selectMedication(item)}
+                    onClick={() => {
+                      setQuery(item);
+                      selectMedication(item);
+                    }}
                   >
                     {item}
                   </Badge>
@@ -240,7 +193,10 @@ const DrugInfoLookup: React.FC = () => {
                   <Card 
                     key={index} 
                     className="p-3 hover:bg-gray-50 cursor-pointer transition-colors border-gray-200"
-                    onClick={() => selectMedication(drug)}
+                    onClick={() => {
+                      setQuery(drug);
+                      selectMedication(drug);
+                    }}
                   >
                     <div className="flex items-center">
                       <PillIcon className="h-4 w-4 text-safet-500 mr-2" />
@@ -259,7 +215,7 @@ const DrugInfoLookup: React.FC = () => {
         <div className="flex justify-center p-8">
           <div className="flex items-center space-x-2">
             <Loader2 className="h-6 w-6 animate-spin text-safet-500" />
-            <span className="text-gray-600">Loading medication information...</span>
+            <span className="text-gray-600">Loading medication information from Drugs.com...</span>
           </div>
         </div>
       )}
@@ -273,7 +229,6 @@ const DrugInfoLookup: React.FC = () => {
               onClick={() => {
                 setMedicationInfo(null);
                 setSelectedMedication(null);
-                setQuery('');
               }}
             >
               Back to Search
