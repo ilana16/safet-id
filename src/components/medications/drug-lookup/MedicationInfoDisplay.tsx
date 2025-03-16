@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { ExternalLink, PlusCircle } from 'lucide-react';
 import { MedicationInfo as MedicationInfoType } from '@/utils/medicationData';
 import MedicationInfo from '../MedicationInfo';
+import { toast } from 'sonner';
 
 interface MedicationInfoDisplayProps {
   medicationInfo: MedicationInfoType;
@@ -20,6 +21,31 @@ const MedicationInfoDisplay: React.FC<MedicationInfoDisplayProps> = ({
   onAddToProfile,
   canAddToProfile
 }) => {
+  if (!medicationInfo) {
+    return (
+      <div className="p-6 text-center">
+        <p className="text-red-500">Could not load medication information. Please try again.</p>
+        <Button 
+          variant="outline" 
+          className="mt-4" 
+          onClick={onResetSearch}
+        >
+          Back to Search
+        </Button>
+      </div>
+    );
+  }
+
+  const handleAddToProfile = () => {
+    try {
+      onAddToProfile();
+      toast.success(`${medicationInfo.name} added to your medications`);
+    } catch (error) {
+      console.error('Error adding medication to profile:', error);
+      toast.error('Error adding medication to profile');
+    }
+  };
+
   return (
     <div>
       <div className="flex justify-between items-center mb-4">
@@ -35,7 +61,7 @@ const MedicationInfoDisplay: React.FC<MedicationInfoDisplayProps> = ({
           {canAddToProfile && (
             <Button 
               className="bg-safet-500 hover:bg-safet-600"
-              onClick={onAddToProfile}
+              onClick={handleAddToProfile}
             >
               <PlusCircle className="h-4 w-4 mr-2" />
               Add to My Medications

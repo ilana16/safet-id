@@ -1,6 +1,7 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { loadSectionData, saveSectionData, loadAllSectionData } from '@/utils/medicalProfileService';
+import { toast } from 'sonner';
 
 interface MedicalProfileContextType {
   profileData: Record<string, any>;
@@ -17,69 +18,94 @@ export const MedicalProfileProvider = ({ children }: { children: ReactNode }) =>
   // Load all profile data on initial mount
   useEffect(() => {
     console.log('Loading all profile data in MedicalProfileProvider');
-    const data = loadAllSectionData();
-    setProfileData(data);
-    
-    // Set up auto-save
-    const autoSaveInterval = setInterval(() => {
-      console.log('Auto-saving all profile data');
-      Object.keys(profileData).forEach(section => {
-        if (section && profileData[section]) {
-          saveSectionData(section, profileData[section]);
-        }
-      });
-    }, 5000); // Save every 5 seconds
-    
-    return () => clearInterval(autoSaveInterval);
+    try {
+      const data = loadAllSectionData();
+      setProfileData(data);
+      
+      // Set up auto-save
+      const autoSaveInterval = setInterval(() => {
+        console.log('Auto-saving all profile data');
+        Object.keys(profileData).forEach(section => {
+          if (section && profileData[section]) {
+            saveSectionData(section, profileData[section]);
+          }
+        });
+      }, 5000); // Save every 5 seconds
+      
+      return () => clearInterval(autoSaveInterval);
+    } catch (error) {
+      console.error('Error loading profile data:', error);
+      toast.error('Error loading profile data. Please refresh the page.');
+    }
   }, []);
 
   // Update a specific section's data
   const updateSectionData = (section: string, data: any) => {
     console.log(`Updating section data for ${section}:`, data);
     
-    setProfileData(prevData => {
-      const newData = {
-        ...prevData,
-        [section]: {
-          ...data,
-          lastUpdated: new Date().toISOString()
+    try {
+      setProfileData(prevData => {
+        const newData = {
+          ...prevData,
+          [section]: {
+            ...data,
+            lastUpdated: new Date().toISOString()
+          }
+        };
+        
+        // Update window object for interoperability with other components
+        const windowKey = getWindowKeyForSection(section);
+        if (windowKey) {
+          (window as any)[windowKey] = { ...data };
         }
-      };
-      
-      // Update window object for interoperability with other components
-      const windowKey = getWindowKeyForSection(section);
-      if (windowKey) {
-        (window as any)[windowKey] = { ...data };
-      }
-      
-      return newData;
-    });
+        
+        return newData;
+      });
+    } catch (error) {
+      console.error(`Error updating section data for ${section}:`, error);
+      toast.error(`Error updating ${section} data`);
+    }
   };
 
   // Load data for a specific section
   const loadSection = (section: string) => {
     console.log(`Loading section data for ${section}`);
-    const sectionData = loadSectionData(section);
-    
-    setProfileData(prevData => ({
-      ...prevData,
-      [section]: sectionData
-    }));
-    
-    // Update window object for interoperability
-    const windowKey = getWindowKeyForSection(section);
-    if (windowKey) {
-      (window as any)[windowKey] = { ...sectionData };
+    try {
+      const sectionData = loadSectionData(section);
+      
+      setProfileData(prevData => ({
+        ...prevData,
+        [section]: sectionData
+      }));
+      
+      // Update window object for interoperability
+      const windowKey = getWindowKeyForSection(section);
+      if (windowKey) {
+        (window as any)[windowKey] = { ...sectionData };
+      }
+      
+      return sectionData;
+    } catch (error) {
+      console.error(`Error loading section data for ${section}:`, error);
+      toast.error(`Error loading ${section} data`);
+      return {};
     }
-    
-    return sectionData;
   };
 
   // Save data for a specific section
   const saveSection = (section: string) => {
     console.log(`Saving section data for ${section}`);
-    const success = saveSectionData(section, profileData[section]);
-    return success;
+    try {
+      const success = saveSectionData(section, profileData[section]);
+      if (!success) {
+        toast.error(`Error saving ${section} data`);
+      }
+      return success;
+    } catch (error) {
+      console.error(`Error saving section data for ${section}:`, error);
+      toast.error(`Error saving ${section} data`);
+      return false;
+    }
   };
 
   // Helper function to get window key for section
