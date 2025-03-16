@@ -32,14 +32,20 @@ const DrugInfoLookup: React.FC<DrugInfoLookupProps> = ({ onAddMedication }) => {
   });
   
   const saveHistory = (medication: string) => {
-    const savedHistory = localStorage.getItem('medicationSearchHistory');
-    let newHistory: string[] = savedHistory ? JSON.parse(savedHistory) : [];
+    if (!medication || medication.trim() === '') return;
     
-    newHistory = newHistory.filter(item => item !== medication);
-    newHistory.unshift(medication);
-    newHistory = newHistory.slice(0, 5);
-    
-    localStorage.setItem('medicationSearchHistory', JSON.stringify(newHistory));
+    try {
+      const savedHistory = localStorage.getItem('medicationSearchHistory');
+      let newHistory: string[] = savedHistory ? JSON.parse(savedHistory) : [];
+      
+      newHistory = newHistory.filter(item => item !== medication);
+      newHistory.unshift(medication);
+      newHistory = newHistory.slice(0, 5);
+      
+      localStorage.setItem('medicationSearchHistory', JSON.stringify(newHistory));
+    } catch (error) {
+      console.error('Error saving medication search history:', error);
+    }
   };
 
   const selectMedication = async (medication: string) => {
@@ -52,6 +58,7 @@ const DrugInfoLookup: React.FC<DrugInfoLookupProps> = ({ onAddMedication }) => {
     setIsLoading(true);
     setError(null);
     setMedicationInfo(null);
+    setShowAddForm(false);
     saveHistory(medication);
     
     try {
@@ -63,7 +70,12 @@ const DrugInfoLookup: React.FC<DrugInfoLookupProps> = ({ onAddMedication }) => {
         setMedicationInfo(info);
         setNewMedication(prev => ({
           ...prev,
-          name: info.name
+          name: info.name,
+          id: uuidv4(),
+          dosage: '',
+          frequency: 'Once daily',
+          reason: '',
+          startDate: new Date().toISOString().split('T')[0],
         }));
         toast.success(`Information loaded for ${info.name}`);
       } else {
@@ -96,6 +108,7 @@ const DrugInfoLookup: React.FC<DrugInfoLookupProps> = ({ onAddMedication }) => {
     setMedicationInfo(null);
     setSelectedMedication(null);
     setError(null);
+    setShowAddForm(false);
     setNewMedication({
       id: uuidv4(),
       dosage: '',

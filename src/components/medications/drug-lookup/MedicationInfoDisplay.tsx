@@ -28,11 +28,13 @@ const MedicationInfoDisplay: React.FC<MedicationInfoDisplayProps> = ({
 }) => {
   if (isLoading) {
     return (
-      <div className="p-6 text-center">
-        <div className="animate-pulse flex flex-col items-center">
-          <div className="h-10 w-full bg-gray-200 rounded mb-4"></div>
-          <div className="h-32 w-full bg-gray-200 rounded mb-4"></div>
-          <div className="h-16 w-full bg-gray-200 rounded"></div>
+      <div className="bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm">
+        <div className="p-6 text-center">
+          <div className="animate-pulse flex flex-col items-center">
+            <div className="h-10 w-full bg-gray-200 rounded mb-4"></div>
+            <div className="h-32 w-full bg-gray-200 rounded mb-4"></div>
+            <div className="h-16 w-full bg-gray-200 rounded"></div>
+          </div>
         </div>
       </div>
     );
@@ -40,42 +42,46 @@ const MedicationInfoDisplay: React.FC<MedicationInfoDisplayProps> = ({
 
   if (error) {
     return (
-      <div className="p-6">
-        <Alert variant="destructive" className="mb-4">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Error</AlertTitle>
-          <AlertDescription>
-            {error}
-          </AlertDescription>
-        </Alert>
-        <Button 
-          variant="outline" 
-          className="mt-2" 
-          onClick={onResetSearch}
-        >
-          Back to Search
-        </Button>
+      <div className="bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm">
+        <div className="p-6">
+          <Alert variant="destructive" className="mb-4">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Error</AlertTitle>
+            <AlertDescription>
+              {error}
+            </AlertDescription>
+          </Alert>
+          <Button 
+            variant="outline" 
+            className="mt-2" 
+            onClick={onResetSearch}
+          >
+            Back to Search
+          </Button>
+        </div>
       </div>
     );
   }
 
   if (!medicationInfo) {
     return (
-      <div className="p-6">
-        <Alert variant="destructive" className="mb-4">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>No Data Found</AlertTitle>
-          <AlertDescription>
-            Could not load medication information. Please try again.
-          </AlertDescription>
-        </Alert>
-        <Button 
-          variant="outline" 
-          className="mt-2" 
-          onClick={onResetSearch}
-        >
-          Back to Search
-        </Button>
+      <div className="bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm">
+        <div className="p-6">
+          <Alert variant="destructive" className="mb-4">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>No Data Found</AlertTitle>
+            <AlertDescription>
+              Could not load medication information. Please try again.
+            </AlertDescription>
+          </Alert>
+          <Button 
+            variant="outline" 
+            className="mt-2" 
+            onClick={onResetSearch}
+          >
+            Back to Search
+          </Button>
+        </div>
       </div>
     );
   }
@@ -83,7 +89,6 @@ const MedicationInfoDisplay: React.FC<MedicationInfoDisplayProps> = ({
   const handleAddToProfile = () => {
     try {
       onAddToProfile();
-      toast.success(`${medicationInfo.name} added to your medications`);
     } catch (error) {
       console.error('Error adding medication to profile:', error);
       toast.error('Error adding medication to profile');

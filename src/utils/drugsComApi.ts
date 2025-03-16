@@ -50,8 +50,8 @@ export const searchDrugsCom = async (query: string): Promise<string[]> => {
 
 // Function to get detailed medication information, simulating a Drugs.com lookup
 export const getDrugsComInfo = async (medicationKey: string): Promise<MedicationInfo | null> => {
-  if (!medicationKey) {
-    console.error('No medication key provided');
+  if (!medicationKey || medicationKey.trim() === '') {
+    console.error('No medication key provided or empty string');
     return null;
   }
 
@@ -67,13 +67,12 @@ export const getDrugsComInfo = async (medicationKey: string): Promise<Medication
     
     if (!medicationInfo) {
       console.error(`Medication information not found for: ${medicationKey}`);
-      return null; // Changed from throwing error to returning null
+      return null;
     }
     
     return medicationInfo;
   } catch (error) {
     console.error('Error fetching medication information:', error);
-    // Instead of throwing error, return null so the calling code can handle it
     return null;
   }
 };
@@ -89,7 +88,7 @@ const searchMedicationsLocal = (query: string): string[] => {
   if (!query || query.length < 2) return [];
 
   // Simulate more comprehensive results from Drugs.com
-  const normalizedQuery = query.toLowerCase();
+  const normalizedQuery = query.toLowerCase().trim();
   const medications = [
     "lisinopril", "metformin", "atorvastatin", "levothyroxine", "amoxicillin",
     "amlodipine", "hydrochlorothiazide", "omeprazole", "losartan", "simvastatin",
@@ -130,6 +129,16 @@ const getMedicationInfoLocal = (medicationKey: string): MedicationInfo | null =>
     const keys = Object.keys(medicationDatabase);
     for (const key of keys) {
       if (key.startsWith(normalizedKey)) {
+        return {
+          ...medicationDatabase[key],
+          drugsComUrl: getDrugsComUrl(key)
+        };
+      }
+    }
+    
+    // If still not found, try to find a medication that contains the query
+    for (const key of keys) {
+      if (key.includes(normalizedKey)) {
         return {
           ...medicationDatabase[key],
           drugsComUrl: getDrugsComUrl(key)
