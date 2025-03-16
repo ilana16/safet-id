@@ -3,14 +3,19 @@ import React, { useState } from 'react';
 import DrugInfoLookup from '@/components/medications/DrugInfoLookup';
 import MedicalProfileMedicationsForm from '@/components/forms/MedicalProfileMedicationsForm';
 import { Button } from '@/components/ui/button';
-import { Pill, ListChecks, Search, PlusCircle } from 'lucide-react';
+import { Pill, ListChecks, Search, PlusCircle, Edit, Save } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import AddMedicationForm from '@/components/medications/AddMedicationForm';
 
-const MedicationsSection = ({ isEditing }: { isEditing?: boolean }) => {
+const MedicationsSection = ({ isEditing: parentIsEditing }: { isEditing?: boolean }) => {
   const [activeTab, setActiveTab] = useState<'search' | 'myMeds'>('search');
   const [addMedicationOpen, setAddMedicationOpen] = useState(false);
+  const [editingMedList, setEditingMedList] = useState(false);
+
+  const toggleEditMode = () => {
+    setEditingMedList(!editingMedList);
+  };
 
   return (
     <div className="space-y-6">
@@ -43,27 +48,84 @@ const MedicationsSection = ({ isEditing }: { isEditing?: boolean }) => {
           Keep track of your medications and search for detailed information about drugs you're taking.
         </p>
         
-        <Dialog open={addMedicationOpen} onOpenChange={setAddMedicationOpen}>
-          <DialogTrigger asChild>
+        {activeTab === 'myMeds' && (
+          <div className="flex gap-2">
             <Button 
-              variant="default" 
+              variant="outline" 
               size="sm" 
-              className="bg-safet-500 hover:bg-safet-600 border-none"
+              className="border-safet-200 text-safet-700"
+              onClick={toggleEditMode}
             >
-              <PlusCircle className="h-4 w-4 mr-2" />
-              Add Medication
+              {editingMedList ? (
+                <>
+                  <Save className="h-4 w-4 mr-2" />
+                  Save Changes
+                </>
+              ) : (
+                <>
+                  <Edit className="h-4 w-4 mr-2" />
+                  Edit List
+                </>
+              )}
             </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[550px] max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle className="text-lg font-semibold text-safet-700 flex items-center">
-                <Pill className="h-5 w-5 mr-2 text-safet-500" />
+            
+            {editingMedList && (
+              <Dialog open={addMedicationOpen} onOpenChange={setAddMedicationOpen}>
+                <DialogTrigger asChild>
+                  <Button 
+                    variant="default" 
+                    size="sm" 
+                    className="bg-safet-500 hover:bg-safet-600 border-none"
+                  >
+                    <PlusCircle className="h-4 w-4 mr-2" />
+                    Add Medication
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-[550px] max-h-[90vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle className="text-lg font-semibold text-safet-700 flex items-center">
+                      <Pill className="h-5 w-5 mr-2 text-safet-500" />
+                      Add Medication
+                    </DialogTitle>
+                  </DialogHeader>
+                  <AddMedicationForm onComplete={() => {
+                    setAddMedicationOpen(false);
+                    // Ensure we're in the My Med List tab after adding a medication
+                    setActiveTab('myMeds');
+                  }} />
+                </DialogContent>
+              </Dialog>
+            )}
+          </div>
+        )}
+        
+        {activeTab === 'search' && (
+          <Dialog open={addMedicationOpen} onOpenChange={setAddMedicationOpen}>
+            <DialogTrigger asChild>
+              <Button 
+                variant="default" 
+                size="sm" 
+                className="bg-safet-500 hover:bg-safet-600 border-none"
+              >
+                <PlusCircle className="h-4 w-4 mr-2" />
                 Add Medication
-              </DialogTitle>
-            </DialogHeader>
-            <AddMedicationForm onComplete={() => setAddMedicationOpen(false)} />
-          </DialogContent>
-        </Dialog>
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[550px] max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle className="text-lg font-semibold text-safet-700 flex items-center">
+                  <Pill className="h-5 w-5 mr-2 text-safet-500" />
+                  Add Medication
+                </DialogTitle>
+              </DialogHeader>
+              <AddMedicationForm onComplete={() => {
+                setAddMedicationOpen(false);
+                // Ensure we're in the My Med List tab after adding a medication
+                setActiveTab('myMeds');
+              }} />
+            </DialogContent>
+          </Dialog>
+        )}
       </div>
       
       {activeTab === 'search' ? (
@@ -87,7 +149,7 @@ const MedicationsSection = ({ isEditing }: { isEditing?: boolean }) => {
             </CardTitle>
           </CardHeader>
           <CardContent className="p-5">
-            <MedicalProfileMedicationsForm />
+            <MedicalProfileMedicationsForm isEditing={editingMedList} />
           </CardContent>
         </Card>
       )}
