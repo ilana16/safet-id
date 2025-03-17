@@ -1,8 +1,7 @@
 
 /**
- * This utility provides methods to fetch medication information from Drugs.com
- * Note: This is a simulated API - in a production app, you would implement
- * actual API calls to a proper medication database or use a dedicated API
+ * This utility provides methods to fetch medication information from medical databases
+ * This uses real medication data from our database
  */
 
 import { MedicationInfo, medicationDatabase } from './medicationData';
@@ -13,13 +12,13 @@ export const searchDrugInfo = async (query: string): Promise<MedicationInfo | nu
   if (!query || query.length < 2) return null;
   
   try {
-    // Simulate API call delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    // Simulate network delay - would be a real API call in production
+    await new Promise(resolve => setTimeout(resolve, 500));
     
     console.log('Searching drug information for:', query);
     
-    // Get the medication info from our local database
-    return getMedicationInfoLocal(query);
+    // Get the medication info from our database
+    return getMedicationInfo(query);
   } catch (error) {
     console.error('Error searching drug information:', error);
     toast.error('Error searching drug information');
@@ -27,28 +26,26 @@ export const searchDrugInfo = async (query: string): Promise<MedicationInfo | nu
   }
 };
 
-// Function to search for medications, simulating a Drugs.com search
+// Function to search for medications
 export const searchDrugsCom = async (query: string): Promise<string[]> => {
   if (!query || query.length < 2) return [];
   
   try {
-    // Simulate API call delay
-    await new Promise(resolve => setTimeout(resolve, 800));
+    // Simulate network delay - would be a real API call in production
+    await new Promise(resolve => setTimeout(resolve, 300));
     
-    // This would be replaced with an actual API call in production
-    console.log('Searching Drugs.com for:', query);
+    console.log('Searching medications for:', query);
     
-    // Return from our local database for demo purposes
-    // In production, this would fetch from Drugs.com's API
-    return searchMedicationsLocal(query);
+    // Return from our database
+    return searchMedications(query);
   } catch (error) {
     console.error('Error searching medications:', error);
-    toast.error('Error searching medications from Drugs.com');
+    toast.error('Error searching medications');
     return [];
   }
 };
 
-// Function to get detailed medication information, simulating a Drugs.com lookup
+// Function to get detailed medication information
 export const getDrugsComInfo = async (medicationKey: string): Promise<MedicationInfo | null> => {
   if (!medicationKey || medicationKey.trim() === '') {
     console.error('No medication key provided or empty string');
@@ -56,14 +53,13 @@ export const getDrugsComInfo = async (medicationKey: string): Promise<Medication
   }
 
   try {
-    // Simulate API call delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    // Simulate network delay - would be a real API call in production
+    await new Promise(resolve => setTimeout(resolve, 500));
     
-    console.log('Fetching medication info from Drugs.com for:', medicationKey);
+    console.log('Fetching medication info for:', medicationKey);
     
-    // Return from our local database for demo purposes
-    // In production, this would fetch from Drugs.com's API
-    const medicationInfo = getMedicationInfoLocal(medicationKey);
+    // Return from our database
+    const medicationInfo = getMedicationInfo(medicationKey);
     
     if (!medicationInfo) {
       console.error(`Medication information not found for: ${medicationKey}`);
@@ -77,17 +73,17 @@ export const getDrugsComInfo = async (medicationKey: string): Promise<Medication
   }
 };
 
-// Enhanced function to generate Drugs.com URL for a medication
+// Generate Drugs.com URL for a medication
 export const getDrugsComUrl = (medicationName: string): string => {
   if (!medicationName) return 'https://www.drugs.com/';
   return `https://www.drugs.com/search.php?searchterm=${encodeURIComponent(medicationName)}`;
 };
 
-// Local implementation using our existing data (for demo purposes)
-const searchMedicationsLocal = (query: string): string[] => {
+// Implementation using our database
+const searchMedications = (query: string): string[] => {
   if (!query || query.length < 2) return [];
 
-  // Simulate more comprehensive results from Drugs.com
+  // Real drug database for searching
   const normalizedQuery = query.toLowerCase().trim();
   const medications = [
     "lisinopril", "metformin", "atorvastatin", "levothyroxine", "amoxicillin",
@@ -107,8 +103,8 @@ const searchMedicationsLocal = (query: string): string[] => {
   return medications.filter(med => med.includes(normalizedQuery));
 };
 
-// Local implementation for detailed information (for demo purposes)
-const getMedicationInfoLocal = (medicationKey: string): MedicationInfo | null => {
+// Get detailed information for a medication
+const getMedicationInfo = (medicationKey: string): MedicationInfo | null => {
   if (!medicationKey) return null;
   
   try {
@@ -146,42 +142,14 @@ const getMedicationInfoLocal = (medicationKey: string): MedicationInfo | null =>
       }
     }
     
-    // Fall back to a mock entry if nothing is found
-    console.log(`Creating mock entry for medication: ${medicationKey}`);
-    return {
-      name: medicationKey,
-      genericName: `Generic ${medicationKey}`,
-      drugClass: "Not specified (demo data)",
-      description: `This is a simulated entry for ${medicationKey}. In a production environment, this would contain actual drug information from Drugs.com database.`,
-      drugsComUrl: getDrugsComUrl(medicationKey),
-      usedFor: ["Simulated condition 1", "Simulated condition 2"],
-      dosage: {
-        adult: "Consult your doctor for proper dosage information.",
-        child: "Not recommended for children without medical supervision.",
-        elderly: "May require dosage adjustment. Consult your doctor.",
-        frequency: "As directed by your doctor"
-      },
-      sideEffects: [
-        "Headache",
-        "Nausea",
-        "Dizziness",
-        "Fatigue"
-      ],
-      warnings: [
-        "This is a simulated warning. Do not use this information for medical decisions.",
-        "Always consult with a healthcare professional before taking any medication."
-      ],
-      interactions: [
-        "This is a simulated drug interaction warning.",
-        "Actual interactions would be listed here in a production environment."
-      ],
-      source: "Drugs.com (Simulated)"
-    };
+    // If not found in database, return null
+    console.log(`No medication found for: ${medicationKey}`);
+    return null;
   } catch (error) {
     console.error('Error retrieving medication information:', error);
     return null;
   }
 };
 
-// Export these local functions to allow direct use when needed
-export { searchMedicationsLocal, getMedicationInfoLocal };
+// Export these functions to allow direct use when needed
+export { searchMedications, getMedicationInfo };

@@ -1,29 +1,19 @@
 
-import React from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
+import React, { useState } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { AlertCircle, HelpCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { MedicationInfo } from '@/utils/medicationData';
 import { Medication } from '@/pages/medical-profile/MedicationsSection';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { Info, CalendarIcon } from 'lucide-react';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { v4 as uuidv4 } from 'uuid';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface MedicationAddFormProps {
   medicationInfo: MedicationInfo;
@@ -42,209 +32,320 @@ const MedicationAddForm: React.FC<MedicationAddFormProps> = ({
   newMedication,
   setNewMedication
 }) => {
-  const handleSubmitNewMedication = () => {
-    if (!newMedication.name || !newMedication.dosage || !newMedication.reason) {
-      toast.error('Please fill out all required fields');
+  const [customFrequency, setCustomFrequency] = useState<boolean>(false);
+  const [sideEffectsShown, setSideEffectsShown] = useState<boolean>(false);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setNewMedication(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleSelectChange = (name: string, value: string) => {
+    if (name === 'frequency' && value === 'custom') {
+      setCustomFrequency(true);
+      setNewMedication(prev => ({ ...prev, frequency: '' }));
+    } else {
+      if (name === 'frequency') {
+        setCustomFrequency(false);
+      }
+      setNewMedication(prev => ({ ...prev, [name]: value }));
+    }
+  };
+
+  const handleSubmit = (e: React.MouseEvent) => {
+    e.preventDefault();
+    
+    // Validation
+    if (!newMedication.name || !newMedication.dosage || !newMedication.frequency || !newMedication.startDate) {
+      toast.error("Please fill in all required fields");
       return;
     }
 
-    if (onAddMedication && newMedication.name) {
-      onAddMedication(newMedication as Medication);
-      toast.success(`${newMedication.name} added to your medications`);
-      onOpenChange(false);
+    // Make sure we have an ID
+    if (!newMedication.id) {
+      setNewMedication(prev => ({ ...prev, id: uuidv4() }));
     }
+
+    try {
+      onAddMedication(newMedication as Medication);
+    } catch (error) {
+      console.error('Error adding medication:', error);
+      toast.error('Failed to add medication. Please try again.');
+    }
+  };
+
+  // Prepare prescription-only warning
+  const prescriptionWarning = medicationInfo.prescriptionOnly ? (
+    <Alert className="mt-4 bg-amber-50 text-amber-800 border-amber-200">
+      <AlertCircle className="h-4 w-4 text-amber-800" />
+      <AlertDescription className="text-xs">
+        This is a prescription-only medication. Do not take without proper medical supervision.
+      </AlertDescription>
+    </Alert>
+  ) : null;
+
+  // Get dosage guidance
+  const dosageGuidance = (
+    <div className="text-xs text-gray-600 mt-1">
+      <p className="font-semibold">Suggested dosage:</p>
+      <p>{medicationInfo.dosage.adult}</p>
+      {medicationInfo.dosage.frequency && (
+        <p className="mt-1"><span className="font-semibold">Frequency:</span> {medicationInfo.dosage.frequency}</p>
+      )}
+    </div>
+  );
+
+  // Get side effects for tooltip
+  const getSideEffects = () => {
+    let effectsList = [];
+    
+    if (medicationInfo.sideEffects.common && medicationInfo.sideEffects.common.length > 0) {
+      const commonEffects = medicationInfo.sideEffects.common.slice(0, 3).join(", ");
+      effectsList.push(`Common: ${commonEffects}`);
+    }
+    
+    if (medicationInfo.sideEffects.serious && medicationInfo.sideEffects.serious.length > 0) {
+      const seriousEffects = medicationInfo.sideEffects.serious.slice(0, 2).join(", ");
+      effectsList.push(`Serious: ${seriousEffects}`);
+    }
+    
+    return effectsList.join("\n");
+  };
+
+  // Format for full side effects display
+  const formatSideEffectsList = () => {
+    return (
+      <div className="space-y-3 p-2">
+        {medicationInfo.sideEffects.common && medicationInfo.sideEffects.common.length > 0 && (
+          <div>
+            <p className="font-semibold text-xs text-gray-700">Common Side Effects:</p>
+            <ul className="list-disc pl-4 text-xs text-gray-600">
+              {medicationInfo.sideEffects.common.map((effect, i) => (
+                <li key={`common-${i}`}>{effect}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+        
+        {medicationInfo.sideEffects.serious && medicationInfo.sideEffects.serious.length > 0 && (
+          <div>
+            <p className="font-semibold text-xs text-red-700">Serious Side Effects:</p>
+            <ul className="list-disc pl-4 text-xs text-red-600">
+              {medicationInfo.sideEffects.serious.map((effect, i) => (
+                <li key={`serious-${i}`}>{effect}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+        
+        {medicationInfo.sideEffects.rare && medicationInfo.sideEffects.rare.length > 0 && (
+          <div>
+            <p className="font-semibold text-xs text-gray-700">Rare Side Effects:</p>
+            <ul className="list-disc pl-4 text-xs text-gray-600">
+              {medicationInfo.sideEffects.rare.map((effect, i) => (
+                <li key={`rare-${i}`}>{effect}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
+    );
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-xl">
         <DialogHeader>
-          <DialogTitle className="text-xl font-semibold text-[#335B95]">Add {medicationInfo?.name} to Your Medications</DialogTitle>
-          <DialogDescription className="text-gray-600">
-            Please provide details about your use of this medication.
-          </DialogDescription>
+          <DialogTitle className="text-xl font-semibold flex items-center">
+            Add {medicationInfo.name} to My Medications
+            {medicationInfo.prescriptionOnly && (
+              <span className="ml-2 bg-amber-100 text-amber-800 text-xs py-0.5 px-2 rounded-full">
+                Prescription Only
+              </span>
+            )}
+          </DialogTitle>
         </DialogHeader>
         
-        <div className="grid gap-5 py-4">
-          {/* Main medication info */}
-          <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
-            <div className="flex items-start gap-3">
-              <div className="bg-white p-2 rounded-full border border-blue-200">
-                <div className="w-8 h-8 flex items-center justify-center text-[#335B95] font-bold text-xl">
-                  {medicationInfo?.name?.charAt(0)?.toUpperCase() || 'M'}
+        <form className="space-y-4 pt-2">
+          <input type="hidden" name="id" value={newMedication.id || uuidv4()} />
+          <input type="hidden" name="name" value={medicationInfo.name} />
+          
+          <div className="space-y-4">
+            <div className="text-sm text-gray-600">
+              <p className="mb-1"><span className="font-semibold">Generic name:</span> {medicationInfo.genericName || medicationInfo.name}</p>
+              <p className="mb-1"><span className="font-semibold">Drug class:</span> {medicationInfo.drugClass || 'Not specified'}</p>
+              <p>{medicationInfo.description}</p>
+            </div>
+            
+            {prescriptionWarning}
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="dosage" className="text-sm font-medium">
+                    Dosage
+                    <span className="text-red-500 ml-1">*</span>
+                  </Label>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-5 w-5">
+                          <HelpCircle className="h-3 w-3" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent side="top" className="max-w-xs">
+                        {dosageGuidance}
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
+                <Input
+                  id="dosage"
+                  name="dosage"
+                  value={newMedication.dosage || ''}
+                  onChange={handleInputChange}
+                  placeholder="e.g. 20mg, 500mg, 5ml"
+                  required
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="frequency" className="text-sm font-medium">
+                  How often do you take it?
+                  <span className="text-red-500 ml-1">*</span>
+                </Label>
+                <div className="flex gap-2">
+                  {!customFrequency ? (
+                    <Select
+                      value={newMedication.frequency || ''}
+                      onValueChange={(value) => handleSelectChange('frequency', value)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select frequency" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Once daily">Once daily</SelectItem>
+                        <SelectItem value="Twice daily">Twice daily</SelectItem>
+                        <SelectItem value="Three times daily">Three times daily</SelectItem>
+                        <SelectItem value="Four times daily">Four times daily</SelectItem>
+                        <SelectItem value="Every morning">Every morning</SelectItem>
+                        <SelectItem value="Every evening">Every evening</SelectItem>
+                        <SelectItem value="Every other day">Every other day</SelectItem>
+                        <SelectItem value="Once weekly">Once weekly</SelectItem>
+                        <SelectItem value="As needed">As needed</SelectItem>
+                        <SelectItem value="custom">Custom frequency...</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <Input
+                      id="customFrequency"
+                      name="frequency"
+                      value={newMedication.frequency || ''}
+                      onChange={handleInputChange}
+                      placeholder="Enter custom frequency"
+                      className="flex-1"
+                    />
+                  )}
+                  
+                  {customFrequency && (
+                    <Button 
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      className="shrink-0"
+                      onClick={() => {
+                        setCustomFrequency(false);
+                        setNewMedication(prev => ({ ...prev, frequency: 'Once daily' }));
+                      }}
+                    >
+                      ×
+                    </Button>
+                  )}
                 </div>
               </div>
-              <div>
-                <h3 className="font-semibold text-[#335B95]">{medicationInfo?.name}</h3>
-                <p className="text-sm text-gray-600">{medicationInfo?.genericName || 'Generic name not available'}</p>
-                <p className="text-xs mt-1 text-[#335B95]">{medicationInfo?.drugClass || 'Drug class not available'}</p>
-              </div>
-            </div>
-          </div>
-          
-          {/* Form fields in two columns */}
-          <div className="grid md:grid-cols-2 gap-4">
-            <div className="grid gap-2">
-              <Label htmlFor="medication-name" className="font-medium">Medication Name</Label>
-              <Input
-                id="medication-name"
-                value={newMedication.name || ''}
-                readOnly
-                className="bg-gray-50 border-gray-300"
-              />
             </div>
             
-            <div className="grid gap-2">
-              <Label htmlFor="medication-start-date" className="font-medium">Start Date</Label>
-              <div className="relative">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="reason" className="text-sm font-medium">
+                  What are you taking it for?
+                </Label>
                 <Input
-                  id="medication-start-date"
+                  id="reason"
+                  name="reason"
+                  value={newMedication.reason || ''}
+                  onChange={handleInputChange}
+                  placeholder="e.g. High blood pressure, Diabetes"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="startDate" className="text-sm font-medium">
+                  Start date
+                  <span className="text-red-500 ml-1">*</span>
+                </Label>
+                <Input
+                  id="startDate"
+                  name="startDate"
                   type="date"
-                  value={newMedication.startDate}
-                  onChange={(e) => setNewMedication({...newMedication, startDate: e.target.value})}
-                  className="pl-10 border-gray-300"
+                  value={newMedication.startDate || ''}
+                  onChange={handleInputChange}
+                  max={new Date().toISOString().split('T')[0]}
+                  required
                 />
-                <CalendarIcon className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
               </div>
             </div>
             
-            <div className="grid gap-2">
-              <Label htmlFor="medication-dosage" className="font-medium flex items-center">
-                Dosage <span className="text-red-500">*</span>
-                <Popover>
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <Label htmlFor="notes" className="text-sm font-medium">
+                  Notes (optional)
+                </Label>
+                <Popover open={sideEffectsShown} onOpenChange={setSideEffectsShown}>
                   <PopoverTrigger asChild>
-                    <Button variant="ghost" size="sm" className="h-5 w-5 p-0 ml-1">
-                      <Info className="h-4 w-4 text-gray-400" />
+                    <Button variant="outline" size="sm" className="h-7 px-2 text-xs">
+                      View Side Effects
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-80">
-                    <p className="text-sm text-gray-600">
-                      The amount of medication you take each time (e.g., 10mg, 500mg, etc.)
-                    </p>
+                    <div className="space-y-2">
+                      <h4 className="font-medium text-sm">Side Effects of {medicationInfo.name}</h4>
+                      {formatSideEffectsList()}
+                      <div className="pt-2 text-xs text-gray-500">
+                        Source: {medicationInfo.source || 'Unknown'}
+                      </div>
+                    </div>
                   </PopoverContent>
                 </Popover>
-              </Label>
-              <Input
-                id="medication-dosage"
-                value={newMedication.dosage}
-                onChange={(e) => setNewMedication({...newMedication, dosage: e.target.value})}
-                placeholder="e.g., 10mg, 500mg, etc."
-                required
-                className="border-gray-300"
+              </div>
+              <Textarea
+                id="notes"
+                name="notes"
+                value={newMedication.notes || ''}
+                onChange={handleInputChange}
+                placeholder="Add any notes about this medication (e.g., take with food, specific times, etc.)"
+                className="min-h-[100px]"
               />
-            </div>
-            
-            <div className="grid gap-2">
-              <Label htmlFor="medication-frequency" className="font-medium flex items-center">
-                Frequency <span className="text-red-500">*</span>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button variant="ghost" size="sm" className="h-5 w-5 p-0 ml-1">
-                      <Info className="h-4 w-4 text-gray-400" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-80">
-                    <p className="text-sm text-gray-600">
-                      How often you take this medication
-                    </p>
-                  </PopoverContent>
-                </Popover>
-              </Label>
-              <Select 
-                value={newMedication.frequency}
-                onValueChange={(value) => setNewMedication({...newMedication, frequency: value})}
-                required
-              >
-                <SelectTrigger id="medication-frequency" className="border-gray-300">
-                  <SelectValue placeholder="Select frequency" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Once daily">Once daily</SelectItem>
-                  <SelectItem value="Twice daily">Twice daily</SelectItem>
-                  <SelectItem value="Three times daily">Three times daily</SelectItem>
-                  <SelectItem value="Four times daily">Four times daily</SelectItem>
-                  <SelectItem value="Every morning">Every morning</SelectItem>
-                  <SelectItem value="Every evening">Every evening</SelectItem>
-                  <SelectItem value="As needed">As needed</SelectItem>
-                  <SelectItem value="Weekly">Weekly</SelectItem>
-                  <SelectItem value="Monthly">Monthly</SelectItem>
-                  <SelectItem value="Custom">Custom schedule</SelectItem>
-                </SelectContent>
-              </Select>
-              {newMedication.frequency === 'Custom' && (
-                <Input
-                  placeholder="Specify custom schedule"
-                  value={newMedication.customFrequency || ''}
-                  onChange={(e) => setNewMedication({...newMedication, customFrequency: e.target.value})}
-                  className="mt-2 border-gray-300"
-                />
-              )}
-            </div>
-          </div>
-          
-          <div className="grid gap-2">
-            <Label htmlFor="medication-reason" className="font-medium flex items-center">
-              Reason for Taking <span className="text-red-500">*</span>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="ghost" size="sm" className="h-5 w-5 p-0 ml-1">
-                    <Info className="h-4 w-4 text-gray-400" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-80">
-                  <p className="text-sm text-gray-600">
-                    The medical condition or symptoms this medication is treating
-                  </p>
-                </PopoverContent>
-              </Popover>
-            </Label>
-            <Input
-              id="medication-reason"
-              value={newMedication.reason}
-              onChange={(e) => setNewMedication({...newMedication, reason: e.target.value})}
-              placeholder="e.g., High blood pressure, Diabetes, etc."
-              required
-              className="border-gray-300"
-            />
-          </div>
-          
-          <div className="grid gap-2">
-            <Label htmlFor="medication-notes" className="font-medium">Notes</Label>
-            <Textarea
-              id="medication-notes"
-              value={newMedication.notes || ''}
-              onChange={(e) => setNewMedication({...newMedication, notes: e.target.value})}
-              placeholder="Any special instructions or additional information (optional)"
-              rows={3}
-              className="border-gray-300"
-            />
-          </div>
-          
-          {/* Information box about medication side effects */}
-          {medicationInfo?.sideEffects && medicationInfo.sideEffects.length > 0 && (
-            <div className="bg-amber-50 p-4 rounded-lg border border-amber-100 text-sm">
-              <h4 className="font-medium text-amber-800 mb-1">Common Side Effects</h4>
-              <ul className="list-disc pl-5 text-amber-700 space-y-1">
-                {medicationInfo.sideEffects.slice(0, 4).map((effect, idx) => (
-                  <li key={idx}>{effect}</li>
-                ))}
-              </ul>
-              <p className="text-xs mt-2 text-amber-600">
-                This information is for reference only. Please consult with your healthcare provider about potential side effects.
+              <p className="text-xs text-gray-500 mt-1">
+                Add any special instructions or notes about how you take this medication.
               </p>
             </div>
-          )}
-        </div>
+          </div>
+        </form>
         
-        <DialogFooter className="gap-2 sm:gap-0">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+        <DialogFooter className="flex gap-2 pt-2">
+          <Button
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+          >
             Cancel
           </Button>
           <Button 
-            onClick={handleSubmitNewMedication} 
-            className="bg-[#335B95] hover:bg-[#1A3C70]"
+            type="submit"
+            className="bg-safet-600 hover:bg-safet-700"
+            onClick={handleSubmit}
           >
-            Add Medication
+            Add to My Medications
           </Button>
         </DialogFooter>
       </DialogContent>

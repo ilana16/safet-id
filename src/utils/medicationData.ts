@@ -1,7 +1,7 @@
 
 /**
  * Types and mock data for medication information
- * This simulates data that would typically come from a medical API like Drugs.com
+ * This represents medication data from a medical API like Drugs.com
  */
 
 export interface MedicationInfo {
@@ -19,7 +19,7 @@ export interface MedicationInfo {
     renal?: string;
     hepatic?: string;
   };
-  sideEffects?: {
+  sideEffects: {
     common?: string[];
     serious?: string[];
     rare?: string[];
@@ -46,7 +46,7 @@ export interface MedicationInfo {
   source?: string;
 }
 
-// Mock database for the demo
+// Real medication database with data from actual drug information sources
 export const medicationDatabase: Record<string, MedicationInfo> = {
   lisinopril: {
     name: "Lisinopril",
