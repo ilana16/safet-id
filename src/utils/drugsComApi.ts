@@ -18,7 +18,15 @@ export const searchDrugInfo = async (query: string): Promise<MedicationInfo | nu
     console.log('Searching drug information for:', query);
     
     // Get the medication info from our database
-    return getMedicationInfo(query);
+    const info = getMedicationInfo(query);
+    
+    if (!info) {
+      console.log('No medication information found for:', query);
+      return null;
+    }
+    
+    console.log('Found medication information:', info.name);
+    return info;
   } catch (error) {
     console.error('Error searching drug information:', error);
     toast.error('Error searching drug information');
@@ -37,7 +45,9 @@ export const searchDrugsCom = async (query: string): Promise<string[]> => {
     console.log('Searching medications for:', query);
     
     // Return from our database
-    return searchMedications(query);
+    const results = searchMedications(query);
+    console.log(`Found ${results.length} medications matching "${query}"`);
+    return results;
   } catch (error) {
     console.error('Error searching medications:', error);
     toast.error('Error searching medications');
@@ -66,6 +76,7 @@ export const getDrugsComInfo = async (medicationKey: string): Promise<Medication
       return null;
     }
     
+    console.log(`Successfully retrieved information for: ${medicationInfo.name}`);
     return medicationInfo;
   } catch (error) {
     console.error('Error fetching medication information:', error);
@@ -83,24 +94,16 @@ export const getDrugsComUrl = (medicationName: string): string => {
 const searchMedications = (query: string): string[] => {
   if (!query || query.length < 2) return [];
 
-  // Real drug database for searching
+  // Get medication names from our database
   const normalizedQuery = query.toLowerCase().trim();
-  const medications = [
-    "lisinopril", "metformin", "atorvastatin", "levothyroxine", "amoxicillin",
-    "amlodipine", "hydrochlorothiazide", "omeprazole", "losartan", "simvastatin",
-    "albuterol", "gabapentin", "fluticasone", "acetaminophen", "ibuprofen",
-    "metoprolol", "prednisone", "escitalopram", "sertraline", "alprazolam",
-    "zolpidem", "azithromycin", "montelukast", "furosemide", "citalopram",
-    "trazodone", "pantoprazole", "duloxetine", "clopidogrel", "rosuvastatin",
-    "tramadol", "warfarin", "venlafaxine", "carvedilol", "cyclobenzaprine",
-    "meloxicam", "bupropion", "lorazepam", "clonazepam", "tamsulosin",
-    "aspirin", "vitamin d", "fish oil", "magnesium", "calcium", "zinc",
-    "vitamin c", "vitamin b12", "multivitamin", "potassium", "melatonin",
-    "iron", "folic acid", "probiotics", "biotin", "collagen", "turmeric",
-    "coq10", "glucosamine", "vitamin e"
-  ];
   
-  return medications.filter(med => med.includes(normalizedQuery));
+  // Get all keys from the medication database
+  const medicationNames = Object.keys(medicationDatabase);
+  
+  // Filter medicines that include the search query
+  return medicationNames.filter(name => 
+    name.toLowerCase().includes(normalizedQuery)
+  );
 };
 
 // Get detailed information for a medication

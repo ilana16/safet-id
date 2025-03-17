@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { ExternalLink, PlusCircle, AlertCircle } from 'lucide-react';
+import { ExternalLink, PlusCircle, AlertCircle, Search } from 'lucide-react';
 import { MedicationInfo as MedicationInfoType } from '@/utils/medicationData';
 import MedicationInfo from '../MedicationInfo';
 import { toast } from 'sonner';
@@ -51,11 +51,22 @@ const MedicationInfoDisplay: React.FC<MedicationInfoDisplayProps> = ({
               {error}
             </AlertDescription>
           </Alert>
+          <div className="mt-4">
+            <p className="text-sm text-gray-500 mb-4">
+              Suggestions:
+              <ul className="list-disc list-inside mt-2 space-y-1">
+                <li>Check if the medication name is spelled correctly</li>
+                <li>Try searching for a different medication</li>
+                <li>Use the generic name instead of a brand name</li>
+              </ul>
+            </p>
+          </div>
           <Button 
             variant="outline" 
             className="mt-2" 
             onClick={onResetSearch}
           >
+            <Search className="h-4 w-4 mr-2" />
             Back to Search
           </Button>
         </div>
@@ -71,14 +82,25 @@ const MedicationInfoDisplay: React.FC<MedicationInfoDisplayProps> = ({
             <AlertCircle className="h-4 w-4" />
             <AlertTitle>No Data Found</AlertTitle>
             <AlertDescription>
-              Could not load medication information. Please try again or search for a different medication.
+              We couldn't find information for "{selectedMedication}". Please verify the spelling or try another medication.
             </AlertDescription>
           </Alert>
+          <div className="mt-4">
+            <p className="text-sm text-gray-500 mb-4">
+              Suggestions:
+              <ul className="list-disc list-inside mt-2 space-y-1">
+                <li>Try using a generic name (e.g., "acetaminophen" instead of "Tylenol")</li>
+                <li>Check if the medication name is spelled correctly</li>
+                <li>Search for a common medication like "ibuprofen" or "aspirin"</li>
+              </ul>
+            </p>
+          </div>
           <Button 
             variant="outline" 
             className="mt-2" 
             onClick={onResetSearch}
           >
+            <Search className="h-4 w-4 mr-2" />
             Back to Search
           </Button>
         </div>
@@ -103,6 +125,7 @@ const MedicationInfoDisplay: React.FC<MedicationInfoDisplayProps> = ({
           className="text-safet-600" 
           onClick={onResetSearch}
         >
+          <Search className="h-4 w-4 mr-2" />
           Back to Search
         </Button>
         
@@ -135,15 +158,6 @@ const MedicationInfoDisplay: React.FC<MedicationInfoDisplayProps> = ({
       
       <div className="px-4 pb-4">
         <MedicationInfo medication={medicationInfo} />
-        
-        <div className="mt-4 text-right">
-          <p className="text-sm text-gray-500">
-            Source: {medicationInfo.source || 'Drugs.com (simulated)'}
-          </p>
-          <p className="text-xs text-gray-400 mt-1">
-            Note: This is demonstration data. In a production app, this information would be sourced directly from Drugs.com's API.
-          </p>
-        </div>
       </div>
     </div>
   );
