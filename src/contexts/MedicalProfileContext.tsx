@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { loadSectionData, saveSectionData, loadAllSectionData } from '@/utils/medicalProfileService';
 import { toast } from 'sonner';
@@ -23,14 +22,12 @@ export const MedicalProfileProvider = ({ children }: { children: ReactNode }) =>
   const [isSaving, setIsSaving] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
 
-  // Check for authenticated user
   useEffect(() => {
     const checkAuth = async () => {
       try {
         const { data } = await supabase.auth.getSession();
         setUserId(data.session?.user?.id || null);
         
-        // Set up auth state change listener
         const { data: { subscription } } = supabase.auth.onAuthStateChange(
           (event, session) => {
             setUserId(session?.user?.id || null);
@@ -48,7 +45,6 @@ export const MedicalProfileProvider = ({ children }: { children: ReactNode }) =>
     checkAuth();
   }, []);
 
-  // Load all profile data on initial mount
   useEffect(() => {
     console.log('Loading all profile data in MedicalProfileProvider');
     try {
@@ -56,7 +52,6 @@ export const MedicalProfileProvider = ({ children }: { children: ReactNode }) =>
         setProfileData(data);
       });
       
-      // Set up auto-save
       const autoSaveInterval = setInterval(() => {
         console.log('Auto-saving all profile data');
         Object.keys(profileData).forEach(section => {
@@ -64,7 +59,7 @@ export const MedicalProfileProvider = ({ children }: { children: ReactNode }) =>
             saveSectionData(section, profileData[section]);
           }
         });
-      }, 5000); // Save every 5 seconds
+      }, 5000);
       
       return () => clearInterval(autoSaveInterval);
     } catch (error) {
@@ -73,15 +68,12 @@ export const MedicalProfileProvider = ({ children }: { children: ReactNode }) =>
     }
   }, []);
 
-  // Sync data with Supabase when user changes
   useEffect(() => {
     if (userId && Object.keys(profileData).length > 0) {
-      // Sync data to Supabase when user logs in
       syncWithSupabase();
     }
   }, [userId]);
 
-  // Sync with Supabase
   const syncWithSupabase = async (): Promise<boolean> => {
     if (!userId) return false;
     
@@ -94,7 +86,6 @@ export const MedicalProfileProvider = ({ children }: { children: ReactNode }) =>
     }
   };
 
-  // Update a specific section's data
   const updateSectionData = (section: string, data: any) => {
     console.log(`Updating section data for ${section}:`, data);
     
@@ -108,7 +99,6 @@ export const MedicalProfileProvider = ({ children }: { children: ReactNode }) =>
           }
         };
         
-        // Update window object for interoperability with other components
         const windowKey = getWindowKeyForSection(section);
         if (windowKey) {
           (window as any)[windowKey] = { ...data };
@@ -122,7 +112,6 @@ export const MedicalProfileProvider = ({ children }: { children: ReactNode }) =>
     }
   };
 
-  // Load data for a specific section
   const loadSection = (section: string) => {
     console.log(`Loading section data for ${section}`);
     try {
@@ -133,7 +122,6 @@ export const MedicalProfileProvider = ({ children }: { children: ReactNode }) =>
         [section]: sectionData
       }));
       
-      // Update window object for interoperability
       const windowKey = getWindowKeyForSection(section);
       if (windowKey) {
         (window as any)[windowKey] = { ...sectionData };
@@ -147,7 +135,6 @@ export const MedicalProfileProvider = ({ children }: { children: ReactNode }) =>
     }
   };
 
-  // Save data for a specific section
   const saveSection = (section: string): boolean => {
     console.log(`Saving section data for ${section}`);
     try {
@@ -163,7 +150,6 @@ export const MedicalProfileProvider = ({ children }: { children: ReactNode }) =>
     }
   };
 
-  // Save the current section with loading state
   const saveCurrentSection = async (section: string): Promise<boolean> => {
     setIsSaving(true);
     try {
@@ -184,7 +170,6 @@ export const MedicalProfileProvider = ({ children }: { children: ReactNode }) =>
     }
   };
 
-  // Helper function to get window key for section
   const getWindowKeyForSection = (section: string): string => {
     switch (section) {
       case 'personal': return 'personalFormData';
@@ -201,7 +186,6 @@ export const MedicalProfileProvider = ({ children }: { children: ReactNode }) =>
     }
   };
 
-  // Helper function to get human-readable section title
   const getSectionTitle = (section: string): string => {
     switch (section) {
       case 'personal': return 'Personal Information';
