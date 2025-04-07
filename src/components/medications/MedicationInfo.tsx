@@ -3,7 +3,7 @@ import { Card } from '@/components/ui/card';
 import { MedicationInfo as MedicationInfoType } from '@/utils/medicationData';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { ExternalLink, AlertTriangle, Info, Pill, Clock, ShieldCheck } from 'lucide-react';
+import { ExternalLink, AlertTriangle, Info, Pill, Clock, ShieldCheck, AlertOctagon } from 'lucide-react';
 import { 
   Table,
   TableBody,
@@ -192,6 +192,72 @@ const MedicationInfo: React.FC<MedicationInfoProps> = ({ medication }) => {
                     </div>
                   )}
                 </>
+              )}
+            </div>
+          </div>
+          
+          <Separator className="my-6" />
+          
+          {/* Overdose Information */}
+          <div className="mb-6">
+            <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
+              <AlertOctagon className="h-5 w-5 text-red-600 mr-2" />
+              Overdose Information
+            </h2>
+            
+            <div className="bg-red-50 border border-red-100 rounded-md p-4 mb-4">
+              <p className="text-red-800 text-sm font-medium">
+                <strong>Emergency Information:</strong> If you suspect an overdose, seek emergency medical attention or call the poison help line at 1-800-222-1222 immediately.
+              </p>
+            </div>
+            
+            <div className="space-y-3">
+              {medication.overdose && medication.overdose.symptoms && medication.overdose.symptoms.length > 0 ? (
+                <div>
+                  <h3 className="font-medium text-gray-800 mb-2">Overdose Symptoms:</h3>
+                  <div className="bg-gray-50 p-4 rounded-md border border-gray-200">
+                    <ul className="space-y-1">
+                      {medication.overdose.symptoms.map((symptom, index) => (
+                        <li key={index} className="flex items-start">
+                          <div className="mt-1 mr-2 text-red-500">•</div>
+                          <div className="text-gray-700">{symptom}</div>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              ) : (
+                <div className="bg-gray-50 p-4 rounded-md border border-gray-200">
+                  <p className="text-gray-700">
+                    Common overdose symptoms may include nausea, vomiting, stomach pain, drowsiness, confusion, and other specific effects related to this medication's class. Always check with your healthcare provider for information specific to this medication.
+                  </p>
+                </div>
+              )}
+              
+              {medication.overdose && medication.overdose.treatment && (
+                <div>
+                  <h3 className="font-medium text-gray-800 mb-2">Treatment:</h3>
+                  <div className="bg-gray-50 p-4 rounded-md border border-gray-200">
+                    <p className="text-gray-700">{medication.overdose.treatment}</p>
+                  </div>
+                </div>
+              )}
+              
+              {medication.overdose && medication.overdose.antidote && (
+                <div>
+                  <h3 className="font-medium text-gray-800 mb-2">Antidote:</h3>
+                  <div className="bg-gray-50 p-4 rounded-md border border-gray-200">
+                    <p className="text-gray-700">{medication.overdose.antidote}</p>
+                  </div>
+                </div>
+              )}
+              
+              {(!medication.overdose || !medication.overdose.treatment) && (
+                <div className="bg-yellow-50 border border-yellow-100 rounded-md p-4">
+                  <p className="text-yellow-800 text-sm">
+                    <strong>Treatment note:</strong> Treatment for overdose is typically supportive and symptomatic. Emergency services may administer activated charcoal if the overdose was recent. Specific treatments vary depending on the medication and symptoms.
+                  </p>
+                </div>
               )}
             </div>
           </div>

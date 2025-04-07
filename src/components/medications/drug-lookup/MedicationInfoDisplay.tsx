@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { ExternalLink, PlusCircle, AlertCircle, Search } from 'lucide-react';
+import { ExternalLink, PlusCircle, AlertCircle, Search, AlertOctagon } from 'lucide-react';
 import { MedicationInfo as MedicationInfoType } from '@/utils/medicationData';
 import MedicationInfo from '../MedicationInfo';
 import { toast } from 'sonner';
@@ -117,6 +117,12 @@ const MedicationInfoDisplay: React.FC<MedicationInfoDisplayProps> = ({
     }
   };
 
+  // Show emergency warning if medication has overdose information
+  const hasOverdoseInfo = medicationInfo.overdose && 
+    (medicationInfo.overdose.symptoms?.length > 0 || 
+     medicationInfo.overdose.treatment || 
+     medicationInfo.overdose.antidote);
+
   return (
     <div className="bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm">
       <div className="flex justify-between items-center mb-4 p-4 border-b border-gray-200">
@@ -155,6 +161,18 @@ const MedicationInfoDisplay: React.FC<MedicationInfoDisplayProps> = ({
           )}
         </div>
       </div>
+      
+      {hasOverdoseInfo && (
+        <div className="mx-4 mb-4">
+          <Alert variant="destructive" className="bg-red-50 text-red-900 border-red-200">
+            <AlertOctagon className="h-4 w-4" />
+            <AlertTitle className="text-red-900">Emergency: Overdose Information Available</AlertTitle>
+            <AlertDescription className="text-red-800">
+              This medication has important overdose information. In case of emergency, call 911 or poison control at 1-800-222-1222.
+            </AlertDescription>
+          </Alert>
+        </div>
+      )}
       
       <div className="px-4 pb-4">
         <MedicationInfo medication={medicationInfo} />
