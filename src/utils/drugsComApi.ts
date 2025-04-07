@@ -60,14 +60,18 @@ const fetchExternalMedicationInfo = async (query: string): Promise<MedicationInf
         // Combine the information from both sources
         return {
           name: medicationDetails.name,
-          genericName: medicationDetails.genericName || '',
-          brandNames: medicationDetails.brandNames || [],
-          className: medicationDetails.className || '',
-          description: fdaInfo?.description || medicationDetails.description || '',
+          genericName: fdaInfo?.genericName || '',
+          brandNames: fdaInfo?.brandName ? [fdaInfo.brandName] : [],
+          className: fdaInfo?.pharmClass || '',
+          description: fdaInfo?.description || '',
           dosageForms: medicationDetails.dosageForms || [],
           interactions: medicationDetails.interactions || [],
           warnings: fdaInfo?.warnings || [],
-          sideEffects: fdaInfo?.sideEffects || [],
+          sideEffects: {
+            common: fdaInfo?.sideEffects || [],
+            serious: [],
+            rare: []
+          },
           drugsComUrl: getDrugsComUrl(medicationDetails.name)
         };
       }
@@ -85,7 +89,11 @@ const fetchExternalMedicationInfo = async (query: string): Promise<MedicationInf
         dosageForms: fdaInfo.dosageForms || [],
         interactions: [],
         warnings: fdaInfo.warnings || [],
-        sideEffects: fdaInfo.sideEffects || [],
+        sideEffects: {
+          common: fdaInfo.sideEffects || [],
+          serious: [],
+          rare: []
+        },
         drugsComUrl: getDrugsComUrl(fdaInfo.brandName || fdaInfo.genericName || query)
       };
     }
