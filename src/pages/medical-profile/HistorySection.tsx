@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -6,7 +5,7 @@ import { Save } from 'lucide-react';
 import MedicalProfileHistoryForm from '@/components/forms/MedicalProfileHistoryForm';
 import { toast } from '@/lib/toast';
 import { logChanges } from '@/utils/changeLog';
-import { loadSectionData, saveSectionData, MEDICAL_DATA_CHANGE_EVENT } from '@/utils/medicalProfileService';
+import { loadSectionData, saveSectionData } from '@/utils/medicalProfileService';
 
 interface SectionContext {
   isEditing: boolean;
@@ -51,12 +50,12 @@ const HistorySection = () => {
     
     window.addEventListener('navigationChange', handleNavChange);
     window.addEventListener('historyDataRequest', handleNavChange);
-    window.addEventListener(MEDICAL_DATA_CHANGE_EVENT, handleDataChange);
+    window.addEventListener('medicalDataChange', handleDataChange);
     
     return () => {
       window.removeEventListener('navigationChange', handleNavChange);
       window.removeEventListener('historyDataRequest', handleNavChange);
-      window.removeEventListener(MEDICAL_DATA_CHANGE_EVENT, handleDataChange);
+      window.removeEventListener('medicalDataChange', handleDataChange);
     };
   }, []);
   

@@ -1,17 +1,15 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Save } from 'lucide-react';
 import MedicalProfileCulturalPreferencesForm from '@/components/forms/MedicalProfileCulturalPreferencesForm';
 import { toast } from '@/lib/toast';
 import { logChanges } from '@/utils/changeLog';
-import { loadSectionData, saveSectionData, MEDICAL_DATA_CHANGE_EVENT } from '@/utils/medicalProfileService';
+import { loadSectionData, saveSectionData } from '@/utils/medicalProfileService';
 
 const CulturalSection = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
   
-  // Load data on initial render and whenever navigation occurs
   useEffect(() => {
     const loadCulturalData = () => {
       try {
@@ -19,17 +17,15 @@ const CulturalSection = () => {
         const culturalData = loadSectionData('cultural');
         setIsLoaded(true);
         
-        // Trigger a UI refresh
         window.dispatchEvent(new CustomEvent('culturalDataLoaded'));
       } catch (error) {
         console.error('Error loading cultural preferences data:', error);
-        setIsLoaded(true); // Still show the form even if there's an error
+        setIsLoaded(true);
       }
     };
     
     loadCulturalData();
     
-    // Listen for navigation changes and data requests
     const handleNavChange = () => {
       console.log('Navigation change detected, reloading cultural preferences data');
       loadCulturalData();
@@ -45,12 +41,12 @@ const CulturalSection = () => {
     
     window.addEventListener('navigationChange', handleNavChange);
     window.addEventListener('culturalDataRequest', handleNavChange);
-    window.addEventListener(MEDICAL_DATA_CHANGE_EVENT, handleDataChange);
+    window.addEventListener('medicalDataChange', handleDataChange);
     
     return () => {
       window.removeEventListener('navigationChange', handleNavChange);
       window.removeEventListener('culturalDataRequest', handleNavChange);
-      window.removeEventListener(MEDICAL_DATA_CHANGE_EVENT, handleDataChange);
+      window.removeEventListener('medicalDataChange', handleDataChange);
     };
   }, []);
   
@@ -58,16 +54,13 @@ const CulturalSection = () => {
     setIsSaving(true);
     
     try {
-      // Get the current form data from window object
       const newFormData = (window as any).culturalPreferencesFormData || {};
       
       console.log('Saving cultural preferences form data:', newFormData);
       
-      // Save the data
       const saved = saveSectionData('cultural', newFormData);
       
       if (saved) {
-        // Log changes for audit trail
         const savedProfileJson = localStorage.getItem('medicalProfile');
         const existingProfile = savedProfileJson ? JSON.parse(savedProfileJson) : {};
         const existingSectionData = existingProfile.cultural || {};

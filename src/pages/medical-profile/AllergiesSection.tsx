@@ -1,11 +1,10 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Save } from 'lucide-react';
 import MedicalProfileAllergiesForm from '@/components/forms/MedicalProfileAllergiesForm';
 import { toast } from '@/lib/toast';
 import { logChanges } from '@/utils/changeLog';
-import { loadSectionData, saveSectionData, MEDICAL_DATA_CHANGE_EVENT } from '@/utils/medicalProfileService';
+import { loadSectionData, saveSectionData } from '@/utils/medicalProfileService';
 
 const AllergiesSection = () => {
   const [isSaving, setIsSaving] = useState(false);
@@ -78,12 +77,12 @@ const AllergiesSection = () => {
     
     window.addEventListener('navigationChange', handleNavChange);
     window.addEventListener('allergiesDataRequest', handleNavChange);
-    window.addEventListener(MEDICAL_DATA_CHANGE_EVENT, handleDataChange);
+    window.addEventListener('medicalDataChange', handleDataChange);
     
     return () => {
       window.removeEventListener('navigationChange', handleNavChange);
       window.removeEventListener('allergiesDataRequest', handleNavChange);
-      window.removeEventListener(MEDICAL_DATA_CHANGE_EVENT, handleDataChange);
+      window.removeEventListener('medicalDataChange', handleDataChange);
     };
   }, []);
   

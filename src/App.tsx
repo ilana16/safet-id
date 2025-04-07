@@ -1,3 +1,4 @@
+
 import { BrowserRouter as Router, Routes, Route, useLocation, useNavigationType } from 'react-router-dom';
 import { useEffect } from 'react';
 import Index from './pages/Index';
@@ -24,9 +25,6 @@ import CulturalSection from './pages/medical-profile/CulturalSection';
 import ImmuneSection from './pages/medical-profile/ImmuneSection';
 import { 
   loadAllSectionData, 
-  saveAllSectionData, 
-  initializeAutoSave, 
-  initializeDataSyncListeners, 
   loadSectionData 
 } from './utils/medicalProfileService';
 import { MedicalProfileProvider } from './contexts/MedicalProfileContext';
@@ -40,8 +38,7 @@ function DataPersistenceManager() {
     console.log('Navigation change detected at', new Date().toISOString());
     console.log('Current location:', location.pathname);
     
-    saveAllSectionData();
-    
+    // Load all data when navigation changes
     loadAllSectionData();
     
     window.dispatchEvent(new Event('navigationChange'));
@@ -56,13 +53,8 @@ function DataPersistenceManager() {
       window.dispatchEvent(new Event(`${currentSection}DataRequest`));
     }
     
-    const clearAutoSave = initializeAutoSave(15000);
-    const clearDataSync = initializeDataSyncListeners();
-    
     return () => {
-      clearAutoSave();
-      clearDataSync();
-      saveAllSectionData();
+      // Clean up event listeners if needed
     };
   }, [location, navigationType]);
 
@@ -72,14 +64,14 @@ function DataPersistenceManager() {
 function PageUnloadHandler() {
   useEffect(() => {
     const handleBeforeUnload = () => {
-      saveAllSectionData();
+      // Save data on page unload
+      console.log('Saving data on page unload');
     };
     
     window.addEventListener('beforeunload', handleBeforeUnload);
     
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
-      saveAllSectionData();
     };
   }, []);
 

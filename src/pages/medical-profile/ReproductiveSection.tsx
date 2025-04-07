@@ -5,7 +5,7 @@ import { Save } from 'lucide-react';
 import MedicalProfileReproductiveHistoryForm from '@/components/forms/MedicalProfileReproductiveHistoryForm';
 import { toast } from '@/lib/toast';
 import { logChanges } from '@/utils/changeLog';
-import { loadSectionData, saveSectionData, MEDICAL_DATA_CHANGE_EVENT } from '@/utils/medicalProfileService';
+import { loadSectionData, saveSectionData } from '@/utils/medicalProfileService';
 
 const ReproductiveSection = () => {
   const [isSaving, setIsSaving] = useState(false);
@@ -45,12 +45,12 @@ const ReproductiveSection = () => {
     
     window.addEventListener('navigationChange', handleNavChange);
     window.addEventListener('reproductiveDataRequest', handleNavChange);
-    window.addEventListener(MEDICAL_DATA_CHANGE_EVENT, handleDataChange);
+    window.addEventListener('medicalDataChange', handleDataChange);
     
     return () => {
       window.removeEventListener('navigationChange', handleNavChange);
       window.removeEventListener('reproductiveDataRequest', handleNavChange);
-      window.removeEventListener(MEDICAL_DATA_CHANGE_EVENT, handleDataChange);
+      window.removeEventListener('medicalDataChange', handleDataChange);
     };
   }, []);
   

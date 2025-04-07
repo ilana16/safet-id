@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -6,7 +5,7 @@ import { Save } from 'lucide-react';
 import MedicalProfileMentalHealthForm from '@/components/forms/MedicalProfileMentalHealthForm';
 import { toast } from '@/lib/toast';
 import { logChanges } from '@/utils/changeLog';
-import { loadSectionData, saveSectionData, MEDICAL_DATA_CHANGE_EVENT } from '@/utils/medicalProfileService';
+import { loadSectionData, saveSectionData } from '@/utils/medicalProfileService';
 
 const MentalSection = () => {
   const navigate = useNavigate();
@@ -14,14 +13,12 @@ const MentalSection = () => {
   const [isLoaded, setIsLoaded] = useState(false);
   const [hasMentalHealthHistory, setHasMentalHealthHistory] = useState('no');
   
-  // Load data on initial render and whenever navigation occurs
   useEffect(() => {
     const loadMentalData = () => {
       try {
         console.log('Loading mental health data');
         const mentalData = loadSectionData('mental');
         
-        // Check if the user has mental health history to determine if we should show this section
         const savedProfileJson = localStorage.getItem('medicalProfile');
         if (savedProfileJson) {
           const savedProfile = JSON.parse(savedProfileJson);
@@ -35,17 +32,15 @@ const MentalSection = () => {
         
         setIsLoaded(true);
         
-        // Trigger a UI refresh
         window.dispatchEvent(new CustomEvent('mentalDataLoaded'));
       } catch (error) {
         console.error('Error loading mental health data:', error);
-        setIsLoaded(true); // Still show the form even if there's an error
+        setIsLoaded(true);
       }
     };
     
     loadMentalData();
     
-    // Listen for navigation changes and data requests
     const handleNavChange = () => {
       console.log('Navigation change detected, reloading mental health data');
       loadMentalData();
@@ -61,12 +56,12 @@ const MentalSection = () => {
     
     window.addEventListener('navigationChange', handleNavChange);
     window.addEventListener('mentalDataRequest', handleNavChange);
-    window.addEventListener(MEDICAL_DATA_CHANGE_EVENT, handleDataChange);
+    window.addEventListener('medicalDataChange', handleDataChange);
     
     return () => {
       window.removeEventListener('navigationChange', handleNavChange);
       window.removeEventListener('mentalDataRequest', handleNavChange);
-      window.removeEventListener(MEDICAL_DATA_CHANGE_EVENT, handleDataChange);
+      window.removeEventListener('medicalDataChange', handleDataChange);
     };
   }, [navigate]);
   
@@ -74,16 +69,13 @@ const MentalSection = () => {
     setIsSaving(true);
     
     try {
-      // Get the current form data from window object
       const newFormData = (window as any).mentalHealthFormData || {};
       
       console.log('Saving mental health form data:', newFormData);
       
-      // Save the data
       const saved = saveSectionData('mental', newFormData);
       
       if (saved) {
-        // Log changes for audit trail
         const savedProfileJson = localStorage.getItem('medicalProfile');
         const existingProfile = savedProfileJson ? JSON.parse(savedProfileJson) : {};
         const existingSectionData = existingProfile.mental || {};
