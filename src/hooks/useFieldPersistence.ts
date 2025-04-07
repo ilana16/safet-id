@@ -16,9 +16,10 @@ export function useFieldPersistence<T>(
     console.log(`Loading initial data for ${section}`);
     try {
       setIsLoading(true);
+      // Handle synchronously to avoid Promise issues
       const sectionData = loadSection(section);
       
-      if (sectionData && Object.keys(sectionData).length > 0) {
+      if (sectionData && typeof sectionData === 'object' && Object.keys(sectionData).length > 0) {
         console.log(`Found existing data for ${section}:`, sectionData);
         setFormData(prev => ({ ...prev, ...sectionData }));
       } else {

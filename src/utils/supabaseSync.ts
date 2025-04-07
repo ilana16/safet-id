@@ -1,6 +1,7 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/lib/toast';
+import { Database } from '@/integrations/supabase/types';
 
 /**
  * Syncs a medical profile section to Supabase

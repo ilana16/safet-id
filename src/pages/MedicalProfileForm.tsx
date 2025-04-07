@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import PageLayout from '@/components/layout/PageLayout';
@@ -41,7 +42,7 @@ const MedicalProfileForm = () => {
       setFormData(sectionData);
       
       // If the section is history, update mental health history state
-      if (currentSection === 'history' && sectionData.hasMentalHealthHistory) {
+      if (currentSection === 'history' && sectionData && typeof sectionData !== 'object' && 'hasMentalHealthHistory' in sectionData) {
         setHasMentalHealthHistory(sectionData.hasMentalHealthHistory);
       } else {
         // For other sections, make sure we have the latest mental health history setting

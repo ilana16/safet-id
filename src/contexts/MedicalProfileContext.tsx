@@ -148,7 +148,7 @@ export const MedicalProfileProvider = ({ children }: { children: ReactNode }) =>
   };
 
   // Save data for a specific section
-  const saveSection = (section: string) => {
+  const saveSection = (section: string): boolean => {
     console.log(`Saving section data for ${section}`);
     try {
       const success = saveSectionData(section, profileData[section]);

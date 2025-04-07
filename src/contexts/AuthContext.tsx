@@ -40,18 +40,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
+      async (event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
         localStorage.setItem('isLoggedIn', session ? 'true' : 'false');
         
         // When user logs in, load their data
         if (event === 'SIGNED_IN' && session?.user) {
-          setTimeout(() => {
-            loadAllSectionData().catch(err => {
-              console.error('Error loading profile data on sign in:', err);
-            });
-          }, 0);
+          try {
+            await loadAllSectionData();
+          } catch (err) {
+            console.error('Error loading profile data on sign in:', err);
+          }
         }
       }
     );
@@ -66,10 +66,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (session?.user) {
         loadAllSectionData().catch(err => {
           console.error('Error loading initial profile data:', err);
+        }).finally(() => {
+          setIsLoading(false);
         });
+      } else {
+        setIsLoading(false);
       }
-      
-      setIsLoading(false);
     });
 
     return () => subscription.unsubscribe();

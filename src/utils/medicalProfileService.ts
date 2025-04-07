@@ -41,14 +41,19 @@ export const getWindowKeyForSection = (section: string): string => {
  * Check if the user is authenticated
  */
 const getUserId = async (): Promise<string | null> => {
-  const { data } = await supabase.auth.getSession();
-  return data.session?.user?.id || null;
+  try {
+    const { data } = await supabase.auth.getSession();
+    return data.session?.user?.id || null;
+  } catch (error) {
+    console.error('Error getting user ID:', error);
+    return null;
+  }
 };
 
 /**
  * Load data for a specific section
  */
-export const loadSectionData = async (sectionName: string): Promise<any> => {
+export const loadSectionData = (sectionName: string): any => {
   try {
     console.log(`Loading ${sectionName} data from storage`);
 
@@ -73,24 +78,36 @@ export const loadSectionData = async (sectionName: string): Promise<any> => {
       console.log(`Loaded ${sectionName} data from localStorage:`, sectionData);
     }
 
-    // If still no data and user is authenticated, try loading from Supabase
-    if ((!sectionData || Object.keys(sectionData).length === 0)) {
-      const userId = await getUserId();
-      
-      if (userId) {
-        const supabaseData = await loadSectionFromSupabase(userId, sectionName);
-        
-        if (supabaseData) {
-          sectionData = supabaseData;
-          console.log(`Loaded ${sectionName} data from Supabase:`, sectionData);
-          
-          // Update localStorage with the Supabase data
-          const profileData = getMedicalProfile();
-          profileData[sectionName] = sectionData;
-          localStorage.setItem('medicalProfile', JSON.stringify(profileData));
-        }
+    // We'll handle Supabase data asynchronously behind the scenes but return immediately
+    // to avoid Promise-related issues in the components
+    getUserId().then(userId => {
+      if (userId && (!sectionData || Object.keys(sectionData).length === 0)) {
+        import('./supabaseSync').then(({ loadSectionFromSupabase }) => {
+          loadSectionFromSupabase(userId, sectionName).then(supabaseData => {
+            if (supabaseData) {
+              // Update data in memory
+              const windowKey = getWindowKeyForSection(sectionName);
+              if (windowKey) {
+                (window as any)[windowKey] = {...supabaseData};
+              }
+              
+              // Update localStorage
+              const profileData = getMedicalProfile();
+              profileData[sectionName] = supabaseData;
+              localStorage.setItem('medicalProfile', JSON.stringify(profileData));
+              
+              // Update sessionStorage
+              sessionStorage.setItem(`${sectionName}FormData`, JSON.stringify(supabaseData));
+              
+              // Notify components of the update
+              window.dispatchEvent(new CustomEvent(MEDICAL_DATA_CHANGE_EVENT, {
+                detail: { section: sectionName, timestamp: new Date().toISOString() }
+              }));
+            }
+          });
+        });
       }
-    }
+    });
 
     // Update window object 
     const windowKey = getWindowKeyForSection(sectionName);
