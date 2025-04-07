@@ -8,6 +8,7 @@ import QRCodeCard from '@/components/dashboard/QRCodeCard';
 import DashboardTabs from '@/components/dashboard/DashboardTabs';
 import { toast } from '@/lib/toast';
 import { supabase } from '@/integrations/supabase/client';
+import { generateAccessCode } from '@/utils/accessCode';
 
 interface UserData {
   id: string;
@@ -45,7 +46,7 @@ const Dashboard = () => {
         // Generate or retrieve access code
         let accessCode = localStorage.getItem(`accessCode_${id}`);
         if (!accessCode) {
-          // Use existing function to generate code
+          // Use the utility function to generate code
           accessCode = generateAccessCode();
           localStorage.setItem(`accessCode_${id}`, accessCode);
         }
@@ -81,17 +82,6 @@ const Dashboard = () => {
     
     checkAuth();
   }, [navigate]);
-
-  // Generate access code function
-  const generateAccessCode = () => {
-    const characters = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-    let result = '';
-    for (let i = 0; i < 8; i++) {
-      if (i === 4) result += '-';
-      result += characters.charAt(Math.floor(Math.random() * characters.length));
-    }
-    return result;
-  };
 
   if (isLoading) {
     return (
