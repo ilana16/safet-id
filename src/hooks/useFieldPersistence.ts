@@ -6,7 +6,7 @@ export function useFieldPersistence<T>(
   section: string,
   initialData: T,
   autoSave: boolean = true
-): [T, (data: Partial<T>) => void, () => void, boolean] {
+): [T, (data: Partial<T>) => void, () => Promise<boolean>, boolean] {
   const { loadSection, updateSectionData, saveSection } = useMedicalProfile();
   const [formData, setFormData] = useState<T>(initialData);
   const [isLoading, setIsLoading] = useState(true);
@@ -54,9 +54,9 @@ export function useFieldPersistence<T>(
   };
   
   // Manually save data
-  const saveData = () => {
+  const saveData = async (): Promise<boolean> => {
     console.log(`Manually saving section ${section}`);
-    saveSection(section);
+    return await saveSection(section);
   };
   
   return [formData, updateFormData, saveData, isLoading];

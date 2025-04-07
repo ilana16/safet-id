@@ -1,26 +1,261 @@
-/**
- * Medical Profile Service
- * 
- * A centralized service for handling all medical profile data operations
- */
 
-import { syncSectionToSupabase, loadProfileFromSupabase, loadSectionFromSupabase } from '@/utils/supabaseSync';
+import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 
-// Custom event for data changes across components
-export const MEDICAL_DATA_CHANGE_EVENT = 'medicalDataChange';
+// Save section data to local storage and if available, to Supabase
+export const saveSectionData = async (section: string, data?: any): Promise<boolean> => {
+  try {
+    if (!section) {
+      console.error('No section specified for saving');
+      return false;
+    }
 
-// Get all section names
-export const getSectionNames = (): string[] => {
-  return [
-    'personal', 'history', 'medications', 'allergies', 'immunizations', 
-    'social', 'reproductive', 'mental', 'functional', 'cultural'
-  ];
+    console.log(`Saving ${section} section data to storage`);
+    
+    // If data is not provided, try to get it from the window object
+    if (!data) {
+      const windowKey = getWindowKeyForSection(section);
+      if (windowKey && (window as any)[windowKey]) {
+        data = (window as any)[windowKey];
+      }
+    }
+
+    if (!data) {
+      console.error(`No data provided for section ${section} and none found in window object`);
+      return false;
+    }
+
+    // Load existing profile data
+    let profileJson = localStorage.getItem('medicalProfile');
+    let profile = profileJson ? JSON.parse(profileJson) : {};
+    
+    // Update section data
+    profile[section] = {
+      ...data,
+      lastUpdated: new Date().toISOString()
+    };
+    
+    // Save back to local storage
+    localStorage.setItem('medicalProfile', JSON.stringify(profile));
+    sessionStorage.setItem(`medicalProfile_${section}`, JSON.stringify(profile[section]));
+    
+    console.log(`${section} data saved successfully`);
+
+    // If logged in, save to Supabase
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.user) {
+      try {
+        await saveToSupabase(section, profile[section], session.user.id);
+      } catch (error) {
+        console.error(`Failed to sync ${section} with Supabase:`, error);
+        // We still return true because local saving was successful
+      }
+    }
+    
+    return true;
+  } catch (error) {
+    console.error(`Error saving ${section} section data:`, error);
+    toast.error(`Failed to save ${section} data`);
+    return false;
+  }
 };
 
-/**
- * Get the window object key for a section
- */
+// Load section data from local storage or Supabase
+export const loadSectionData = (section: string): any => {
+  try {
+    if (!section) {
+      console.error('No section specified for loading');
+      return {};
+    }
+
+    console.log(`Loading ${section} data from storage`);
+    
+    // Try to get from session storage first (faster)
+    const sessionData = sessionStorage.getItem(`medicalProfile_${section}`);
+    if (sessionData) {
+      try {
+        const parsedData = JSON.parse(sessionData);
+        console.log(`Found ${section} data in sessionStorage:`, parsedData);
+        
+        // Set to window object
+        const windowKey = getWindowKeyForSection(section);
+        if (windowKey) {
+          (window as any)[windowKey] = { ...parsedData };
+        }
+        
+        return parsedData;
+      } catch (e) {
+        console.error(`Error parsing ${section} data from sessionStorage:`, e);
+      }
+    }
+    
+    // Fall back to localStorage
+    const profileJson = localStorage.getItem('medicalProfile');
+    if (profileJson) {
+      try {
+        const profile = JSON.parse(profileJson);
+        if (profile && profile[section]) {
+          console.log(`Found ${section} data in localStorage:`, profile[section]);
+          
+          // Set to window object
+          const windowKey = getWindowKeyForSection(section);
+          if (windowKey) {
+            (window as any)[windowKey] = { ...profile[section] };
+          }
+          
+          // Cache in sessionStorage for faster subsequent access
+          sessionStorage.setItem(`medicalProfile_${section}`, JSON.stringify(profile[section]));
+          
+          return profile[section];
+        }
+      } catch (e) {
+        console.error(`Error parsing ${section} data from localStorage:`, e);
+      }
+    }
+    
+    console.log(`No ${section} data found in storage, returning empty object`);
+    return {};
+  } catch (error) {
+    console.error(`Error loading ${section} section data:`, error);
+    return {};
+  }
+};
+
+// Load all data from storage
+export const loadAllSectionData = async (): Promise<Record<string, any>> => {
+  try {
+    console.log('Loading all profile data from storage');
+    
+    const profileJson = localStorage.getItem('medicalProfile');
+    let profile: Record<string, any> = profileJson ? JSON.parse(profileJson) : {};
+    
+    // Set windows global objects
+    Object.keys(profile).forEach(section => {
+      const windowKey = getWindowKeyForSection(section);
+      if (windowKey) {
+        (window as any)[windowKey] = { ...profile[section] };
+      }
+    });
+    
+    // Try to load from Supabase if user is logged in
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.user) {
+      try {
+        const supabaseData = await loadAllFromSupabase(session.user.id);
+        
+        // Merge with local data
+        if (supabaseData) {
+          profile = { ...profile, ...supabaseData };
+          
+          // Update windows global objects with merged data
+          Object.keys(profile).forEach(section => {
+            const windowKey = getWindowKeyForSection(section);
+            if (windowKey) {
+              (window as any)[windowKey] = { ...profile[section] };
+            }
+          });
+          
+          // Save merged data back to localStorage
+          localStorage.setItem('medicalProfile', JSON.stringify(profile));
+        }
+      } catch (error) {
+        console.error('Error loading data from Supabase:', error);
+        // Continue with local data
+      }
+    }
+    
+    return profile;
+  } catch (error) {
+    console.error('Error loading all profile data:', error);
+    return {};
+  }
+};
+
+// Helper functions for Supabase integration
+const saveToSupabase = async (section: string, data: any, userId: string): Promise<boolean> => {
+  try {
+    // Create a database-friendly section name
+    const dbSection = section.toLowerCase().replace(/[^a-z0-9_]/g, '_');
+    
+    console.log(`Saving ${section} to Supabase for user ${userId}`);
+    
+    const { error } = await supabase
+      .from('user_medical_data')
+      .upsert({
+        user_id: userId,
+        section: dbSection,
+        data: data,
+        updated_at: new Date().toISOString()
+      }, {
+        onConflict: 'user_id,section'
+      });
+      
+    if (error) {
+      throw error;
+    }
+    
+    console.log(`Successfully saved ${section} to Supabase`);
+    return true;
+  } catch (error) {
+    console.error(`Error saving ${section} to Supabase:`, error);
+    return false;
+  }
+};
+
+const loadAllFromSupabase = async (userId: string): Promise<Record<string, any>> => {
+  try {
+    console.log(`Loading all sections from Supabase for user ${userId}`);
+    
+    const { data, error } = await supabase
+      .from('user_medical_data')
+      .select('section, data, updated_at')
+      .eq('user_id', userId);
+      
+    if (error) {
+      throw error;
+    }
+    
+    if (!data || data.length === 0) {
+      console.log('No data found in Supabase');
+      return {};
+    }
+    
+    const result: Record<string, any> = {};
+    
+    data.forEach(item => {
+      // Convert database section name back to application format
+      const appSection = convertDbSectionToAppSection(item.section);
+      result[appSection] = item.data;
+    });
+    
+    console.log('Successfully loaded data from Supabase:', Object.keys(result));
+    return result;
+  } catch (error) {
+    console.error('Error loading data from Supabase:', error);
+    return {};
+  }
+};
+
+// Helper function to convert database section names to application section names
+const convertDbSectionToAppSection = (dbSection: string): string => {
+  // Map of database section names to application section names
+  const sectionMap: Record<string, string> = {
+    personal: 'personal',
+    medical_history: 'history',
+    medications: 'medications',
+    allergies: 'allergies',
+    immunizations: 'immunizations',
+    social_history: 'social',
+    reproductive_history: 'reproductive',
+    mental_health: 'mental',
+    functional_status: 'functional',
+    cultural_preferences: 'cultural'
+  };
+  
+  return sectionMap[dbSection] || dbSection;
+};
+
+// Helper function to get window key for a section
 export const getWindowKeyForSection = (section: string): string => {
   switch (section) {
     case 'personal': return 'personalFormData';
@@ -35,385 +270,4 @@ export const getWindowKeyForSection = (section: string): string => {
     case 'cultural': return 'culturalPreferencesFormData';
     default: return '';
   }
-};
-
-/**
- * Check if the user is authenticated
- */
-const getUserId = async (): Promise<string | null> => {
-  try {
-    const { data } = await supabase.auth.getSession();
-    return data.session?.user?.id || null;
-  } catch (error) {
-    console.error('Error getting user ID:', error);
-    return null;
-  }
-};
-
-/**
- * Load data for a specific section
- */
-export const loadSectionData = (sectionName: string): any => {
-  try {
-    console.log(`Loading ${sectionName} data from storage`);
-
-    // First check sessionStorage for fresher in-memory data
-    const sessionData = sessionStorage.getItem(`${sectionName}FormData`);
-    let sectionData: any = {};
-    
-    if (sessionData) {
-      try {
-        sectionData = JSON.parse(sessionData);
-        console.log(`Found ${sectionName} data in sessionStorage:`, sectionData);
-      } catch (e) {
-        console.error(`Error parsing ${sectionName} session data:`, e);
-      }
-    }
-    
-    // If no sessionStorage data or it's empty, try localStorage
-    if (!sectionData || Object.keys(sectionData).length === 0) {
-      // Get data from localStorage (source of truth)
-      const profileData = getMedicalProfile();
-      sectionData = profileData[sectionName] || {};
-      console.log(`Loaded ${sectionName} data from localStorage:`, sectionData);
-    }
-
-    // We'll handle Supabase data asynchronously behind the scenes but return immediately
-    // to avoid Promise-related issues in the components
-    getUserId().then(userId => {
-      if (userId && (!sectionData || Object.keys(sectionData).length === 0)) {
-        import('./supabaseSync').then(({ loadSectionFromSupabase }) => {
-          loadSectionFromSupabase(userId, sectionName).then(supabaseData => {
-            if (supabaseData) {
-              // Update data in memory
-              const windowKey = getWindowKeyForSection(sectionName);
-              if (windowKey) {
-                (window as any)[windowKey] = {...supabaseData};
-              }
-              
-              // Update localStorage
-              const profileData = getMedicalProfile();
-              profileData[sectionName] = supabaseData;
-              localStorage.setItem('medicalProfile', JSON.stringify(profileData));
-              
-              // Update sessionStorage
-              sessionStorage.setItem(`${sectionName}FormData`, JSON.stringify(supabaseData));
-              
-              // Notify components of the update
-              window.dispatchEvent(new CustomEvent(MEDICAL_DATA_CHANGE_EVENT, {
-                detail: { section: sectionName, timestamp: new Date().toISOString() }
-              }));
-            }
-          });
-        });
-      }
-    });
-
-    // Update window object 
-    const windowKey = getWindowKeyForSection(sectionName);
-    if (windowKey) {
-      (window as any)[windowKey] = {...sectionData};
-      console.log(`Set ${sectionName} data in window.${windowKey}:`, sectionData);
-    }
-
-    // Also update sessionStorage for backup
-    sessionStorage.setItem(`${sectionName}FormData`, JSON.stringify(sectionData));
-
-    return sectionData;
-  } catch (error) {
-    console.error(`Error loading ${sectionName} data:`, error);
-    return {};
-  }
-};
-
-/**
- * Save data for a specific section
- */
-export const saveSectionData = async (sectionName: string, formData?: any): Promise<boolean> => {
-  try {
-    console.log(`Saving ${sectionName} data`);
-
-    // Get the data either from parameter or window object
-    const windowKey = getWindowKeyForSection(sectionName);
-    let dataToSave = formData;
-
-    if (!dataToSave && windowKey) {
-      dataToSave = (window as any)[windowKey] || {};
-    }
-
-    if (!dataToSave) {
-      console.warn(`No data found for ${sectionName} to save`);
-      return false;
-    }
-
-    // Special handling for allergies section (array data)
-    if (sectionName === 'allergies' && Array.isArray(dataToSave.allergies)) {
-      dataToSave = {
-        ...dataToSave,
-        allergies: JSON.stringify(dataToSave.allergies)
-      };
-    }
-
-    // Get the full medical profile
-    const medicalProfile = getMedicalProfile();
-
-    // Add metadata
-    const updatedData = {
-      ...dataToSave,
-      lastUpdated: new Date().toISOString(),
-      completed: true
-    };
-
-    // Update the profile with the new section data
-    const updatedProfile = {
-      ...medicalProfile,
-      [sectionName]: updatedData
-    };
-
-    // Save back to localStorage
-    localStorage.setItem('medicalProfile', JSON.stringify(updatedProfile));
-    
-    // Update window object
-    if (windowKey) {
-      (window as any)[windowKey] = {...updatedData};
-    }
-
-    // Also update sessionStorage
-    sessionStorage.setItem(`${sectionName}FormData`, JSON.stringify(updatedData));
-
-    // Backup to Supabase if user is authenticated
-    const userId = await getUserId();
-    if (userId) {
-      syncSectionToSupabase(userId, sectionName, updatedData)
-        .then(success => {
-          if (!success) {
-            console.warn(`Failed to sync ${sectionName} to Supabase`);
-          }
-        })
-        .catch(error => {
-          console.error(`Error syncing ${sectionName} to Supabase:`, error);
-        });
-    }
-
-    // Notify other components about the data change
-    window.dispatchEvent(new CustomEvent(MEDICAL_DATA_CHANGE_EVENT, {
-      detail: { section: sectionName, timestamp: new Date().toISOString() }
-    }));
-
-    console.log(`Saved ${sectionName} data successfully`);
-    return true;
-  } catch (error) {
-    console.error(`Error saving ${sectionName} data:`, error);
-    return false;
-  }
-};
-
-/**
- * Get the full medical profile from localStorage
- */
-export const getMedicalProfile = (): Record<string, any> => {
-  try {
-    const profileJson = localStorage.getItem('medicalProfile');
-    return profileJson ? JSON.parse(profileJson) : {};
-  } catch (error) {
-    console.error('Error getting medical profile:', error);
-    return {};
-  }
-};
-
-/**
- * Load all section data at once
- */
-export const loadAllSectionData = async (): Promise<Record<string, any>> => {
-  try {
-    console.log('Loading all medical profile data');
-    const medicalProfile = getMedicalProfile();
-
-    // Check sessionStorage first for each section (may have fresher data)
-    getSectionNames().forEach(section => {
-      const sessionData = sessionStorage.getItem(`${section}FormData`);
-      if (sessionData) {
-        try {
-          const parsedData = JSON.parse(sessionData);
-          if (parsedData && Object.keys(parsedData).length > 0) {
-            // If the session data is newer, use it instead
-            const sessionTimestamp = new Date(parsedData.lastUpdated || 0).getTime();
-            const localTimestamp = new Date(medicalProfile[section]?.lastUpdated || 0).getTime();
-            
-            if (sessionTimestamp >= localTimestamp) {
-              medicalProfile[section] = parsedData;
-              console.log(`Using newer session data for ${section}`);
-            }
-          }
-        } catch (e) {
-          console.error(`Error parsing ${section} session data:`, e);
-        }
-      }
-    });
-
-    // If user is authenticated, try to load data from Supabase and merge with local data
-    const userId = await getUserId();
-    if (userId) {
-      const supabaseProfile = await loadProfileFromSupabase(userId);
-      
-      // For each section in the Supabase data, check if it's newer than the local data
-      Object.entries(supabaseProfile).forEach(([section, data]) => {
-        const supabaseTimestamp = new Date(data.lastUpdated || 0).getTime();
-        const localTimestamp = new Date(medicalProfile[section]?.lastUpdated || 0).getTime();
-        
-        if (supabaseTimestamp > localTimestamp) {
-          console.log(`Using newer Supabase data for ${section}`);
-          medicalProfile[section] = data;
-          
-          // Also update sessionStorage with the newer data
-          sessionStorage.setItem(`${section}FormData`, JSON.stringify(data));
-        }
-      });
-      
-      // Save the merged data back to localStorage
-      localStorage.setItem('medicalProfile', JSON.stringify(medicalProfile));
-    }
-
-    // Load each section into window objects
-    getSectionNames().forEach(section => {
-      if (medicalProfile[section]) {
-        const windowKey = getWindowKeyForSection(section);
-        if (windowKey) {
-          (window as any)[windowKey] = {...medicalProfile[section]};
-          // Update sessionStorage
-          sessionStorage.setItem(`${section}FormData`, JSON.stringify(medicalProfile[section]));
-        }
-      }
-    });
-
-    return medicalProfile;
-  } catch (error) {
-    console.error('Error loading all medical profile data:', error);
-    return {};
-  }
-};
-
-/**
- * Save all section data from window objects
- */
-export const saveAllSectionData = async (): Promise<void> => {
-  console.log('Saving all section data');
-  
-  const medicalProfile = getMedicalProfile();
-  let hasChanges = false;
-  
-  getSectionNames().forEach(section => {
-    // First check window objects
-    const windowKey = getWindowKeyForSection(section);
-    if (windowKey && (window as any)[windowKey]) {
-      const sectionData = (window as any)[windowKey];
-      
-      // Special handling for allergies
-      let processedData = sectionData;
-      if (section === 'allergies' && Array.isArray(sectionData.allergies)) {
-        processedData = {
-          ...sectionData,
-          allergies: JSON.stringify(sectionData.allergies)
-        };
-      }
-      
-      medicalProfile[section] = {
-        ...processedData,
-        lastUpdated: new Date().toISOString(),
-        completed: true
-      };
-      
-      // Also update sessionStorage
-      sessionStorage.setItem(`${section}FormData`, JSON.stringify(medicalProfile[section]));
-      
-      hasChanges = true;
-    }
-    // Then check sessionStorage as fallback
-    else {
-      const sessionData = sessionStorage.getItem(`${section}FormData`);
-      if (sessionData) {
-        try {
-          const parsedData = JSON.parse(sessionData);
-          if (parsedData && Object.keys(parsedData).length > 0) {
-            // Check if it's newer than localStorage data
-            const sessionTimestamp = new Date(parsedData.lastUpdated || 0).getTime();
-            const localTimestamp = new Date(medicalProfile[section]?.lastUpdated || 0).getTime();
-            
-            if (sessionTimestamp > localTimestamp) {
-              medicalProfile[section] = parsedData;
-              hasChanges = true;
-            }
-          }
-        } catch (e) {
-          console.error(`Error parsing ${section} session data:`, e);
-        }
-      }
-    }
-  });
-  
-  if (hasChanges) {
-    localStorage.setItem('medicalProfile', JSON.stringify(medicalProfile));
-    console.log('All section data saved to localStorage');
-    
-    // Backup to Supabase if user is authenticated
-    const userId = await getUserId();
-    if (userId) {
-      // Save each section to Supabase
-      for (const section of Object.keys(medicalProfile)) {
-        if (medicalProfile[section] && Object.keys(medicalProfile[section]).length > 0) {
-          syncSectionToSupabase(userId, section, medicalProfile[section])
-            .catch(error => {
-              console.error(`Error syncing ${section} to Supabase:`, error);
-            });
-        }
-      }
-    }
-  }
-};
-
-/**
- * Set up automatic saving at regular intervals
- */
-export const initializeAutoSave = (intervalMs = 30000): () => void => {
-  console.log(`Setting up auto-save every ${intervalMs}ms`);
-  
-  const intervalId = setInterval(() => {
-    console.log('Auto-saving all medical profile data');
-    saveAllSectionData();
-  }, intervalMs);
-  
-  return () => clearInterval(intervalId);
-};
-
-/**
- * Initialize data sync listeners for cross-tab/window updates
- */
-export const initializeDataSyncListeners = (): () => void => {
-  const handleStorageChange = (e: StorageEvent) => {
-    if (e.key === 'medicalProfile' && e.newValue) {
-      try {
-        console.log('Storage event detected - medical profile changed in another tab');
-        const newData = JSON.parse(e.newValue);
-        
-        // Update all window objects and session storage
-        Object.keys(newData).forEach(section => {
-          const windowKey = getWindowKeyForSection(section);
-          if (windowKey) {
-            (window as any)[windowKey] = {...newData[section]};
-            sessionStorage.setItem(`${section}FormData`, JSON.stringify(newData[section]));
-            
-            // Notify components about the data change
-            window.dispatchEvent(new CustomEvent(MEDICAL_DATA_CHANGE_EVENT, {
-              detail: { section, timestamp: new Date().toISOString() }
-            }));
-          }
-        });
-      } catch (error) {
-        console.error('Error handling storage change:', error);
-      }
-    }
-  };
-  
-  window.addEventListener('storage', handleStorageChange);
-  return () => window.removeEventListener('storage', handleStorageChange);
 };

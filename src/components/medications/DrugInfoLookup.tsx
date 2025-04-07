@@ -8,7 +8,7 @@ import { toast } from 'sonner';
 import { v4 as uuidv4 } from 'uuid';
 import { Medication } from '@/pages/medical-profile/MedicationsSection';
 
-// Import our new components
+// Import our components
 import MedicationSearch from './drug-lookup/MedicationSearch';
 import MedicationInfoDisplay from './drug-lookup/MedicationInfoDisplay';
 import MedicationAddForm from './drug-lookup/MedicationAddForm';
@@ -23,6 +23,7 @@ const DrugInfoLookup: React.FC<DrugInfoLookupProps> = ({ onAddMedication }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
+  const [searchAttempted, setSearchAttempted] = useState(false);
   const [newMedication, setNewMedication] = useState<Partial<Medication>>({
     id: uuidv4(),
     dosage: '',
@@ -59,6 +60,7 @@ const DrugInfoLookup: React.FC<DrugInfoLookupProps> = ({ onAddMedication }) => {
     setError(null);
     setMedicationInfo(null);
     setShowAddForm(false);
+    setSearchAttempted(true);
     saveHistory(medication);
     
     try {
@@ -80,11 +82,11 @@ const DrugInfoLookup: React.FC<DrugInfoLookupProps> = ({ onAddMedication }) => {
         toast.success(`Information loaded for ${info.name}`);
       } else {
         console.error('No information returned for:', medication);
-        throw new Error(`No information found for ${medication}`);
+        setError(`No information found for ${medication}`);
       }
     } catch (error) {
       console.error('Error fetching medication information:', error);
-      setError('Unable to load medication information from Drugs.com. Please try another medication or try again later.');
+      setError('Unable to load medication information. Please try another medication or try again later.');
       toast.error('Error loading medication information');
     } finally {
       setIsLoading(false);
@@ -109,6 +111,7 @@ const DrugInfoLookup: React.FC<DrugInfoLookupProps> = ({ onAddMedication }) => {
     setSelectedMedication(null);
     setError(null);
     setShowAddForm(false);
+    setSearchAttempted(false);
     setNewMedication({
       id: uuidv4(),
       dosage: '',
@@ -149,9 +152,9 @@ const DrugInfoLookup: React.FC<DrugInfoLookupProps> = ({ onAddMedication }) => {
           </Button>
         </div>
         <div className="p-5">
-          {!medicationInfo && !isLoading && !error && (
+          {(!medicationInfo && !isLoading && !error) || (!searchAttempted) ? (
             <MedicationSearch onSelectMedication={selectMedication} />
-          )}
+          ) : null}
           
           {isLoading && (
             <div className="flex justify-center p-8">
@@ -164,7 +167,7 @@ const DrugInfoLookup: React.FC<DrugInfoLookupProps> = ({ onAddMedication }) => {
         </div>
       </div>
       
-      {(medicationInfo || error || isLoading) && (
+      {(medicationInfo || error || isLoading) && searchAttempted && (
         <MedicationInfoDisplay 
           medicationInfo={medicationInfo}
           selectedMedication={selectedMedication}

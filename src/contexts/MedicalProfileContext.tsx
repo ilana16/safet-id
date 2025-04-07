@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { loadSectionData, saveSectionData, loadAllSectionData } from '@/utils/medicalProfileService';
 import { toast } from 'sonner';
@@ -57,7 +56,9 @@ export const MedicalProfileProvider = ({ children }: { children: ReactNode }) =>
         console.log('Auto-saving all profile data');
         Object.keys(profileData).forEach(section => {
           if (section && profileData[section]) {
-            saveSectionData(section, profileData[section]);
+            saveSectionData(section, profileData[section]).catch(err => {
+              console.error(`Error auto-saving section ${section}:`, err);
+            });
           }
         });
       }, 5000);
@@ -79,7 +80,8 @@ export const MedicalProfileProvider = ({ children }: { children: ReactNode }) =>
     if (!userId) return false;
     
     try {
-      await loadAllSectionData();
+      const data = await loadAllSectionData();
+      setProfileData(data);
       return true;
     } catch (error) {
       console.error('Error syncing with Supabase:', error);
@@ -139,7 +141,7 @@ export const MedicalProfileProvider = ({ children }: { children: ReactNode }) =>
   const saveSection = async (section: string): Promise<boolean> => {
     console.log(`Saving section data for ${section}`);
     try {
-      const success = saveSectionData(section, profileData[section]);
+      const success = await saveSectionData(section, profileData[section]);
       if (!success) {
         toast.error(`Error saving ${section} data`);
       }
