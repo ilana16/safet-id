@@ -13,7 +13,7 @@ export const searchDrugInfo = async (query: string): Promise<MedicationInfo | nu
   
   try {
     // Simulate network delay - would be a real API call in production
-    await new Promise(resolve => setTimeout(resolve, 500));
+    await new Promise(resolve => setTimeout(resolve, 300));
     
     console.log('Searching drug information for:', query);
     
@@ -34,17 +34,17 @@ export const searchDrugInfo = async (query: string): Promise<MedicationInfo | nu
   }
 };
 
-// Function to search for medications
+// Improved function to search for medications with better matching
 export const searchDrugsCom = async (query: string): Promise<string[]> => {
   if (!query || query.length < 2) return [];
   
   try {
     // Simulate network delay - would be a real API call in production
-    await new Promise(resolve => setTimeout(resolve, 300));
+    await new Promise(resolve => setTimeout(resolve, 200));
     
     console.log('Searching medications for:', query);
     
-    // Return from our database
+    // Return from our database with enhanced search
     const results = searchMedications(query);
     console.log(`Found ${results.length} medications matching "${query}"`);
     return results;
@@ -64,7 +64,7 @@ export const getDrugsComInfo = async (medicationKey: string): Promise<Medication
 
   try {
     // Simulate network delay - would be a real API call in production
-    await new Promise(resolve => setTimeout(resolve, 500));
+    await new Promise(resolve => setTimeout(resolve, 300));
     
     console.log('Fetching medication info for:', medicationKey);
     
@@ -90,23 +90,38 @@ export const getDrugsComUrl = (medicationName: string): string => {
   return `https://www.drugs.com/search.php?searchterm=${encodeURIComponent(medicationName)}`;
 };
 
-// Implementation using our database
+// Improved implementation for searching medications with better matching
 const searchMedications = (query: string): string[] => {
   if (!query || query.length < 2) return [];
 
-  // Get medication names from our database
   const normalizedQuery = query.toLowerCase().trim();
-  
-  // Get all keys from the medication database
   const medicationNames = Object.keys(medicationDatabase);
   
-  // Filter medicines that include the search query
-  return medicationNames.filter(name => 
-    name.toLowerCase().includes(normalizedQuery)
-  );
+  // Create prioritized results:
+  // 1. Exact matches
+  // 2. Starts with matches
+  // 3. Contains matches
+  const exactMatches: string[] = [];
+  const startsWithMatches: string[] = [];
+  const containsMatches: string[] = [];
+  
+  medicationNames.forEach(name => {
+    const normalizedName = name.toLowerCase();
+    
+    if (normalizedName === normalizedQuery) {
+      exactMatches.push(name);
+    } else if (normalizedName.startsWith(normalizedQuery)) {
+      startsWithMatches.push(name);
+    } else if (normalizedName.includes(normalizedQuery)) {
+      containsMatches.push(name);
+    }
+  });
+  
+  // Combine results in priority order, limit to 10 results total
+  return [...exactMatches, ...startsWithMatches, ...containsMatches].slice(0, 15);
 };
 
-// Get detailed information for a medication
+// Get detailed information for a medication with improved matching
 const getMedicationInfo = (medicationKey: string): MedicationInfo | null => {
   if (!medicationKey) return null;
   
@@ -125,7 +140,7 @@ const getMedicationInfo = (medicationKey: string): MedicationInfo | null => {
     // If not found, try to find a medication that starts with the query
     const keys = Object.keys(medicationDatabase);
     for (const key of keys) {
-      if (key.startsWith(normalizedKey)) {
+      if (key.toLowerCase().startsWith(normalizedKey)) {
         console.log(`Found partial match (starts with) for: ${normalizedKey} -> ${key}`);
         return {
           ...medicationDatabase[key],
@@ -136,7 +151,7 @@ const getMedicationInfo = (medicationKey: string): MedicationInfo | null => {
     
     // If still not found, try to find a medication that contains the query
     for (const key of keys) {
-      if (key.includes(normalizedKey)) {
+      if (key.toLowerCase().includes(normalizedKey)) {
         console.log(`Found partial match (contains) for: ${normalizedKey} -> ${key}`);
         return {
           ...medicationDatabase[key],

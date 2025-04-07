@@ -1,12 +1,14 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Search, Loader2 } from 'lucide-react';
+import { Search, Loader2, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { Pill, PillIcon, ArrowRight } from 'lucide-react';
 import { searchDrugsCom } from '@/utils/drugsComApi';
+import { toast } from 'sonner';
+import { useDebounce } from '@/hooks/useDebounce';
 
 interface MedicationSearchProps {
   onSelectMedication: (medication: string) => void;
@@ -17,8 +19,10 @@ const MedicationSearch: React.FC<MedicationSearchProps> = ({ onSelectMedication 
   const [searchResults, setSearchResults] = useState<string[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [history, setHistory] = useState<string[]>([]);
+  const debouncedSearchTerm = useDebounce(query, 300);
 
-  React.useEffect(() => {
+  // Load search history on component mount
+  useEffect(() => {
     const savedHistory = localStorage.getItem('medicationSearchHistory');
     if (savedHistory) {
       try {
@@ -29,23 +33,36 @@ const MedicationSearch: React.FC<MedicationSearchProps> = ({ onSelectMedication 
     }
   }, []);
 
-  const handleSearchChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Auto-search when debounced input changes
+  useEffect(() => {
+    const performSearch = async () => {
+      if (debouncedSearchTerm.length >= 2) {
+        setIsSearching(true);
+        try {
+          const results = await searchDrugsCom(debouncedSearchTerm);
+          setSearchResults(results);
+        } catch (error) {
+          console.error('Error searching medications:', error);
+          toast.error('Error searching medications');
+        } finally {
+          setIsSearching(false);
+        }
+      } else {
+        setSearchResults([]);
+      }
+    };
+
+    performSearch();
+  }, [debouncedSearchTerm]);
+
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setQuery(value);
-    
-    if (value.length >= 2) {
-      setIsSearching(true);
-      try {
-        const results = await searchDrugsCom(value);
-        setSearchResults(results);
-      } catch (error) {
-        console.error('Error searching medications:', error);
-      } finally {
-        setIsSearching(false);
-      }
-    } else {
-      setSearchResults([]);
-    }
+  };
+
+  const handleClearSearch = () => {
+    setQuery('');
+    setSearchResults([]);
   };
 
   const handleSearch = async (e: React.FormEvent) => {
@@ -63,12 +80,18 @@ const MedicationSearch: React.FC<MedicationSearchProps> = ({ onSelectMedication 
       }
     } catch (error) {
       console.error('Error searching medications:', error);
+      toast.error('Error searching medications');
     } finally {
       setIsSearching(false);
     }
   };
 
   const handleSelectMedication = (medication: string) => {
+    // Save to search history
+    const updatedHistory = [medication, ...history.filter(item => item !== medication)].slice(0, 5);
+    setHistory(updatedHistory);
+    localStorage.setItem('medicationSearchHistory', JSON.stringify(updatedHistory));
+    
     onSelectMedication(medication);
     setQuery(medication);
     setSearchResults([]);
@@ -83,12 +106,23 @@ const MedicationSearch: React.FC<MedicationSearchProps> = ({ onSelectMedication 
             placeholder="Enter medication name..."
             value={query}
             onChange={handleSearchChange}
-            className="pl-10 w-full"
+            className="pl-10 w-full pr-10"
+            autoComplete="off"
           />
           <Search className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
           
+          {query && (
+            <button 
+              type="button"
+              onClick={handleClearSearch}
+              className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          )}
+          
           {searchResults.length > 0 && query.length >= 2 && (
-            <div className="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-auto">
+            <div className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-auto">
               <ul className="py-1">
                 {searchResults.map((result, index) => (
                   <li 
