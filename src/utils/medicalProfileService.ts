@@ -1,9 +1,11 @@
-
 /**
  * Medical Profile Service
  * 
  * A centralized service for handling all medical profile data operations
  */
+
+import { syncSectionToSupabase, loadProfileFromSupabase, loadSectionFromSupabase } from '@/utils/supabaseSync';
+import { supabase } from '@/integrations/supabase/client';
 
 // Custom event for data changes across components
 export const MEDICAL_DATA_CHANGE_EVENT = 'medicalDataChange';
@@ -36,9 +38,17 @@ export const getWindowKeyForSection = (section: string): string => {
 };
 
 /**
+ * Check if the user is authenticated
+ */
+const getUserId = async (): Promise<string | null> => {
+  const { data } = await supabase.auth.getSession();
+  return data.session?.user?.id || null;
+};
+
+/**
  * Load data for a specific section
  */
-export const loadSectionData = (sectionName: string): any => {
+export const loadSectionData = async (sectionName: string): Promise<any> => {
   try {
     console.log(`Loading ${sectionName} data from storage`);
 
@@ -63,6 +73,25 @@ export const loadSectionData = (sectionName: string): any => {
       console.log(`Loaded ${sectionName} data from localStorage:`, sectionData);
     }
 
+    // If still no data and user is authenticated, try loading from Supabase
+    if ((!sectionData || Object.keys(sectionData).length === 0)) {
+      const userId = await getUserId();
+      
+      if (userId) {
+        const supabaseData = await loadSectionFromSupabase(userId, sectionName);
+        
+        if (supabaseData) {
+          sectionData = supabaseData;
+          console.log(`Loaded ${sectionName} data from Supabase:`, sectionData);
+          
+          // Update localStorage with the Supabase data
+          const profileData = getMedicalProfile();
+          profileData[sectionName] = sectionData;
+          localStorage.setItem('medicalProfile', JSON.stringify(profileData));
+        }
+      }
+    }
+
     // Update window object 
     const windowKey = getWindowKeyForSection(sectionName);
     if (windowKey) {
@@ -83,7 +112,7 @@ export const loadSectionData = (sectionName: string): any => {
 /**
  * Save data for a specific section
  */
-export const saveSectionData = (sectionName: string, formData?: any): boolean => {
+export const saveSectionData = async (sectionName: string, formData?: any): Promise<boolean> => {
   try {
     console.log(`Saving ${sectionName} data`);
 
@@ -135,6 +164,20 @@ export const saveSectionData = (sectionName: string, formData?: any): boolean =>
     // Also update sessionStorage
     sessionStorage.setItem(`${sectionName}FormData`, JSON.stringify(updatedData));
 
+    // Backup to Supabase if user is authenticated
+    const userId = await getUserId();
+    if (userId) {
+      syncSectionToSupabase(userId, sectionName, updatedData)
+        .then(success => {
+          if (!success) {
+            console.warn(`Failed to sync ${sectionName} to Supabase`);
+          }
+        })
+        .catch(error => {
+          console.error(`Error syncing ${sectionName} to Supabase:`, error);
+        });
+    }
+
     // Notify other components about the data change
     window.dispatchEvent(new CustomEvent(MEDICAL_DATA_CHANGE_EVENT, {
       detail: { section: sectionName, timestamp: new Date().toISOString() }
@@ -164,7 +207,7 @@ export const getMedicalProfile = (): Record<string, any> => {
 /**
  * Load all section data at once
  */
-export const loadAllSectionData = (): Record<string, any> => {
+export const loadAllSectionData = async (): Promise<Record<string, any>> => {
   try {
     console.log('Loading all medical profile data');
     const medicalProfile = getMedicalProfile();
@@ -191,6 +234,29 @@ export const loadAllSectionData = (): Record<string, any> => {
       }
     });
 
+    // If user is authenticated, try to load data from Supabase and merge with local data
+    const userId = await getUserId();
+    if (userId) {
+      const supabaseProfile = await loadProfileFromSupabase(userId);
+      
+      // For each section in the Supabase data, check if it's newer than the local data
+      Object.entries(supabaseProfile).forEach(([section, data]) => {
+        const supabaseTimestamp = new Date(data.lastUpdated || 0).getTime();
+        const localTimestamp = new Date(medicalProfile[section]?.lastUpdated || 0).getTime();
+        
+        if (supabaseTimestamp > localTimestamp) {
+          console.log(`Using newer Supabase data for ${section}`);
+          medicalProfile[section] = data;
+          
+          // Also update sessionStorage with the newer data
+          sessionStorage.setItem(`${section}FormData`, JSON.stringify(data));
+        }
+      });
+      
+      // Save the merged data back to localStorage
+      localStorage.setItem('medicalProfile', JSON.stringify(medicalProfile));
+    }
+
     // Load each section into window objects
     getSectionNames().forEach(section => {
       if (medicalProfile[section]) {
@@ -213,7 +279,7 @@ export const loadAllSectionData = (): Record<string, any> => {
 /**
  * Save all section data from window objects
  */
-export const saveAllSectionData = (): void => {
+export const saveAllSectionData = async (): Promise<void> => {
   console.log('Saving all section data');
   
   const medicalProfile = getMedicalProfile();
@@ -271,6 +337,20 @@ export const saveAllSectionData = (): void => {
   if (hasChanges) {
     localStorage.setItem('medicalProfile', JSON.stringify(medicalProfile));
     console.log('All section data saved to localStorage');
+    
+    // Backup to Supabase if user is authenticated
+    const userId = await getUserId();
+    if (userId) {
+      // Save each section to Supabase
+      for (const section of Object.keys(medicalProfile)) {
+        if (medicalProfile[section] && Object.keys(medicalProfile[section]).length > 0) {
+          syncSectionToSupabase(userId, section, medicalProfile[section])
+            .catch(error => {
+              console.error(`Error syncing ${section} to Supabase:`, error);
+            });
+        }
+      }
+    }
   }
 };
 

@@ -9,6 +9,8 @@ import DashboardTabs from '@/components/dashboard/DashboardTabs';
 import { toast } from '@/lib/toast';
 import { supabase } from '@/integrations/supabase/client';
 import { generateAccessCode } from '@/utils/accessCode';
+import { loadAllSectionData } from '@/utils/medicalProfileService';
+import { loadProfileFromSupabase } from '@/utils/supabaseSync';
 
 interface UserData {
   id: string;
@@ -25,6 +27,7 @@ const Dashboard = () => {
   const [qrCodeUrl, setQrCodeUrl] = useState<string>('');
   const [completionPercentage, setCompletionPercentage] = useState<number>(0);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingProfile, setIsLoadingProfile] = useState(false);
   
   useEffect(() => {
     const checkAuth = async () => {
@@ -68,10 +71,31 @@ const Dashboard = () => {
           setQrCodeUrl(qrUrl);
         }
         
-        // Calculate profile completion (for demo purposes)
-        // In a real app, this would check actual profile data
-        const hasProfile = localStorage.getItem('medicalProfile');
-        setCompletionPercentage(hasProfile ? 85 : 15);
+        // Load user profile data from Supabase
+        setIsLoadingProfile(true);
+        try {
+          // First, load data from local storage
+          await loadAllSectionData();
+          
+          // Then try to load from Supabase and update if there's newer data
+          const supabaseProfile = await loadProfileFromSupabase(id);
+          
+          // Calculate completion percentage based on sections
+          const hasProfile = Boolean(
+            Object.keys(supabaseProfile).length > 0 || 
+            localStorage.getItem('medicalProfile')
+          );
+          setCompletionPercentage(hasProfile ? 85 : 15);
+          
+          if (Object.keys(supabaseProfile).length > 0) {
+            toast.success('Successfully loaded your profile data');
+          }
+        } catch (error) {
+          console.error('Error loading profile data:', error);
+          toast.error('Could not load your profile data from the cloud');
+        } finally {
+          setIsLoadingProfile(false);
+        }
       } catch (error) {
         console.error('Error fetching user data:', error);
         toast.error('Error loading user information');
@@ -117,6 +141,11 @@ const Dashboard = () => {
           <p className="text-gray-600 mt-1">
             Manage your medical information and access settings
           </p>
+          {isLoadingProfile && (
+            <p className="text-sm text-blue-600 mt-2">
+              Syncing your profile data from the cloud...
+            </p>
+          )}
         </div>
         
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

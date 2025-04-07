@@ -2,6 +2,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { loadSectionData, saveSectionData, loadAllSectionData } from '@/utils/medicalProfileService';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 interface MedicalProfileContextType {
   profileData: Record<string, any>;
@@ -11,6 +12,7 @@ interface MedicalProfileContextType {
   isEditing: boolean;
   setIsEditing: (editing: boolean) => void;
   saveCurrentSection: (section: string) => Promise<boolean>;
+  syncWithSupabase: () => Promise<boolean>;
 }
 
 const MedicalProfileContext = createContext<MedicalProfileContextType | undefined>(undefined);
@@ -19,13 +21,40 @@ export const MedicalProfileProvider = ({ children }: { children: ReactNode }) =>
   const [profileData, setProfileData] = useState<Record<string, any>>({});
   const [isEditing, setIsEditing] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
+
+  // Check for authenticated user
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const { data } = await supabase.auth.getSession();
+        setUserId(data.session?.user?.id || null);
+        
+        // Set up auth state change listener
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(
+          (event, session) => {
+            setUserId(session?.user?.id || null);
+          }
+        );
+        
+        return () => {
+          subscription.unsubscribe();
+        };
+      } catch (error) {
+        console.error('Error checking auth state:', error);
+      }
+    };
+    
+    checkAuth();
+  }, []);
 
   // Load all profile data on initial mount
   useEffect(() => {
     console.log('Loading all profile data in MedicalProfileProvider');
     try {
-      const data = loadAllSectionData();
-      setProfileData(data);
+      loadAllSectionData().then(data => {
+        setProfileData(data);
+      });
       
       // Set up auto-save
       const autoSaveInterval = setInterval(() => {
@@ -43,6 +72,27 @@ export const MedicalProfileProvider = ({ children }: { children: ReactNode }) =>
       toast.error('Error loading profile data. Please refresh the page.');
     }
   }, []);
+
+  // Sync data with Supabase when user changes
+  useEffect(() => {
+    if (userId && Object.keys(profileData).length > 0) {
+      // Sync data to Supabase when user logs in
+      syncWithSupabase();
+    }
+  }, [userId]);
+
+  // Sync with Supabase
+  const syncWithSupabase = async (): Promise<boolean> => {
+    if (!userId) return false;
+    
+    try {
+      await loadAllSectionData();
+      return true;
+    } catch (error) {
+      console.error('Error syncing with Supabase:', error);
+      return false;
+    }
+  };
 
   // Update a specific section's data
   const updateSectionData = (section: string, data: any) => {
@@ -177,7 +227,8 @@ export const MedicalProfileProvider = ({ children }: { children: ReactNode }) =>
         saveSection,
         isEditing,
         setIsEditing,
-        saveCurrentSection
+        saveCurrentSection,
+        syncWithSupabase
       }}
     >
       {children}
