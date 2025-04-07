@@ -1,7 +1,8 @@
+
 import React, { useState, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Search, Loader2, X, Globe } from 'lucide-react';
+import { Search, Loader2, X, Globe, Brain } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { Pill, PillIcon, ArrowRight } from 'lucide-react';
@@ -98,9 +99,24 @@ const MedicationSearch: React.FC<MedicationSearchProps> = ({ onSelectMedication 
     setSearchResults([]);
   };
 
+  // Updated popular medications list to include psychiatric medications
   const popularMedications = [
-    'lisinopril', 'metformin', 'atorvastatin', 'levothyroxine', 
-    'amoxicillin', 'amlodipine', 'sertraline', 'montelukast'
+    'lisinopril', 'metformin', 'atorvastatin', 'sertraline', 
+    'fluoxetine', 'escitalopram', 'risperidone', 'lithium'
+  ];
+
+  // Category of medications for better organization
+  const medicationCategories = [
+    {
+      name: "Common Medications",
+      icon: <Pill className="h-4 w-4 text-safet-500 mr-2" />,
+      medications: ['lisinopril', 'metformin', 'atorvastatin', 'amoxicillin']
+    },
+    {
+      name: "Psychiatric Medications",
+      icon: <Brain className="h-4 w-4 text-safet-500 mr-2" />,
+      medications: ['fluoxetine', 'escitalopram', 'risperidone', 'lithium']
+    }
   ];
 
   return (
@@ -186,22 +202,32 @@ const MedicationSearch: React.FC<MedicationSearchProps> = ({ onSelectMedication 
       
       {!query && (
         <div className="mt-6">
-          <h3 className="text-sm font-medium text-gray-500 mb-2">Popular medications:</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-            {popularMedications.map((drug, index) => (
-              <Card 
-                key={index} 
-                className="p-3 hover:bg-gray-50 cursor-pointer transition-colors border-gray-200"
-                onClick={() => handleSelectMedication(drug)}
-              >
-                <div className="flex items-center">
-                  <PillIcon className="h-4 w-4 text-safet-500 mr-2" />
-                  <span className="text-gray-700">{drug}</span>
-                  <ArrowRight className="h-3 w-3 text-gray-400 ml-auto" />
-                </div>
-              </Card>
-            ))}
-          </div>
+          {medicationCategories.map((category, catIndex) => (
+            <div key={catIndex} className="mb-6">
+              <h3 className="text-sm font-medium text-gray-500 mb-2 flex items-center">
+                {category.icon}
+                {category.name}:
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {category.medications.map((drug, index) => (
+                  <Card 
+                    key={index} 
+                    className="p-3 hover:bg-gray-50 cursor-pointer transition-colors border-gray-200"
+                    onClick={() => handleSelectMedication(drug)}
+                  >
+                    <div className="flex items-center">
+                      {category.name === "Psychiatric Medications" ? 
+                        <Brain className="h-4 w-4 text-safet-500 mr-2" /> :
+                        <PillIcon className="h-4 w-4 text-safet-500 mr-2" />
+                      }
+                      <span className="text-gray-700">{drug}</span>
+                      <ArrowRight className="h-3 w-3 text-gray-400 ml-auto" />
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          ))}
         </div>
       )}
     </div>
