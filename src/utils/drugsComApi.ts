@@ -247,7 +247,6 @@ const fetchDailyMedInfo = async (query: string): Promise<MedicationInfo | null> 
         child: '',
         elderly: '',
       },
-      dosageForms: infoData.dosage_forms_and_strengths ? [infoData.dosage_forms_and_strengths] : [],
       interactions: infoData.drug_interactions ? [infoData.drug_interactions] : [],
       warnings: infoData.warnings ? [infoData.warnings] : [],
       sideEffects: {
@@ -257,7 +256,7 @@ const fetchDailyMedInfo = async (query: string): Promise<MedicationInfo | null> 
       },
       drugsComUrl: getDrugsComUrl(query),
       drugClass: '',
-      forms: []
+      forms: infoData.dosage_forms_and_strengths ? [infoData.dosage_forms_and_strengths] : []
     };
     
     return extractedInfo;
