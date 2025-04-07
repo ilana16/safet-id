@@ -1,4 +1,3 @@
-
 /**
  * This utility provides methods to fetch medication information from medical databases
  * This uses real medication data from our database and external APIs including international sources
@@ -14,6 +13,7 @@ const DAILYMED_API_BASE = 'https://dailymed.nlm.nih.gov/dailymed/services';
 const NIH_DRUG_API = 'https://druginfo.nlm.nih.gov/drugportal/drug';
 const WHO_MED_API = 'https://ghoapi.azureedge.net/api';
 const EMA_API = 'https://www.ema.europa.eu/en/medicines/api';
+const EMA_IRIS_API = 'https://iris.ema.europa.eu/substances';
 
 // Function to search for drug information
 export const searchDrugInfo = async (query: string): Promise<MedicationInfo | null> => {
@@ -64,26 +64,29 @@ const fetchExternalMedicationInfo = async (query: string): Promise<MedicationInf
         // Try to get international data from WHO
         const whoData = await fetchWHOMedicationData(query);
         
+        // Try to get EMA IRIS data
+        const emaIrisData = await fetchEMAIRISData(query);
+        
         // Combine the information from all sources
         return {
           name: medicationDetails.name,
-          genericName: fdaInfo?.genericName || whoData?.internationalNonproprietaryName || '',
+          genericName: fdaInfo?.genericName || whoData?.internationalNonproprietaryName || emaIrisData?.substanceName || '',
           // Use the first brand name if available
-          description: fdaInfo?.description || whoData?.description || '',
+          description: fdaInfo?.description || whoData?.description || emaIrisData?.description || '',
           dosage: medicationDetails.dosage || {
             adult: '',
             child: '',
             elderly: '',
           },
           interactions: medicationDetails.interactions || [],
-          warnings: fdaInfo?.warnings || whoData?.warnings || [],
+          warnings: fdaInfo?.warnings || whoData?.warnings || emaIrisData?.precautions || [],
           sideEffects: {
             common: fdaInfo?.sideEffects || [],
             serious: whoData?.seriousAdverseEffects || [],
             rare: []
           },
           drugsComUrl: getDrugsComUrl(medicationDetails.name),
-          drugClass: fdaInfo?.pharmClass || whoData?.atcClassification || '',
+          drugClass: fdaInfo?.pharmClass || whoData?.atcClassification || emaIrisData?.substanceClass || '',
           forms: medicationDetails.dosageForms || []
         };
       }
@@ -92,24 +95,27 @@ const fetchExternalMedicationInfo = async (query: string): Promise<MedicationInf
     // If RxNorm doesn't have the data, try OpenFDA as a fallback
     const fdaInfo = await fetchOpenFDAInfo(query);
     if (fdaInfo) {
+      // Try to get EMA IRIS data
+      const emaIrisData = await fetchEMAIRISData(query);
+      
       return {
         name: fdaInfo.brandName || fdaInfo.genericName || query,
-        genericName: fdaInfo.genericName || '',
-        description: fdaInfo.description || '',
+        genericName: fdaInfo.genericName || emaIrisData?.substanceName || '',
+        description: fdaInfo.description || emaIrisData?.description || '',
         dosage: {
           adult: '',
           child: '',
           elderly: '',
         },
         interactions: [],
-        warnings: fdaInfo.warnings || [],
+        warnings: fdaInfo.warnings || emaIrisData?.precautions || [],
         sideEffects: {
           common: fdaInfo.sideEffects || [],
           serious: [],
           rare: []
         },
         drugsComUrl: getDrugsComUrl(fdaInfo.brandName || fdaInfo.genericName || query),
-        drugClass: fdaInfo.pharmClass || '',
+        drugClass: fdaInfo.pharmClass || emaIrisData?.substanceClass || '',
         forms: fdaInfo.dosageForms || []
       };
     }
@@ -123,50 +129,81 @@ const fetchExternalMedicationInfo = async (query: string): Promise<MedicationInf
     // Try WHO/EMA as international sources
     const whoInfo = await fetchWHOMedicationData(query);
     if (whoInfo) {
+      // Also try EMA IRIS data
+      const emaIrisData = await fetchEMAIRISData(query);
+      
       return {
-        name: whoInfo.internationalNonproprietaryName || query,
-        genericName: whoInfo.internationalNonproprietaryName || '',
-        description: whoInfo.description || '',
+        name: whoInfo.internationalNonproprietaryName || emaIrisData?.substanceName || query,
+        genericName: whoInfo.internationalNonproprietaryName || emaIrisData?.substanceName || '',
+        description: whoInfo.description || emaIrisData?.description || '',
         dosage: {
           adult: whoInfo.dosage || '',
           child: '',
           elderly: '',
         },
         interactions: whoInfo.interactions || [],
-        warnings: whoInfo.warnings || [],
+        warnings: whoInfo.warnings || emaIrisData?.precautions || [],
         sideEffects: {
           common: whoInfo.commonAdverseEffects || [],
           serious: whoInfo.seriousAdverseEffects || [],
           rare: whoInfo.rareAdverseEffects || []
         },
         drugsComUrl: getDrugsComUrl(query),
-        drugClass: whoInfo.atcClassification || '',
+        drugClass: whoInfo.atcClassification || emaIrisData?.substanceClass || '',
         forms: whoInfo.pharmaceuticalForms || []
       };
     }
     
-    // Try the European Medicines Agency (EMA)
+    // Try the European Medicines Agency (EMA) standard API
     const emaInfo = await fetchEMAData(query);
     if (emaInfo) {
+      // Also try EMA IRIS data for additional information
+      const emaIrisData = await fetchEMAIRISData(query);
+      
       return {
-        name: emaInfo.name || query,
-        genericName: emaInfo.inn || '',
-        description: emaInfo.therapeuticArea || '',
+        name: emaInfo.name || emaIrisData?.substanceName || query,
+        genericName: emaInfo.inn || emaIrisData?.substanceName || '',
+        description: emaInfo.therapeuticArea || emaIrisData?.description || '',
         dosage: {
           adult: '',
           child: '',
           elderly: '',
         },
         interactions: [],
-        warnings: emaInfo.specialPrecautions ? [emaInfo.specialPrecautions] : [],
+        warnings: emaInfo.specialPrecautions ? [emaInfo.specialPrecautions] : (emaIrisData?.precautions || []),
         sideEffects: {
           common: emaInfo.sideEffects || [],
           serious: [],
           rare: []
         },
         drugsComUrl: getDrugsComUrl(query),
-        drugClass: emaInfo.atcCode || '',
+        drugClass: emaInfo.atcCode || emaIrisData?.substanceClass || '',
         forms: emaInfo.pharmaceuticalForm ? [emaInfo.pharmaceuticalForm] : []
+      };
+    }
+    
+    // Try directly with EMA IRIS as a last resort
+    const emaIrisData = await fetchEMAIRISData(query);
+    if (emaIrisData) {
+      return {
+        name: emaIrisData.substanceName || query,
+        genericName: emaIrisData.substanceName || '',
+        description: emaIrisData.description || '',
+        dosage: {
+          adult: '',
+          child: '',
+          elderly: '',
+        },
+        interactions: [],
+        warnings: emaIrisData.precautions || [],
+        sideEffects: {
+          common: [],
+          serious: [],
+          rare: []
+        },
+        drugsComUrl: getDrugsComUrl(query),
+        drugClass: emaIrisData.substanceClass || '',
+        forms: []
       };
     }
     
@@ -346,7 +383,111 @@ const fetchEMAData = async (query: string) => {
   }
 };
 
-// New function to fetch information from DailyMed
+// New function to fetch data from EMA IRIS Substances API
+const fetchEMAIRISData = async (query: string) => {
+  try {
+    console.log('Fetching EMA IRIS substance data for:', query);
+    
+    // First try to search for the substance by name
+    const searchUrl = `${EMA_IRIS_API}/api/v1/search?term=${encodeURIComponent(query)}&limit=5`;
+    const searchResponse = await fetch(searchUrl);
+    
+    if (!searchResponse.ok) {
+      console.error('EMA IRIS API search response failed:', searchResponse.status);
+      return null;
+    }
+    
+    const searchData = await searchResponse.json();
+    console.log('EMA IRIS search results:', searchData);
+    
+    if (!searchData.results || searchData.results.length === 0) {
+      console.log('No EMA IRIS data found for:', query);
+      return null;
+    }
+    
+    // Get the first matching substance
+    const substanceMatch = searchData.results[0];
+    const substanceId = substanceMatch.id;
+    
+    if (!substanceId) {
+      return {
+        substanceName: substanceMatch.name || query,
+        substanceClass: substanceMatch.type || '',
+        description: '',
+        precautions: []
+      };
+    }
+    
+    // Get detailed information using the substance ID
+    const detailsUrl = `${EMA_IRIS_API}/api/v1/substance/${substanceId}`;
+    const detailsResponse = await fetch(detailsUrl);
+    
+    if (!detailsResponse.ok) {
+      console.log('Failed to fetch EMA IRIS substance details');
+      
+      // Return basic information if details aren't available
+      return {
+        substanceName: substanceMatch.name || query,
+        substanceClass: substanceMatch.type || '',
+        description: '',
+        precautions: []
+      };
+    }
+    
+    const detailsData = await detailsResponse.json();
+    console.log('EMA IRIS substance details:', detailsData);
+    
+    // Extract relevant details from the substance data
+    return {
+      substanceName: detailsData.name || substanceMatch.name || query,
+      substanceClass: detailsData.substanceClass || detailsData.type || substanceMatch.type || '',
+      description: detailsData.definition || '',
+      precautions: detailsData.specialPrecautions ? [detailsData.specialPrecautions] : []
+    };
+  } catch (error) {
+    console.error('Error fetching EMA IRIS substance data:', error);
+    return null;
+  }
+};
+
+// New function to search European Medicines Agency IRIS database
+const searchEMAIRISSubstances = async (query: string): Promise<string[]> => {
+  try {
+    if (!query || query.length < 2) return [];
+    
+    console.log('Searching EMA IRIS substances for:', query);
+    
+    // Search for substances matching the query
+    const response = await fetch(`${EMA_IRIS_API}/api/v1/search?term=${encodeURIComponent(query)}&limit=10`);
+    
+    if (!response.ok) {
+      console.error('EMA IRIS API search failed:', response.status);
+      return [];
+    }
+    
+    const data = await response.json();
+    
+    if (!data.results || data.results.length === 0) {
+      return [];
+    }
+    
+    // Extract substance names
+    const substances: string[] = [];
+    
+    data.results.forEach((item: any) => {
+      if (item.name && !substances.includes(item.name)) {
+        substances.push(item.name);
+      }
+    });
+    
+    return substances;
+  } catch (error) {
+    console.error('Error searching EMA IRIS substances:', error);
+    return [];
+  }
+};
+
+// New function to fetch DailyMed information
 const fetchDailyMedInfo = async (query: string): Promise<MedicationInfo | null> => {
   try {
     // Search for the drug in DailyMed
@@ -425,6 +566,7 @@ export const searchDrugsCom = async (query: string): Promise<string[]> => {
     // Search international databases
     const whoResults = await searchWHODrugs(query);
     const emaResults = await searchEMADrugs(query);
+    const emaIrisResults = await searchEMAIRISSubstances(query);
     
     // Combine and deduplicate results
     const combinedResults = [...new Set([
@@ -432,7 +574,8 @@ export const searchDrugsCom = async (query: string): Promise<string[]> => {
       ...rxnormResults, 
       ...dailyMedResults,
       ...whoResults,
-      ...emaResults
+      ...emaResults,
+      ...emaIrisResults
     ])];
     
     console.log(`Found ${combinedResults.length} medications matching "${query}"`);
@@ -512,8 +655,12 @@ const searchEMADrugs = async (query: string): Promise<string[]> => {
   try {
     console.log('Searching EMA drugs for:', query);
     
+    // First try the EMA API
     // This is a placeholder for an actual EMA API call
     // In a real implementation, this would make an API request to the EMA medicines database
+    
+    // Then try the IRIS substances API for more results
+    const irisResults = await searchEMAIRISSubstances(query);
     
     // Simulate results for common medications
     const commonMeds = [
@@ -521,9 +668,11 @@ const searchEMADrugs = async (query: string): Promise<string[]> => {
       'Simvastatin', 'Amlodipine', 'Ramipril', 'Metformin', 'Salbutamol'
     ];
     
-    return commonMeds.filter(med => 
+    const standardApiResults = commonMeds.filter(med => 
       med.toLowerCase().includes(query.toLowerCase())
     );
+    
+    return [...new Set([...standardApiResults, ...irisResults])];
   } catch (error) {
     console.error('Error searching EMA drugs:', error);
     return [];
