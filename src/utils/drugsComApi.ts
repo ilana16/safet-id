@@ -1,3 +1,4 @@
+
 /**
  * This utility provides methods to fetch medication information from medical databases
  * This uses real medication data from our database and external APIs
@@ -9,6 +10,8 @@ import { toast } from 'sonner';
 // URLs for the APIs
 const RXNORM_API_BASE = 'https://rxnav.nlm.nih.gov/REST';
 const OPENFDA_API_BASE = 'https://api.fda.gov/drug';
+const DAILYMED_API_BASE = 'https://dailymed.nlm.nih.gov/dailymed/services';
+const NIH_DRUG_API = 'https://druginfo.nlm.nih.gov/drugportal/drug';
 
 // Function to search for drug information
 export const searchDrugInfo = async (query: string): Promise<MedicationInfo | null> => {
@@ -60,7 +63,7 @@ const fetchExternalMedicationInfo = async (query: string): Promise<MedicationInf
         return {
           name: medicationDetails.name,
           genericName: fdaInfo?.genericName || '',
-          brandName: fdaInfo?.brandName ? fdaInfo.brandName : '',
+          // Use the first brand name if available
           className: fdaInfo?.pharmClass || '',
           description: fdaInfo?.description || '',
           dosageForms: medicationDetails.dosageForms || [],
@@ -82,7 +85,6 @@ const fetchExternalMedicationInfo = async (query: string): Promise<MedicationInf
       return {
         name: fdaInfo.brandName || fdaInfo.genericName || query,
         genericName: fdaInfo.genericName || '',
-        brandName: fdaInfo.brandName || '',
         className: fdaInfo.pharmClass || '',
         description: fdaInfo.description || '',
         dosageForms: fdaInfo.dosageForms || [],
@@ -97,9 +99,70 @@ const fetchExternalMedicationInfo = async (query: string): Promise<MedicationInf
       };
     }
     
+    // Try DailyMed as another option
+    const dailyMedInfo = await fetchDailyMedInfo(query);
+    if (dailyMedInfo) {
+      return dailyMedInfo;
+    }
+    
     return null;
   } catch (error) {
     console.error('Error fetching external medication data:', error);
+    return null;
+  }
+};
+
+// New function to fetch information from DailyMed
+const fetchDailyMedInfo = async (query: string): Promise<MedicationInfo | null> => {
+  try {
+    // Search for the drug in DailyMed
+    const searchResponse = await fetch(`${DAILYMED_API_BASE}/v2/spls.json?drug_name=${encodeURIComponent(query)}&pagesize=1`);
+    
+    if (!searchResponse.ok) {
+      return null;
+    }
+    
+    const searchData = await searchResponse.json();
+    
+    if (!searchData.data || searchData.data.length === 0) {
+      return null;
+    }
+    
+    const setid = searchData.data[0].setid;
+    
+    // Get detailed information using the set ID
+    const infoResponse = await fetch(`${DAILYMED_API_BASE}/v2/spls/${setid}.json`);
+    
+    if (!infoResponse.ok) {
+      return null;
+    }
+    
+    const infoData = await infoResponse.json();
+    
+    if (!infoData) {
+      return null;
+    }
+    
+    // Extract relevant information
+    const extractedInfo: MedicationInfo = {
+      name: query,
+      genericName: infoData.activemoiety || '',
+      className: infoData.pharmacologic_class || '',
+      description: infoData.indications_and_usage || '',
+      dosageForms: infoData.dosage_forms_and_strengths ? [infoData.dosage_forms_and_strengths] : [],
+      interactions: infoData.drug_interactions ? [infoData.drug_interactions] : [],
+      warnings: infoData.warnings ? [infoData.warnings] : [],
+      sideEffects: {
+        common: infoData.adverse_reactions ? [infoData.adverse_reactions] : [],
+        serious: infoData.warnings_and_cautions ? [infoData.warnings_and_cautions] : [],
+        rare: []
+      },
+      drugsComUrl: getDrugsComUrl(query)
+    };
+    
+    return extractedInfo;
+  } catch (error) {
+    console.error('Error fetching DailyMed data:', error);
     return null;
   }
 };
@@ -117,14 +180,50 @@ export const searchDrugsCom = async (query: string): Promise<string[]> => {
     // Then, search RxNorm API
     const rxnormResults = await searchRxNorm(query);
     
+    // Also search DailyMed for more comprehensive results
+    const dailyMedResults = await searchDailyMed(query);
+    
     // Combine and deduplicate results
-    const combinedResults = [...new Set([...localResults, ...rxnormResults])];
+    const combinedResults = [...new Set([...localResults, ...rxnormResults, ...dailyMedResults])];
     console.log(`Found ${combinedResults.length} medications matching "${query}"`);
     
     return combinedResults.slice(0, 15); // Limit to 15 results
   } catch (error) {
     console.error('Error searching medications:', error);
     toast.error('Error searching medications');
+    return [];
+  }
+};
+
+// New function to search DailyMed
+const searchDailyMed = async (query: string): Promise<string[]> => {
+  if (!query || query.length < 2) return [];
+  
+  try {
+    const response = await fetch(`${DAILYMED_API_BASE}/v2/spls.json?drug_name=${encodeURIComponent(query)}&pagesize=10`);
+    
+    if (!response.ok) {
+      return [];
+    }
+    
+    const data = await response.json();
+    
+    if (!data.data || data.data.length === 0) {
+      return [];
+    }
+    
+    // Extract medication names
+    const medications: string[] = [];
+    
+    data.data.forEach((item: any) => {
+      if (item.drug_name) {
+        medications.push(item.drug_name);
+      }
+    });
+    
+    return medications;
+  } catch (error) {
+    console.error('Error searching DailyMed:', error);
     return [];
   }
 };
@@ -200,6 +299,14 @@ const fetchMedicationDetailsByRxCUI = async (rxcui: string) => {
     
     if (interactionsResponse.ok) {
       interactionsData = await interactionsResponse.json();
+    }
+    
+    // Fetch drug properties from the NIH portal for more details
+    const propertyResponse = await fetch(`${NIH_DRUG_API}/names/${rxcui}`);
+    let propertyData = null;
+    
+    if (propertyResponse.ok) {
+      propertyData = await propertyResponse.json();
     }
     
     // Extract relevant information
