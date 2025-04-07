@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -26,7 +25,6 @@ const MedicationSearch: React.FC<MedicationSearchProps> = ({ onSelectMedication 
   const [history, setHistory] = useState<string[]>([]);
   const debouncedSearchTerm = useDebounce(query, 300);
 
-  // Load search history on component mount
   useEffect(() => {
     const savedHistory = localStorage.getItem('medicationSearchHistory');
     if (savedHistory) {
@@ -38,7 +36,6 @@ const MedicationSearch: React.FC<MedicationSearchProps> = ({ onSelectMedication 
     }
   }, []);
 
-  // Auto-search when debounced input changes
   useEffect(() => {
     const performSearch = async () => {
       if (debouncedSearchTerm.length >= 2) {
@@ -92,7 +89,6 @@ const MedicationSearch: React.FC<MedicationSearchProps> = ({ onSelectMedication 
   };
 
   const handleSelectMedication = (medication: string) => {
-    // Save to search history
     const updatedHistory = [medication, ...history.filter(item => item !== medication)].slice(0, 5);
     setHistory(updatedHistory);
     localStorage.setItem('medicationSearchHistory', JSON.stringify(updatedHistory));
@@ -101,6 +97,11 @@ const MedicationSearch: React.FC<MedicationSearchProps> = ({ onSelectMedication 
     setQuery(medication);
     setSearchResults([]);
   };
+
+  const popularMedications = [
+    'lisinopril', 'metformin', 'atorvastatin', 'levothyroxine', 
+    'amoxicillin', 'amlodipine', 'sertraline', 'montelukast'
+  ];
 
   return (
     <div>
@@ -130,11 +131,10 @@ const MedicationSearch: React.FC<MedicationSearchProps> = ({ onSelectMedication 
             <div className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-auto">
               <ul className="py-1">
                 {searchResults.map((result, index) => {
-                  // Check if this is likely from an international source based on name patterns
                   const isInternational = 
                     result.includes('(EMA)') || 
                     result.includes('IRIS') ||
-                    /\b[A-Z]{2,}\b/.test(result); // Matches abbreviations like "WHO" or "EMA"
+                    /\b[A-Z]{2,}\b/.test(result);
                     
                   return (
                     <li 
@@ -188,7 +188,7 @@ const MedicationSearch: React.FC<MedicationSearchProps> = ({ onSelectMedication 
         <div className="mt-6">
           <h3 className="text-sm font-medium text-gray-500 mb-2">Popular medications:</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-            {['lisinopril', 'metformin', 'atorvastatin', 'levothyroxine', 'amoxicillin', 'amlodipine'].map((drug, index) => (
+            {popularMedications.map((drug, index) => (
               <Card 
                 key={index} 
                 className="p-3 hover:bg-gray-50 cursor-pointer transition-colors border-gray-200"

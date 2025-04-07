@@ -437,5 +437,410 @@ export const medicationDatabase: Record<string, MedicationInfo> = {
       elimination: "Primarily excreted in bile with enterohepatic recirculation; minimal renal elimination"
     },
     source: "Drugs.com"
+  },
+  
+  // New medications added below:
+  levothyroxine: {
+    name: "Levothyroxine",
+    genericName: "Levothyroxine Sodium",
+    drugClass: "Thyroid Hormone",
+    description: "Levothyroxine is used to treat hypothyroidism (low thyroid hormone). It replaces the thyroid hormone that your body would normally produce.",
+    drugsComUrl: "https://www.drugs.com/levothyroxine.html",
+    usedFor: ["Hypothyroidism", "Thyroid Cancer (after removal)", "Goiter", "Myxedema Coma"],
+    prescriptionOnly: true,
+    forms: ["Tablet", "Capsule", "Liquid", "Injectable solution"],
+    pregnancy: "Category A - No risk in controlled human studies",
+    halfLife: "6-7 days",
+    dosage: {
+      adult: "Initial: 25-50 mcg once daily. Increase by 25-50 mcg every 2-4 weeks as needed. Usual maintenance: 100-200 mcg daily.",
+      child: "0-3 months: 10-15 mcg/kg/day; 3-6 months: 8-10 mcg/kg/day; 6-12 months: 6-8 mcg/kg/day; 1-5 years: 5-6 mcg/kg/day; 6-12 years: 4-5 mcg/kg/day; >12 years: 2-3 mcg/kg/day",
+      elderly: "Initial: 12.5-25 mcg once daily. Increase by 12.5-25 mcg every 4-6 weeks as needed.",
+      frequency: "Once daily, typically taken on an empty stomach 30-60 minutes before breakfast",
+      renal: "No specific adjustment needed, but monitor thyroid function",
+      hepatic: "No specific adjustment needed, but monitor thyroid function"
+    },
+    sideEffects: {
+      common: [
+        "Hair loss (usually temporary)",
+        "Headache",
+        "Insomnia",
+        "Nervousness",
+        "Irritability",
+        "Increased appetite",
+        "Weight loss"
+      ],
+      serious: [
+        "Chest pain",
+        "Rapid or irregular heartbeat",
+        "Shortness of breath",
+        "Severe headache",
+        "Seizures"
+      ],
+      rare: [
+        "Allergic reactions",
+        "Fever",
+        "Leg cramps",
+        "Sensitivity to heat",
+        "Excessive sweating"
+      ]
+    },
+    overdose: {
+      symptoms: [
+        "Tachycardia (rapid heart rate)",
+        "Chest pain",
+        "Increased blood pressure",
+        "Anxiety",
+        "Nervousness",
+        "Confusion",
+        "Tremors",
+        "Fever"
+      ],
+      treatment: "Reduce or temporarily discontinue levothyroxine, provide beta-blockers for symptomatic relief, and supportive care.",
+      antidote: "No specific antidote. Treatment is supportive."
+    },
+    warnings: [
+      "Not for weight loss treatment. Serious or life-threatening effects can occur when used in large doses for weight reduction.",
+      "Patients with coronary artery disease: Start with low doses and increase gradually.",
+      "Thyroid replacement may increase the need for antidiabetic medications in diabetic patients.",
+      "Adrenal insufficiency must be corrected before starting levothyroxine therapy."
+    ],
+    interactions: [
+      "Antacids, calcium, and iron supplements can decrease absorption (separate by 4 hours)",
+      "Cholestyramine and colestipol can decrease absorption (separate by 4-6 hours)",
+      "Oral anticoagulants: May increase anticoagulant effects",
+      "Estrogens may increase thyroid-binding proteins and require dosage adjustment",
+      "Seizure medications may alter metabolism of levothyroxine"
+    ],
+    interactionSeverity: {
+      major: ["Imatinib", "Kinase inhibitors", "Amiodarone"],
+      moderate: ["Warfarin", "Carbamazepine", "Phenytoin", "Rifampin", "Estrogens"],
+      minor: ["Antacids", "Calcium supplements", "Iron supplements", "Sucralfate"]
+    },
+    pharmacokinetics: {
+      absorption: "40-80% absorbed from GI tract; absorption occurs primarily in jejunum and ileum",
+      distribution: "Highly protein-bound (99%) primarily to thyroxine-binding globulin",
+      metabolism: "Deiodination in peripheral tissues to form T3 (active hormone)",
+      elimination: "Primarily eliminated in feces through biliary excretion; small amount eliminated in urine"
+    },
+    source: "Drugs.com"
+  },
+  amlodipine: {
+    name: "Amlodipine",
+    genericName: "Amlodipine Besylate",
+    drugClass: "Calcium Channel Blocker",
+    description: "Amlodipine is a calcium channel blocker used to treat high blood pressure (hypertension) and chest pain (angina). It works by relaxing blood vessels so blood can flow more easily.",
+    drugsComUrl: "https://www.drugs.com/amlodipine.html",
+    usedFor: ["Hypertension", "Coronary Artery Disease", "Angina", "Raynaud's Phenomenon"],
+    prescriptionOnly: true,
+    forms: ["Tablet", "Oral suspension"],
+    pregnancy: "Category C - Risk cannot be ruled out",
+    halfLife: "30-50 hours",
+    dosage: {
+      adult: "Hypertension/Angina: Initial: 5 mg once daily; may increase to 10 mg once daily. Small, fragile, or elderly patients may start with 2.5 mg once daily.",
+      child: "6-17 years: 2.5-5 mg once daily. Doses >5 mg are not well studied in pediatric patients.",
+      elderly: "Initial: 2.5 mg once daily, may increase gradually as needed.",
+      frequency: "Once daily",
+      renal: "No dosage adjustment required in renal impairment",
+      hepatic: "Initial: 2.5 mg once daily in hepatic impairment"
+    },
+    sideEffects: {
+      common: [
+        "Peripheral edema (swelling of ankles/feet)",
+        "Dizziness",
+        "Flushing",
+        "Headache",
+        "Fatigue",
+        "Nausea",
+        "Palpitations"
+      ],
+      serious: [
+        "Severe hypotension",
+        "Worsening angina (when starting or increasing dose)",
+        "Acute hepatic injury (rare)",
+        "Severe peripheral edema"
+      ],
+      rare: [
+        "Gingival hyperplasia (gum overgrowth)",
+        "Jaundice",
+        "Gynecomastia",
+        "Depression",
+        "Stevens-Johnson syndrome"
+      ]
+    },
+    overdose: {
+      symptoms: [
+        "Excessive peripheral vasodilation",
+        "Marked hypotension",
+        "Reflex tachycardia",
+        "Dizziness",
+        "Shock"
+      ],
+      treatment: "Supportive care, administer activated charcoal if recently ingested, intravenous calcium, vasopressors for severe hypotension.",
+      antidote: "No specific antidote. IV calcium may help reverse effects."
+    },
+    warnings: [
+      "In patients with severe coronary artery disease, may increase risk of angina or heart attack when starting or increasing dose.",
+      "Monitor for edema and hypotension, especially when initiating therapy or increasing dose.",
+      "May worsen heart failure in some patients.",
+      "Use caution in patients with liver disease."
+    ],
+    interactions: [
+      "CYP3A4 inhibitors (ketoconazole, itraconazole, ritonavir) may increase amlodipine levels",
+      "CYP3A4 inducers (rifampin, St. John's wort) may decrease amlodipine effectiveness",
+      "May increase tacrolimus levels",
+      "Simvastatin: Limit simvastatin dose to 20 mg daily when used with amlodipine"
+    ],
+    interactionSeverity: {
+      major: ["Strong CYP3A4 inhibitors (clarithromycin, itraconazole)"],
+      moderate: ["Simvastatin", "Cyclosporine", "Tacrolimus", "Cimetidine"],
+      minor: ["Grapefruit juice", "Sildenafil", "NSAIDs"]
+    },
+    pharmacokinetics: {
+      absorption: "Slowly and almost completely absorbed from GI tract; absolute bioavailability 64-90%",
+      distribution: "Extensively bound to plasma proteins (93-98%)",
+      metabolism: "Extensively metabolized in the liver via CYP3A4 to inactive metabolites",
+      elimination: "Biphasic with a terminal elimination half-life of 30-50 hours; excreted primarily in urine"
+    },
+    source: "Drugs.com"
+  },
+  amoxicillin: {
+    name: "Amoxicillin",
+    genericName: "Amoxicillin Trihydrate",
+    drugClass: "Aminopenicillin Antibiotic",
+    description: "Amoxicillin is a penicillin antibiotic used to treat bacterial infections, such as bronchitis, pneumonia, and infections of the ear, nose, throat, urinary tract, and skin. It works by stopping the growth of bacteria.",
+    drugsComUrl: "https://www.drugs.com/amoxicillin.html",
+    usedFor: ["Respiratory Tract Infections", "Ear Infections", "Urinary Tract Infections", "Skin Infections", "H. pylori Infection"],
+    prescriptionOnly: true,
+    forms: ["Capsule", "Tablet", "Chewable tablet", "Powder for oral suspension"],
+    pregnancy: "Category B - No evidence of risk in humans",
+    halfLife: "1-1.5 hours",
+    dosage: {
+      adult: "Mild/moderate infections: 250-500 mg every 8 hours or 500-875 mg every 12 hours. Severe infections: 875 mg every 12 hours or 500 mg every 8 hours.",
+      child: "Children >3 months: 25-45 mg/kg/day in divided doses every 8-12 hours, depending on the infection severity.",
+      elderly: "Reduce dose in elderly with significant renal impairment.",
+      frequency: "Every 8 or 12 hours, depending on formulation and infection",
+      renal: "CrCl 10-30 mL/min: Administer every 12 hours. CrCl <10 mL/min: Administer every 24 hours.",
+      hepatic: "No specific adjustment needed"
+    },
+    sideEffects: {
+      common: [
+        "Diarrhea",
+        "Nausea",
+        "Vomiting",
+        "Stomach pain",
+        "Vaginal yeast infection",
+        "Headache",
+        "Rash"
+      ],
+      serious: [
+        "Allergic reactions (hives, difficulty breathing, swelling of face/lips/tongue)",
+        "Severe skin reactions (Stevens-Johnson syndrome)",
+        "C. difficile-associated diarrhea",
+        "Seizures"
+      ],
+      rare: [
+        "Crystalluria (crystals in urine)",
+        "Blood disorders (leukopenia, thrombocytopenia)",
+        "Liver dysfunction",
+        "Acute kidney injury"
+      ]
+    },
+    overdose: {
+      symptoms: [
+        "Gastrointestinal symptoms (nausea, vomiting, diarrhea)",
+        "Crystalluria",
+        "Neuromuscular hyperirritability",
+        "Seizures (in high doses)"
+      ],
+      treatment: "Supportive care, maintain hydration. Hemodialysis may be beneficial in severe cases.",
+      antidote: "No specific antidote."
+    },
+    warnings: [
+      "Hypersensitivity reactions: Can cause serious, sometimes fatal, hypersensitivity reactions in patients with penicillin allergy.",
+      "C. difficile-associated diarrhea: May range from mild diarrhea to fatal colitis. Consider in patients who present with diarrhea during or after treatment.",
+      "Prolonged use may result in fungal or bacterial superinfection.",
+      "May cause false positive results for urine glucose tests."
+    ],
+    interactions: [
+      "Probenecid increases amoxicillin levels by reducing renal excretion",
+      "May reduce the effectiveness of oral contraceptives",
+      "Allopurinol increases risk of skin rash",
+      "May affect INR when used with warfarin"
+    ],
+    interactionSeverity: {
+      major: ["Methotrexate (increased toxicity)"],
+      moderate: ["Probenecid", "Oral contraceptives", "Warfarin", "Allopurinol"],
+      minor: ["Live bacterial vaccines"]
+    },
+    pharmacokinetics: {
+      absorption: "Rapidly absorbed from the GI tract (75-90%), not affected significantly by food",
+      distribution: "Low protein binding (17-20%); distributes into most tissues and body fluids",
+      metabolism: "Limited hepatic metabolism (approximately 10%)",
+      elimination: "Primarily excreted unchanged in urine; elimination half-life 1-1.5 hours"
+    },
+    source: "Drugs.com"
+  },
+  sertraline: {
+    name: "Sertraline",
+    genericName: "Sertraline Hydrochloride",
+    drugClass: "Selective Serotonin Reuptake Inhibitor (SSRI)",
+    description: "Sertraline is an antidepressant in the SSRI class used to treat major depressive disorder, obsessive-compulsive disorder, panic disorder, PTSD, social anxiety disorder, and premenstrual dysphoric disorder. It works by increasing serotonin levels in the brain.",
+    drugsComUrl: "https://www.drugs.com/sertraline.html",
+    usedFor: ["Depression", "Obsessive-Compulsive Disorder", "Panic Disorder", "PTSD", "Social Anxiety Disorder", "Premenstrual Dysphoric Disorder"],
+    prescriptionOnly: true,
+    forms: ["Tablet", "Oral solution"],
+    pregnancy: "Category C - Risk cannot be ruled out",
+    halfLife: "26 hours",
+    dosage: {
+      adult: "Depression/OCD: Initial: 50 mg once daily. Maintenance: 50-200 mg once daily. Panic Disorder: Initial: 25 mg once daily for 1 week, then 50 mg once daily. Maximum: 200 mg once daily.",
+      child: "OCD (ages 6-12): Initial: 25 mg once daily. Maintenance: 25-200 mg once daily. OCD (ages 13-17): Initial: 50 mg once daily. Maintenance: 50-200 mg once daily.",
+      elderly: "Start at lower doses and titrate slowly.",
+      frequency: "Once daily, morning or evening",
+      renal: "Use with caution in severe renal impairment",
+      hepatic: "Use lower dose or less frequent dosing in hepatic impairment"
+    },
+    sideEffects: {
+      common: [
+        "Nausea",
+        "Diarrhea or loose stools",
+        "Dry mouth",
+        "Drowsiness",
+        "Insomnia",
+        "Dizziness",
+        "Fatigue",
+        "Sexual dysfunction"
+      ],
+      serious: [
+        "Serotonin syndrome",
+        "Increased risk of suicidal thoughts (especially in young adults)",
+        "Abnormal bleeding",
+        "Hyponatremia",
+        "Seizures"
+      ],
+      rare: [
+        "Angle-closure glaucoma",
+        "QT prolongation",
+        "SIADH (syndrome of inappropriate antidiuretic hormone)",
+        "Stevens-Johnson syndrome"
+      ]
+    },
+    overdose: {
+      symptoms: [
+        "Drowsiness",
+        "Vomiting",
+        "Tachycardia",
+        "Tremor",
+        "Dizziness",
+        "Seizures",
+        "QT prolongation",
+        "Serotonin syndrome"
+      ],
+      treatment: "Ensure airway, breathing, and circulation. Activated charcoal if recently ingested. Supportive care and monitoring.",
+      antidote: "No specific antidote."
+    },
+    warnings: [
+      "Suicidality: Monitor for worsening depression or emergence of suicidal thoughts, especially during initial treatment or dose changes.",
+      "Serotonin syndrome: Can be life-threatening. Risk increases with concomitant use of other serotonergic drugs.",
+      "Activation of mania/hypomania: Screen for bipolar disorder before starting treatment.",
+      "Discontinuation syndrome: Gradually taper dose when stopping treatment."
+    ],
+    blackBoxWarning: "WARNING: SUICIDAL THOUGHTS AND BEHAVIORS. Antidepressants increase the risk of suicidal thoughts and behaviors in pediatric and young adult patients. Monitor closely for worsening and emergence of suicidal thoughts and behaviors.",
+    interactions: [
+      "MAOIs: Do not use within 14 days of MAOIs due to risk of serotonin syndrome",
+      "Other serotonergic drugs (triptans, SSRIs, SNRIs, lithium, tramadol): Increased risk of serotonin syndrome",
+      "Drugs affecting coagulation (NSAIDs, aspirin, warfarin): Increased bleeding risk",
+      "CYP2D6 substrates (including some antipsychotics and antiarrhythmics): May increase levels of these medications"
+    ],
+    interactionSeverity: {
+      major: ["MAOIs", "Pimozide", "Linezolid", "Methylene blue IV"],
+      moderate: ["Triptans", "Other SSRIs/SNRIs", "Tramadol", "Warfarin", "NSAIDs", "Cimetidine"],
+      minor: ["Alcohol", "Diazepam", "Tolbutamide"]
+    },
+    pharmacokinetics: {
+      absorption: "Well absorbed from GI tract; food increases bioavailability",
+      distribution: "Protein binding approximately 98%",
+      metabolism: "Extensively metabolized in the liver, primarily by CYP2B6, CYP2C19, CYP2C9, and CYP3A4",
+      elimination: "Elimination half-life approximately 26 hours; excreted as metabolites in urine and feces"
+    },
+    source: "Drugs.com"
+  },
+  montelukast: {
+    name: "Montelukast",
+    genericName: "Montelukast Sodium",
+    drugClass: "Leukotriene Receptor Antagonist",
+    description: "Montelukast is used to prevent and treat symptoms of asthma and seasonal allergies, and to prevent exercise-induced bronchoconstriction. It works by blocking leukotrienes, substances that cause inflammation in the lungs and tightening of airway muscles.",
+    drugsComUrl: "https://www.drugs.com/montelukast.html",
+    usedFor: ["Asthma", "Seasonal Allergic Rhinitis", "Exercise-induced Bronchoconstriction", "Perennial Allergic Rhinitis"],
+    prescriptionOnly: true,
+    forms: ["Tablet", "Chewable tablet", "Oral granules"],
+    pregnancy: "Category B - No evidence of risk in humans",
+    halfLife: "2.7-5.5 hours",
+    dosage: {
+      adult: "Asthma/Allergic Rhinitis (≥15 years): 10 mg once daily. Exercise-induced bronchoconstriction: 10 mg at least 2 hours before exercise; do not take another dose within 24 hours.",
+      child: "6-14 years: 5 mg chewable tablet once daily. 2-5 years: 4 mg chewable tablet or oral granules once daily. 12-23 months: 4 mg oral granules once daily.",
+      elderly: "No dose adjustment needed",
+      frequency: "Once daily, usually in the evening for asthma",
+      renal: "No dose adjustment needed",
+      hepatic: "Use with caution in severe hepatic impairment"
+    },
+    sideEffects: {
+      common: [
+        "Headache",
+        "Fatigue",
+        "Abdominal pain",
+        "Cough",
+        "Influenza",
+        "Fever",
+        "Upper respiratory infection"
+      ],
+      serious: [
+        "Neuropsychiatric events (agitation, depression, suicidal thoughts)",
+        "Eosinophilic conditions (Churg-Strauss syndrome)",
+        "Systemic eosinophilia",
+        "Hepatic dysfunction"
+      ],
+      rare: [
+        "Anaphylaxis",
+        "Angioedema",
+        "Erythema multiforme",
+        "Stevens-Johnson syndrome"
+      ]
+    },
+    overdose: {
+      symptoms: [
+        "Thirst",
+        "Somnolence",
+        "Mydriasis",
+        "Hyperkinesia",
+        "Abdominal pain"
+      ],
+      treatment: "Supportive treatment; monitor and maintain airway, oxygenation, and vital signs.",
+      antidote: "No specific antidote."
+    },
+    warnings: [
+      "Neuropsychiatric events: Monitor for behavioral changes, depression, and suicidal thoughts or behavior.",
+      "Not for acute asthma attacks: Not indicated for treatment of acute bronchospasm.",
+      "Phenylketonurics: Chewable tablets contain phenylalanine.",
+      "Systemic eosinophilia, sometimes with vasculitis (Churg-Strauss syndrome), may occur with reduction of oral corticosteroid therapy."
+    ],
+    blackBoxWarning: "WARNING: SERIOUS NEUROPSYCHIATRIC EVENTS. Serious neuropsychiatric events have been reported in patients taking montelukast. The benefits may not outweigh the risks in some patients, particularly those with mild symptoms that can be adequately treated with other medications.",
+    interactions: [
+      "Strong CYP3A4 inducers (phenobarbital, rifampin) may decrease montelukast levels",
+      "Phenobarbital may decrease the AUC of montelukast",
+      "No clinically significant interactions with prednisone, prednisolone, or oral contraceptives",
+      "No dose adjustment needed when used with theophylline"
+    ],
+    interactionSeverity: {
+      major: [],
+      moderate: ["Phenobarbital", "Rifampin", "Other strong CYP3A4 inducers"],
+      minor: ["Prednisone", "Theophylline"]
+    },
+    pharmacokinetics: {
+      absorption: "Rapidly absorbed after oral administration; food effect minimal",
+      distribution: "Highly bound to plasma proteins (>99%)",
+      metabolism: "Extensively metabolized by CYP3A4 and CYP2C9 in the liver",
+      elimination: "Primarily excreted in bile; terminal half-life 2.7-5.5 hours"
+    },
+    source: "Drugs.com"
   }
 };
