@@ -180,7 +180,7 @@ const saveToSupabase = async (section: string, data: any, userId: string): Promi
     console.log(`Saving ${section} to Supabase for user ${userId}`);
     
     const { error } = await supabase
-      .from('user_medical_data')
+      .from('medical_profiles')
       .upsert({
         user_id: userId,
         section: dbSection,
@@ -207,7 +207,7 @@ const loadAllFromSupabase = async (userId: string): Promise<Record<string, any>>
     console.log(`Loading all sections from Supabase for user ${userId}`);
     
     const { data, error } = await supabase
-      .from('user_medical_data')
+      .from('medical_profiles')
       .select('section, data, updated_at')
       .eq('user_id', userId);
       

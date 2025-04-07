@@ -2,7 +2,7 @@
 import React, { createContext, useState, useEffect, useContext, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { User, Session } from '@supabase/supabase-js';
-import { loadAllSectionData, saveAllSectionData } from '@/utils/medicalProfileService';
+import { loadAllSectionData, saveSectionData } from '@/utils/medicalProfileService';
 
 interface AuthContextType {
   session: Session | null;
@@ -24,8 +24,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!user?.id) return false;
     
     try {
-      // Save current data to Supabase
-      await saveAllSectionData();
+      // Save all sections one by one
+      const sections = ['personal', 'history', 'medications', 'allergies', 
+                        'immunizations', 'social', 'reproductive', 'mental', 
+                        'functional', 'cultural'];
+      
+      // Save each section individually
+      for (const section of sections) {
+        await saveSectionData(section);
+      }
       
       // Load latest data from Supabase
       await loadAllSectionData();
@@ -78,8 +85,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signOut = async () => {
-    // Save data before signing out
-    await saveAllSectionData();
+    // Save data before signing out - each section individually
+    const sections = ['personal', 'history', 'medications', 'allergies', 
+                      'immunizations', 'social', 'reproductive', 'mental', 
+                      'functional', 'cultural'];
+    
+    for (const section of sections) {
+      await saveSectionData(section);
+    }
     
     await supabase.auth.signOut();
     localStorage.setItem('isLoggedIn', 'false');

@@ -1,4 +1,6 @@
+
 import React, { useState, useEffect } from 'react';
+import { useOutletContext } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Save } from 'lucide-react';
 import MedicalProfileCulturalPreferencesForm from '@/components/forms/MedicalProfileCulturalPreferencesForm';
@@ -6,7 +8,12 @@ import { toast } from '@/lib/toast';
 import { logChanges } from '@/utils/changeLog';
 import { loadSectionData, saveSectionData } from '@/utils/medicalProfileService';
 
+interface SectionContext {
+  isEditing: boolean;
+}
+
 const CulturalSection = () => {
+  const { isEditing } = useOutletContext<SectionContext>();
   const [isSaving, setIsSaving] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
   
@@ -50,7 +57,7 @@ const CulturalSection = () => {
     };
   }, []);
   
-  const handleSave = () => {
+  const handleSave = async () => {
     setIsSaving(true);
     
     try {
@@ -58,7 +65,7 @@ const CulturalSection = () => {
       
       console.log('Saving cultural preferences form data:', newFormData);
       
-      const saved = saveSectionData('cultural', newFormData);
+      const saved = await saveSectionData('cultural', newFormData);
       
       if (saved) {
         const savedProfileJson = localStorage.getItem('medicalProfile');
@@ -95,30 +102,38 @@ const CulturalSection = () => {
   };
 
   return (
-    <div>
-      <div className="flex justify-end mb-6">
-        <Button 
-          onClick={handleSave} 
-          className="bg-safet-500 hover:bg-safet-600"
-          disabled={isSaving}
-        >
-          {isSaving ? 'Saving...' : 'Save'}
-          {!isSaving && <Save className="ml-2 h-4 w-4" />}
-        </Button>
-      </div>
+    <div className={`${!isEditing ? 'opacity-90' : ''}`}>
+      {isEditing && (
+        <div className="flex justify-end mb-6">
+          <Button 
+            onClick={handleSave} 
+            className="bg-safet-500 hover:bg-safet-600"
+            disabled={isSaving}
+          >
+            {isSaving ? 'Saving...' : 'Save'}
+            {!isSaving && <Save className="ml-2 h-4 w-4" />}
+          </Button>
+        </div>
+      )}
       
-      {isLoaded && <MedicalProfileCulturalPreferencesForm />}
+      {isLoaded && (
+        <div className={`${!isEditing ? 'pointer-events-none' : ''}`}>
+          <MedicalProfileCulturalPreferencesForm />
+        </div>
+      )}
       
-      <div className="mt-8 flex justify-end gap-3">
-        <Button 
-          onClick={handleSave} 
-          className="bg-safet-500 hover:bg-safet-600"
-          disabled={isSaving}
-        >
-          {isSaving ? 'Saving...' : 'Save'}
-          {!isSaving && <Save className="ml-2 h-4 w-4" />}
-        </Button>
-      </div>
+      {isEditing && (
+        <div className="mt-8 flex justify-end gap-3">
+          <Button 
+            onClick={handleSave} 
+            className="bg-safet-500 hover:bg-safet-600"
+            disabled={isSaving}
+          >
+            {isSaving ? 'Saving...' : 'Save'}
+            {!isSaving && <Save className="ml-2 h-4 w-4" />}
+          </Button>
+        </div>
+      )}
     </div>
   );
 };
