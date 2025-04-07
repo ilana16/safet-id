@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { loadSectionData, saveSectionData, loadAllSectionData } from '@/utils/medicalProfileService';
 import { toast } from 'sonner';
@@ -7,7 +8,7 @@ interface MedicalProfileContextType {
   profileData: Record<string, any>;
   updateSectionData: (section: string, data: any) => void;
   loadSection: (section: string) => any;
-  saveSection: (section: string) => boolean;
+  saveSection: (section: string) => Promise<boolean>;
   isEditing: boolean;
   setIsEditing: (editing: boolean) => void;
   saveCurrentSection: (section: string) => Promise<boolean>;
@@ -135,7 +136,7 @@ export const MedicalProfileProvider = ({ children }: { children: ReactNode }) =>
     }
   };
 
-  const saveSection = (section: string): boolean => {
+  const saveSection = async (section: string): Promise<boolean> => {
     console.log(`Saving section data for ${section}`);
     try {
       const success = saveSectionData(section, profileData[section]);
@@ -153,7 +154,7 @@ export const MedicalProfileProvider = ({ children }: { children: ReactNode }) =>
   const saveCurrentSection = async (section: string): Promise<boolean> => {
     setIsSaving(true);
     try {
-      const success = saveSection(section);
+      const success = await saveSection(section);
       
       if (success) {
         toast.success(`${getSectionTitle(section)} saved successfully`);
