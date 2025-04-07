@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Search, Loader2, X } from 'lucide-react';
+import { Search, Loader2, X, Globe } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { Pill, PillIcon, ArrowRight } from 'lucide-react';
@@ -12,6 +12,11 @@ import { useDebounce } from '@/hooks/useDebounce';
 
 interface MedicationSearchProps {
   onSelectMedication: (medication: string) => void;
+}
+
+interface SearchResultItem {
+  name: string;
+  source?: 'local' | 'rxnorm' | 'dailymed' | 'who' | 'ema' | 'emaIris';
 }
 
 const MedicationSearch: React.FC<MedicationSearchProps> = ({ onSelectMedication }) => {
@@ -124,16 +129,30 @@ const MedicationSearch: React.FC<MedicationSearchProps> = ({ onSelectMedication 
           {searchResults.length > 0 && query.length >= 2 && (
             <div className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-auto">
               <ul className="py-1">
-                {searchResults.map((result, index) => (
-                  <li 
-                    key={index}
-                    className="px-4 py-2 hover:bg-gray-100 cursor-pointer flex items-center"
-                    onClick={() => handleSelectMedication(result)}
-                  >
-                    <Pill className="h-4 w-4 text-safet-500 mr-2" />
-                    {result}
-                  </li>
-                ))}
+                {searchResults.map((result, index) => {
+                  // Check if this is likely from an international source based on name patterns
+                  const isInternational = 
+                    result.includes('(EMA)') || 
+                    result.includes('IRIS') ||
+                    /\b[A-Z]{2,}\b/.test(result); // Matches abbreviations like "WHO" or "EMA"
+                    
+                  return (
+                    <li 
+                      key={index}
+                      className="px-4 py-2 hover:bg-gray-100 cursor-pointer flex items-center"
+                      onClick={() => handleSelectMedication(result)}
+                    >
+                      <Pill className="h-4 w-4 text-safet-500 mr-2" />
+                      <span>{result}</span>
+                      {isInternational && (
+                        <Badge className="ml-2 bg-blue-100 text-blue-800 border-blue-200">
+                          <Globe className="h-3 w-3 mr-1" />
+                          <span className="text-xs">Int'l</span>
+                        </Badge>
+                      )}
+                    </li>
+                  );
+                })}
               </ul>
             </div>
           )}
