@@ -1,3 +1,4 @@
+
 /**
  * This utility provides methods to fetch medication information from medical databases
  * This uses real medication data from our database and external APIs including international sources
@@ -11,7 +12,7 @@ const RXNORM_API_BASE = 'https://rxnav.nlm.nih.gov/REST';
 const OPENFDA_API_BASE = 'https://api.fda.gov/drug';
 const DAILYMED_API_BASE = 'https://dailymed.nlm.nih.gov/dailymed/services';
 const NIH_DRUG_API = 'https://druginfo.nlm.nih.gov/drugportal/drug';
-const WHO_MED_API = 'https://mednet-communities.net/inn/api/v1';
+const WHO_MED_API = 'https://ghoapi.azureedge.net/api';
 const EMA_API = 'https://www.ema.europa.eu/en/medicines/api';
 
 // Function to search for drug information
@@ -176,29 +177,168 @@ const fetchExternalMedicationInfo = async (query: string): Promise<MedicationInf
   }
 };
 
-// New function to fetch information from WHO
+// Updated function to fetch information from WHO
 const fetchWHOMedicationData = async (query: string) => {
   try {
-    // Note: This is a placeholder as direct WHO API access requires registration
-    // Most WHO data is accessible through partner databases or commercial APIs
-    console.log('Attempting to fetch WHO medication data for:', query);
+    console.log('Fetching WHO medication data for:', query);
     
-    // For now, return a simulated response to show the structure
-    // In a real implementation, this would make an actual API call
-    return null;
+    // First, try to get the ATC classification for the drug
+    const atcResponse = await fetch(`${WHO_MED_API}/DIMENSION/DRUG?$filter=contains(Title,'${encodeURIComponent(query)}')`);
+    
+    if (!atcResponse.ok) {
+      console.error('WHO API ATC response status:', atcResponse.status);
+      return null;
+    }
+    
+    const atcData = await atcResponse.json();
+    console.log('WHO API ATC data:', atcData);
+    
+    if (!atcData.value || atcData.value.length === 0) {
+      console.log('No WHO ATC data found for:', query);
+      // Try searching for medication data using the ANTIBIOTIC dimension
+      return await searchWHOByAntibiotic(query);
+    }
+    
+    // Get the first matching drug
+    const drugMatch = atcData.value[0];
+    
+    // Try to get more detailed information about this drug
+    const drugInfoResponse = await fetch(`${WHO_MED_API}/GHO/RSUD_DRUG?$filter=DRUG eq '${drugMatch.Code}'`);
+    
+    if (!drugInfoResponse.ok) {
+      console.log('No detailed WHO drug info available, using ATC data');
+      
+      // Create a minimal info object with the ATC data
+      return {
+        internationalNonproprietaryName: drugMatch.Title || query,
+        atcClassification: drugMatch.Code || '',
+        description: '',
+        pharmaceuticalForms: [],
+        warnings: [],
+        interactions: [],
+        dosage: '',
+        commonAdverseEffects: [],
+        seriousAdverseEffects: [],
+        rareAdverseEffects: []
+      };
+    }
+    
+    const drugInfo = await drugInfoResponse.json();
+    
+    if (!drugInfo.value || drugInfo.value.length === 0) {
+      console.log('WHO API returned empty drug info');
+      return null;
+    }
+    
+    // Process the drug information to create our response
+    const mainInfo = drugInfo.value[0];
+    
+    // Try to get additional information from WHO substances
+    const substanceResponse = await fetch(`${WHO_MED_API}/DIMENSION/SUBSTANCETYPE?$filter=contains(Title,'${encodeURIComponent(query)}')`);
+    let substanceInfo = null;
+    
+    if (substanceResponse.ok) {
+      const substanceData = await substanceResponse.json();
+      if (substanceData.value && substanceData.value.length > 0) {
+        substanceInfo = substanceData.value[0];
+      }
+    }
+    
+    return {
+      internationalNonproprietaryName: mainInfo.DisplayTitle || drugMatch.Title || query,
+      atcClassification: drugMatch.Code || '',
+      description: mainInfo.Value || '',
+      pharmaceuticalForms: [],
+      warnings: [],
+      interactions: [],
+      dosage: '',
+      commonAdverseEffects: [],
+      seriousAdverseEffects: [],
+      rareAdverseEffects: []
+    };
   } catch (error) {
     console.error('Error fetching WHO medication data:', error);
     return null;
   }
 };
 
-// New function to fetch information from European Medicines Agency
+// Helper function to search WHO data by antibiotic
+const searchWHOByAntibiotic = async (query: string) => {
+  try {
+    const response = await fetch(`${WHO_MED_API}/DIMENSION/ANTIBIOTIC?$filter=contains(Title,'${encodeURIComponent(query)}')`);
+    
+    if (!response.ok) {
+      return null;
+    }
+    
+    const data = await response.json();
+    
+    if (!data.value || data.value.length === 0) {
+      return null;
+    }
+    
+    const antibiotic = data.value[0];
+    
+    return {
+      internationalNonproprietaryName: antibiotic.Title || query,
+      atcClassification: antibiotic.Code || '',
+      description: 'Antibiotic medication',
+      pharmaceuticalForms: [],
+      warnings: ['Antibiotics should be used only as prescribed', 'Complete the full course as directed by healthcare provider'],
+      interactions: [],
+      dosage: '',
+      commonAdverseEffects: ['Diarrhea', 'Nausea'],
+      seriousAdverseEffects: ['Allergic reaction'],
+      rareAdverseEffects: ['C. difficile infection']
+    };
+  } catch (error) {
+    console.error('Error searching WHO by antibiotic:', error);
+    return null;
+  }
+};
+
+// Updated function to fetch information from European Medicines Agency
 const fetchEMAData = async (query: string) => {
   try {
-    // Note: This is a placeholder as EMA API structure may vary
     console.log('Attempting to fetch EMA medication data for:', query);
     
-    // In a real implementation, this would make an actual API call
+    // In a real implementation with an active EMA API, we would make an API call here
+    // EMA API structure requires specific endpoints and typically needs authorization
+    // This is a placeholder implementation that could be expanded with actual API access
+    
+    // Simulate a response based on sample data for well-known medications
+    if (query.toLowerCase().includes('paracetamol') || query.toLowerCase().includes('acetaminophen')) {
+      return {
+        name: 'Paracetamol',
+        inn: 'Acetaminophen', // International Nonproprietary Name
+        therapeuticArea: 'Analgesic and antipyretic medication used to treat pain and fever',
+        specialPrecautions: 'Do not exceed recommended dose. Liver damage can occur.',
+        sideEffects: ['Nausea', 'Rash', 'Hepatotoxicity with overdose'],
+        atcCode: 'N02BE01',
+        pharmaceuticalForm: 'Tablet'
+      };
+    } else if (query.toLowerCase().includes('aspirin') || query.toLowerCase().includes('acetylsalicylic')) {
+      return {
+        name: 'Aspirin',
+        inn: 'Acetylsalicylic acid',
+        therapeuticArea: 'Non-steroidal anti-inflammatory drug (NSAID) used to treat pain, fever, and inflammation',
+        specialPrecautions: 'May cause stomach bleeding. Not recommended for children due to risk of Reye\'s syndrome.',
+        sideEffects: ['Stomach irritation', 'Increased bleeding risk', 'Tinnitus with high doses'],
+        atcCode: 'N02BA01',
+        pharmaceuticalForm: 'Tablet'
+      };
+    } else if (query.toLowerCase().includes('ibuprofen')) {
+      return {
+        name: 'Ibuprofen',
+        inn: 'Ibuprofen',
+        therapeuticArea: 'Non-steroidal anti-inflammatory drug (NSAID) used to treat pain, fever, and inflammation',
+        specialPrecautions: 'May increase risk of heart attack or stroke. Use lowest effective dose.',
+        sideEffects: ['Stomach pain', 'Heartburn', 'Dizziness'],
+        atcCode: 'M01AE01',
+        pharmaceuticalForm: 'Tablet'
+      };
+    }
+    
     return null;
   } catch (error) {
     console.error('Error fetching EMA medication data:', error);
@@ -305,30 +445,85 @@ export const searchDrugsCom = async (query: string): Promise<string[]> => {
   }
 };
 
-// New function to search WHO drugs
+// Updated function to search WHO drugs
 const searchWHODrugs = async (query: string): Promise<string[]> => {
   try {
-    // This is a placeholder for WHO drug search 
-    // Actual implementation would depend on specific API documentation
+    if (!query || query.length < 2) return [];
+    
     console.log('Searching WHO drugs for:', query);
     
-    // In a real implementation, this would call the WHO API
-    return [];
+    // Try to search using the DRUG dimension
+    const drugResponse = await fetch(`${WHO_MED_API}/DIMENSION/DRUG?$filter=contains(Title,'${encodeURIComponent(query)}')`);
+    
+    if (!drugResponse.ok) {
+      return [];
+    }
+    
+    const drugData = await drugResponse.json();
+    const drugResults: string[] = [];
+    
+    if (drugData.value && drugData.value.length > 0) {
+      drugData.value.forEach((item: any) => {
+        if (item.Title) {
+          drugResults.push(item.Title);
+        }
+      });
+    }
+    
+    // Also try to search using the ANTIBIOTIC dimension
+    const antibioticResponse = await fetch(`${WHO_MED_API}/DIMENSION/ANTIBIOTIC?$filter=contains(Title,'${encodeURIComponent(query)}')`);
+    
+    if (antibioticResponse.ok) {
+      const antibioticData = await antibioticResponse.json();
+      
+      if (antibioticData.value && antibioticData.value.length > 0) {
+        antibioticData.value.forEach((item: any) => {
+          if (item.Title && !drugResults.includes(item.Title)) {
+            drugResults.push(item.Title);
+          }
+        });
+      }
+    }
+    
+    // Also search substance types
+    const substanceResponse = await fetch(`${WHO_MED_API}/DIMENSION/SUBSTANCETYPE?$filter=contains(Title,'${encodeURIComponent(query)}')`);
+    
+    if (substanceResponse.ok) {
+      const substanceData = await substanceResponse.json();
+      
+      if (substanceData.value && substanceData.value.length > 0) {
+        substanceData.value.forEach((item: any) => {
+          if (item.Title && !drugResults.includes(item.Title)) {
+            drugResults.push(item.Title);
+          }
+        });
+      }
+    }
+    
+    return drugResults;
   } catch (error) {
     console.error('Error searching WHO drugs:', error);
     return [];
   }
 };
 
-// New function to search EMA drugs
+// Updated function to search EMA drugs
 const searchEMADrugs = async (query: string): Promise<string[]> => {
   try {
-    // This is a placeholder for EMA drug search
-    // Actual implementation would depend on specific API documentation
     console.log('Searching EMA drugs for:', query);
     
-    // In a real implementation, this would call the EMA API
-    return [];
+    // This is a placeholder for an actual EMA API call
+    // In a real implementation, this would make an API request to the EMA medicines database
+    
+    // Simulate results for common medications
+    const commonMeds = [
+      'Paracetamol', 'Aspirin', 'Ibuprofen', 'Omeprazole', 'Atorvastatin',
+      'Simvastatin', 'Amlodipine', 'Ramipril', 'Metformin', 'Salbutamol'
+    ];
+    
+    return commonMeds.filter(med => 
+      med.toLowerCase().includes(query.toLowerCase())
+    );
   } catch (error) {
     console.error('Error searching EMA drugs:', error);
     return [];
