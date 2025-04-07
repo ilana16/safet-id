@@ -1,4 +1,3 @@
-
 /**
  * This utility provides methods to fetch medication information from medical databases
  * This uses real medication data from our database and external APIs including international sources
@@ -70,7 +69,11 @@ const fetchExternalMedicationInfo = async (query: string): Promise<MedicationInf
           genericName: fdaInfo?.genericName || whoData?.internationalNonproprietaryName || '',
           // Use the first brand name if available
           description: fdaInfo?.description || whoData?.description || '',
-          dosageForms: medicationDetails.dosageForms || [],
+          dosage: medicationDetails.dosage || {
+            adult: '',
+            child: '',
+            elderly: '',
+          },
           interactions: medicationDetails.interactions || [],
           warnings: fdaInfo?.warnings || whoData?.warnings || [],
           sideEffects: {
@@ -78,7 +81,9 @@ const fetchExternalMedicationInfo = async (query: string): Promise<MedicationInf
             serious: whoData?.seriousAdverseEffects || [],
             rare: []
           },
-          drugsComUrl: getDrugsComUrl(medicationDetails.name)
+          drugsComUrl: getDrugsComUrl(medicationDetails.name),
+          drugClass: fdaInfo?.pharmClass || whoData?.atcClassification || '',
+          forms: medicationDetails.dosageForms || []
         };
       }
     }
@@ -90,7 +95,11 @@ const fetchExternalMedicationInfo = async (query: string): Promise<MedicationInf
         name: fdaInfo.brandName || fdaInfo.genericName || query,
         genericName: fdaInfo.genericName || '',
         description: fdaInfo.description || '',
-        dosageForms: fdaInfo.dosageForms || [],
+        dosage: {
+          adult: '',
+          child: '',
+          elderly: '',
+        },
         interactions: [],
         warnings: fdaInfo.warnings || [],
         sideEffects: {
@@ -98,7 +107,9 @@ const fetchExternalMedicationInfo = async (query: string): Promise<MedicationInf
           serious: [],
           rare: []
         },
-        drugsComUrl: getDrugsComUrl(fdaInfo.brandName || fdaInfo.genericName || query)
+        drugsComUrl: getDrugsComUrl(fdaInfo.brandName || fdaInfo.genericName || query),
+        drugClass: fdaInfo.pharmClass || '',
+        forms: fdaInfo.dosageForms || []
       };
     }
     
@@ -115,7 +126,11 @@ const fetchExternalMedicationInfo = async (query: string): Promise<MedicationInf
         name: whoInfo.internationalNonproprietaryName || query,
         genericName: whoInfo.internationalNonproprietaryName || '',
         description: whoInfo.description || '',
-        dosageForms: whoInfo.pharmaceuticalForms || [],
+        dosage: {
+          adult: whoInfo.dosage || '',
+          child: '',
+          elderly: '',
+        },
         interactions: whoInfo.interactions || [],
         warnings: whoInfo.warnings || [],
         sideEffects: {
@@ -123,7 +138,9 @@ const fetchExternalMedicationInfo = async (query: string): Promise<MedicationInf
           serious: whoInfo.seriousAdverseEffects || [],
           rare: whoInfo.rareAdverseEffects || []
         },
-        drugsComUrl: getDrugsComUrl(query)
+        drugsComUrl: getDrugsComUrl(query),
+        drugClass: whoInfo.atcClassification || '',
+        forms: whoInfo.pharmaceuticalForms || []
       };
     }
     
@@ -134,7 +151,11 @@ const fetchExternalMedicationInfo = async (query: string): Promise<MedicationInf
         name: emaInfo.name || query,
         genericName: emaInfo.inn || '',
         description: emaInfo.therapeuticArea || '',
-        dosageForms: emaInfo.pharmaceuticalForm ? [emaInfo.pharmaceuticalForm] : [],
+        dosage: {
+          adult: '',
+          child: '',
+          elderly: '',
+        },
         interactions: [],
         warnings: emaInfo.specialPrecautions ? [emaInfo.specialPrecautions] : [],
         sideEffects: {
@@ -142,7 +163,9 @@ const fetchExternalMedicationInfo = async (query: string): Promise<MedicationInf
           serious: [],
           rare: []
         },
-        drugsComUrl: getDrugsComUrl(query)
+        drugsComUrl: getDrugsComUrl(query),
+        drugClass: emaInfo.atcCode || '',
+        forms: emaInfo.pharmaceuticalForm ? [emaInfo.pharmaceuticalForm] : []
       };
     }
     
@@ -219,6 +242,11 @@ const fetchDailyMedInfo = async (query: string): Promise<MedicationInfo | null> 
       name: query,
       genericName: infoData.activemoiety || '',
       description: infoData.indications_and_usage || '',
+      dosage: {
+        adult: '',
+        child: '',
+        elderly: '',
+      },
       dosageForms: infoData.dosage_forms_and_strengths ? [infoData.dosage_forms_and_strengths] : [],
       interactions: infoData.drug_interactions ? [infoData.drug_interactions] : [],
       warnings: infoData.warnings ? [infoData.warnings] : [],
@@ -227,7 +255,9 @@ const fetchDailyMedInfo = async (query: string): Promise<MedicationInfo | null> 
         serious: infoData.warnings_and_cautions ? [infoData.warnings_and_cautions] : [],
         rare: []
       },
-      drugsComUrl: getDrugsComUrl(query)
+      drugsComUrl: getDrugsComUrl(query),
+      drugClass: '',
+      forms: []
     };
     
     return extractedInfo;
@@ -453,7 +483,12 @@ const fetchMedicationDetailsByRxCUI = async (rxcui: string) => {
     return {
       name: drugName || rxcui,
       dosageForms: Array.from(dosageForms),
-      interactions: interactions
+      interactions: interactions,
+      dosage: {
+        adult: '',
+        child: '',
+        elderly: '',
+      },
     };
   } catch (error) {
     console.error('Error fetching medication details:', error);
