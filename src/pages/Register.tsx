@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import PageLayout from '@/components/layout/PageLayout';
@@ -8,8 +7,8 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from '@/lib/toast';
-import { generateAccessCode } from '@/utils/accessCode';
 import { Mail, Lock, User, ShieldCheck } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
 const Register = () => {
   const navigate = useNavigate();
@@ -70,34 +69,54 @@ const Register = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!validate()) return;
     
     setIsLoading(true);
     
-    // In a real app, this would be an API call to register
-    setTimeout(() => {
-      const accessCode = generateAccessCode();
-      const userId = `user_${Date.now()}`;
-      
-      // Store user data in localStorage (for demo purposes)
-      const userData = {
-        id: userId,
-        firstName: formData.firstName,
-        lastName: formData.lastName,
+    try {
+      // Register with Supabase
+      const { data, error } = await supabase.auth.signUp({
         email: formData.email,
-        accessCode,
-        createdAt: new Date().toISOString(),
-      };
+        password: formData.password,
+        options: {
+          data: {
+            firstName: formData.firstName,
+            lastName: formData.lastName
+          }
+        }
+      });
       
-      localStorage.setItem('user', JSON.stringify(userData));
+      if (error) {
+        throw error;
+      }
+      
+      // Update the local storage isLoggedIn flag
+      localStorage.setItem('isLoggedIn', 'true');
       
       setIsLoading(false);
       toast.success('Account created successfully!');
       navigate('/dashboard');
-    }, 1500);
+    } catch (error: any) {
+      setIsLoading(false);
+      console.error('Registration error:', error);
+      toast.error(error.message || 'Registration failed. Please try again.');
+      
+      // Handle specific errors
+      if (error.message?.includes('email')) {
+        setErrors(prev => ({
+          ...prev,
+          email: 'Email already in use or invalid'
+        }));
+      } else if (error.message?.includes('password')) {
+        setErrors(prev => ({
+          ...prev,
+          password: 'Password is too weak'
+        }));
+      }
+    }
   };
 
   return (

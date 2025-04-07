@@ -7,6 +7,7 @@ import UserProfileCard from '@/components/dashboard/UserProfileCard';
 import QRCodeCard from '@/components/dashboard/QRCodeCard';
 import DashboardTabs from '@/components/dashboard/DashboardTabs';
 import { toast } from '@/lib/toast';
+import { supabase } from '@/integrations/supabase/client';
 
 interface UserData {
   id: string;
@@ -25,31 +26,72 @@ const Dashboard = () => {
   const [isLoading, setIsLoading] = useState(true);
   
   useEffect(() => {
-    // Check if user is logged in
-    const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
-    const storedUser = localStorage.getItem('user');
+    const checkAuth = async () => {
+      try {
+        // Get current session
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (!session) {
+          toast.error('Please login to access the dashboard');
+          navigate('/login');
+          return;
+        }
+        
+        // Get user metadata and email
+        const { email, id } = session.user;
+        const firstName = session.user.user_metadata.firstName || '';
+        const lastName = session.user.user_metadata.lastName || '';
+        
+        // Generate or retrieve access code
+        let accessCode = localStorage.getItem(`accessCode_${id}`);
+        if (!accessCode) {
+          // Use existing function to generate code
+          accessCode = generateAccessCode();
+          localStorage.setItem(`accessCode_${id}`, accessCode);
+        }
+        
+        const userData: UserData = {
+          id,
+          firstName,
+          lastName,
+          email: email || '',
+          accessCode,
+          createdAt: session.user.created_at || new Date().toISOString(),
+        };
+        
+        setUser(userData);
+        
+        // Generate QR code
+        if (userData.id && userData.accessCode) {
+          const qrUrl = generateQRCodeUrl(userData.id, userData.accessCode);
+          setQrCodeUrl(qrUrl);
+        }
+        
+        // Calculate profile completion (for demo purposes)
+        // In a real app, this would check actual profile data
+        const hasProfile = localStorage.getItem('medicalProfile');
+        setCompletionPercentage(hasProfile ? 85 : 15);
+      } catch (error) {
+        console.error('Error fetching user data:', error);
+        toast.error('Error loading user information');
+      } finally {
+        setIsLoading(false);
+      }
+    };
     
-    if (!isLoggedIn || !storedUser) {
-      toast.error('Please login to access the dashboard');
-      navigate('/login');
-      return;
-    }
-    
-    const userData = JSON.parse(storedUser) as UserData;
-    setUser(userData);
-    
-    // Generate QR code
-    if (userData.id && userData.accessCode) {
-      const qrUrl = generateQRCodeUrl(userData.id, userData.accessCode);
-      setQrCodeUrl(qrUrl);
-    }
-    
-    // Calculate profile completion (for demo purposes)
-    // In a real app, this would check actual profile data
-    const hasProfile = localStorage.getItem('medicalProfile');
-    setCompletionPercentage(hasProfile ? 85 : 15);
-    setIsLoading(false);
+    checkAuth();
   }, [navigate]);
+
+  // Generate access code function
+  const generateAccessCode = () => {
+    const characters = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    let result = '';
+    for (let i = 0; i < 8; i++) {
+      if (i === 4) result += '-';
+      result += characters.charAt(Math.floor(Math.random() * characters.length));
+    }
+    return result;
+  };
 
   if (isLoading) {
     return (

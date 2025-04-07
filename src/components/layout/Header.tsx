@@ -5,23 +5,55 @@ import { Button } from '@/components/ui/button';
 import { User, LogIn, LogOut } from 'lucide-react';
 import Logo from '@/components/ui/Logo';
 import { toast } from '@/lib/toast';
+import { supabase } from '@/integrations/supabase/client';
 
 const Header = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Check authentication status whenever location changes
-    const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
-    setIsAuthenticated(isLoggedIn);
-  }, [location]);
+    // Set up auth state listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        const isAuthed = !!session;
+        setIsAuthenticated(isAuthed);
+        localStorage.setItem('isLoggedIn', isAuthed ? 'true' : 'false');
+        setIsLoading(false);
+      }
+    );
+    
+    // Check for existing session
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      const isAuthed = !!session;
+      setIsAuthenticated(isAuthed);
+      localStorage.setItem('isLoggedIn', isAuthed ? 'true' : 'false');
+      setIsLoading(false);
+    };
+    
+    checkSession();
 
-  const handleLogout = () => {
-    localStorage.setItem('isLoggedIn', 'false');
-    setIsAuthenticated(false);
-    toast.success('Successfully logged out');
-    navigate('/');
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const handleLogout = async () => {
+    setIsLoading(true);
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      
+      localStorage.setItem('isLoggedIn', 'false');
+      setIsAuthenticated(false);
+      toast.success('Successfully logged out');
+      navigate('/');
+    } catch (error) {
+      console.error('Logout error:', error);
+      toast.error('Failed to log out. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -64,7 +96,9 @@ const Header = () => {
           </nav>
           
           <div className="flex items-center space-x-4">
-            {isAuthenticated ? (
+            {isLoading ? (
+              <div className="h-10 w-20 bg-gray-100 animate-pulse rounded"></div>
+            ) : isAuthenticated ? (
               <>
                 <Link to="/dashboard">
                   <Button 

@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import PageLayout from '@/components/layout/PageLayout';
@@ -8,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from '@/lib/toast';
 import { Mail, Lock, ShieldCheck } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
 const Login = () => {
   const navigate = useNavigate();
@@ -51,35 +51,43 @@ const Login = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!validate()) return;
     
     setIsLoading(true);
     
-    // Check if user exists in localStorage (for demo purposes)
-    const storedUser = localStorage.getItem('user');
-    
-    if (storedUser) {
-      const userData = JSON.parse(storedUser);
+    try {
+      // Sign in with Supabase
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: formData.email,
+        password: formData.password,
+      });
       
-      // In a real app, we would hash and compare passwords
-      // For demo, we're just checking if the email matches
-      if (userData.email === formData.email) {
-        // Update login status
-        localStorage.setItem('isLoggedIn', 'true');
-        
-        setIsLoading(false);
-        toast.success('Login successful!');
-        navigate('/dashboard');
-        return;
+      if (error) {
+        throw error;
+      }
+      
+      // Update local storage isLoggedIn flag to maintain compatibility with existing code
+      localStorage.setItem('isLoggedIn', 'true');
+      
+      setIsLoading(false);
+      toast.success('Login successful!');
+      navigate('/dashboard');
+    } catch (error: any) {
+      setIsLoading(false);
+      console.error('Login error:', error);
+      toast.error('Invalid email or password');
+      
+      // Update error states based on the error
+      if (error.message?.includes('credentials')) {
+        setErrors({
+          email: 'Invalid email or password',
+          password: 'Invalid email or password'
+        });
       }
     }
-    
-    // Login failed
-    setIsLoading(false);
-    toast.error('Invalid email or password');
   };
 
   return (
