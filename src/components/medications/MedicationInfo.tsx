@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card } from '@/components/ui/card';
 import { MedicationInfo as MedicationInfoType } from '@/utils/medicationData';
@@ -91,12 +90,6 @@ const MedicationInfo: React.FC<MedicationInfoProps> = ({ medication }) => {
               <Card className="p-4 bg-gray-50 border border-gray-200">
                 <h3 className="font-medium text-gray-800 mb-3">Quick Information</h3>
                 <ul className="space-y-3 text-sm">
-                  <li className="flex items-start">
-                    <span className="font-medium w-24 text-gray-700">Rx Status:</span>
-                    <span className="text-gray-600">
-                      {medication.prescriptionOnly ? 'Prescription only' : 'Available OTC'}
-                    </span>
-                  </li>
                   {medication.drugClass && (
                     <li className="flex items-start">
                       <span className="font-medium w-24 text-gray-700">Drug Class:</span>
