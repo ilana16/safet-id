@@ -1,4 +1,3 @@
-
 /**
  * This utility provides methods to fetch medication information from medical databases
  * This uses real medication data from our database and external APIs
@@ -61,7 +60,7 @@ const fetchExternalMedicationInfo = async (query: string): Promise<MedicationInf
         return {
           name: medicationDetails.name,
           genericName: fdaInfo?.genericName || '',
-          brandNames: fdaInfo?.brandName ? [fdaInfo.brandName] : [],
+          brandName: fdaInfo?.brandName ? fdaInfo.brandName : '',
           className: fdaInfo?.pharmClass || '',
           description: fdaInfo?.description || '',
           dosageForms: medicationDetails.dosageForms || [],
@@ -83,7 +82,7 @@ const fetchExternalMedicationInfo = async (query: string): Promise<MedicationInf
       return {
         name: fdaInfo.brandName || fdaInfo.genericName || query,
         genericName: fdaInfo.genericName || '',
-        brandNames: fdaInfo.brandName ? [fdaInfo.brandName] : [],
+        brandName: fdaInfo.brandName || '',
         className: fdaInfo.pharmClass || '',
         description: fdaInfo.description || '',
         dosageForms: fdaInfo.dosageForms || [],
