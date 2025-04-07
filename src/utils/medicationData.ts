@@ -1,4 +1,3 @@
-
 /**
  * Types and mock data for medication information
  * This represents medication data from a medical API like Drugs.com
@@ -23,6 +22,11 @@ export interface MedicationInfo {
     common?: string[];
     serious?: string[];
     rare?: string[];
+  };
+  overdose?: {
+    symptoms: string[];
+    treatment: string;
+    antidote?: string;
   };
   warnings?: string[];
   interactions?: string[];
@@ -89,6 +93,16 @@ export const medicationDatabase: Record<string, MedicationInfo> = {
         "Stevens-Johnson syndrome"
       ]
     },
+    overdose: {
+      symptoms: [
+        "Severe hypotension (dangerously low blood pressure)",
+        "Dizziness",
+        "Fainting",
+        "Shock"
+      ],
+      treatment: "Treatment includes fluid resuscitation to increase blood volume and vasopressors for severe hypotension. Hemodialysis may help remove the drug from circulation.",
+      antidote: "There is no specific antidote for lisinopril overdose."
+    },
     warnings: [
       "May cause harm or death to an unborn baby. Stop taking this medicine and tell your doctor right away if you become pregnant.",
       "May cause angioedema (swelling of face, lips, tongue, throat). Seek emergency medical attention if you have difficulty breathing or swallowing.",
@@ -151,6 +165,18 @@ export const medicationDatabase: Record<string, MedicationInfo> = {
         "Hepatotoxicity",
         "Photosensitivity"
       ]
+    },
+    overdose: {
+      symptoms: [
+        "Lactic acidosis",
+        "Severe hypoglycemia",
+        "Nausea, vomiting",
+        "Abdominal pain",
+        "Hyperventilation",
+        "Lethargy"
+      ],
+      treatment: "Immediate hospitalization with aggressive supportive care and monitoring of blood glucose levels. Hemodialysis may be necessary to remove metformin from the blood.",
+      antidote: "No specific antidote. Hemodialysis can remove metformin and lactate."
     },
     warnings: [
       "Lactic acidosis warning: A rare but serious side effect. Seek emergency medical attention if you experience unusual muscle pain, difficulty breathing, stomach pain, or unusual tiredness.",
@@ -218,6 +244,14 @@ export const medicationDatabase: Record<string, MedicationInfo> = {
         "Peripheral neuropathy",
         "Tendon rupture"
       ]
+    },
+    overdose: {
+      symptoms: [
+        "No specific symptoms known",
+        "Possible liver enzyme elevation",
+        "Muscle pain and weakness"
+      ],
+      treatment: "Supportive care with monitoring of liver function and creatine kinase levels. No specific treatment necessary in most cases."
     },
     warnings: [
       "May cause liver damage. Your doctor will monitor liver function while taking this medication.",
@@ -288,6 +322,20 @@ export const medicationDatabase: Record<string, MedicationInfo> = {
         "Anemia"
       ]
     },
+    overdose: {
+      symptoms: [
+        "Tinnitus (ringing in ears)",
+        "Hyperthermia (elevated body temperature)",
+        "Hyperventilation",
+        "Respiratory alkalosis followed by metabolic acidosis",
+        "Nausea and vomiting",
+        "Confusion",
+        "Seizures",
+        "Coma (in severe cases)"
+      ],
+      treatment: "Activated charcoal if taken recently, correction of acid-base and electrolyte disturbances, respiratory support, and seizure management.",
+      antidote: "No specific antidote. Treatment is supportive."
+    },
     warnings: [
       "Reye's syndrome warning: Do not give to children or teenagers with viral infections.",
       "Bleeding risk: Can cause serious gastrointestinal bleeding, especially with long-term use.",
@@ -351,6 +399,18 @@ export const medicationDatabase: Record<string, MedicationInfo> = {
         "Constipation",
         "Excessive thirst"
       ]
+    },
+    overdose: {
+      symptoms: [
+        "Hypercalcemia (high calcium levels)",
+        "Nausea, vomiting",
+        "Increased thirst",
+        "Frequent urination",
+        "Kidney stones",
+        "Confusion",
+        "Weakness"
+      ],
+      treatment: "Discontinue vitamin D supplementation, restrict calcium intake, increase fluid intake, and in severe cases, provide IV fluids and corticosteroids."
     },
     warnings: [
       "Do not exceed recommended dosage without medical supervision.",
