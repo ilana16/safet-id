@@ -669,4 +669,4 @@ export const medicationDatabase: Record<string, MedicationInfo> = {
     ],
     interactionSeverity: {
       major: ["Methotrexate (increased toxicity)"],
-      moderate: ["Probenecid", "Oral contraceptives", "Warfarin", "Allop
+      moderate: ["Probenecid", "Oral contraceptives", "Warfarin", "Allopurinol"],
