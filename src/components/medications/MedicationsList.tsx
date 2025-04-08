@@ -45,6 +45,7 @@ import { Badge } from '@/components/ui/badge';
 import { Medication } from '@/pages/medical-profile/MedicationsSection';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { Checkbox } from '@/components/ui/checkbox';
 
 const frequencyOptions = [
   'Once daily',
@@ -60,10 +61,21 @@ const frequencyOptions = [
   'Every 12 hours',
   'Once a week',
   'Twice a week',
+  'X days a week',
   'Once a month',
   'Every X days',
   'As needed',
   'Other'
+];
+
+const daysOfWeek = [
+  { id: 'monday', label: 'Monday' },
+  { id: 'tuesday', label: 'Tuesday' },
+  { id: 'wednesday', label: 'Wednesday' },
+  { id: 'thursday', label: 'Thursday' },
+  { id: 'friday', label: 'Friday' },
+  { id: 'saturday', label: 'Saturday' },
+  { id: 'sunday', label: 'Sunday' }
 ];
 
 interface MedicationsListProps {
@@ -135,6 +147,24 @@ const MedicationsList: React.FC<MedicationsListProps> = ({
     setEditingMedication(prev => prev ? { ...prev, [field]: value } : null);
   };
 
+  const handleDayOfWeekToggle = (day: string) => {
+    setEditingMedication(prev => {
+      if (!prev) return prev;
+      const selectedDays = prev.selectedDaysOfWeek || [];
+      if (selectedDays.includes(day)) {
+        return {
+          ...prev,
+          selectedDaysOfWeek: selectedDays.filter(d => d !== day)
+        };
+      } else {
+        return {
+          ...prev,
+          selectedDaysOfWeek: [...selectedDays, day]
+        };
+      }
+    });
+  };
+
   const toggleNotes = (id: string) => {
     setExpandedNotes(prev => ({
       ...prev,
@@ -149,6 +179,15 @@ const MedicationsList: React.FC<MedicationsListProps> = ({
   const formatFrequency = (medication: Medication) => {
     if (medication.frequency === 'Every X days' && medication.customDays) {
       return `Every ${medication.customDays} day${medication.customDays === '1' ? '' : 's'}`;
+    }
+    if (medication.frequency === 'X days a week' && medication.selectedDaysOfWeek && medication.selectedDaysOfWeek.length > 0) {
+      if (medication.selectedDaysOfWeek.length === 7) {
+        return 'Every day';
+      }
+      const dayLabels = medication.selectedDaysOfWeek
+        .map(dayId => daysOfWeek.find(d => d.id === dayId)?.label || dayId)
+        .join(', ');
+      return `${medication.selectedDaysOfWeek.length} days a week (${dayLabels})`;
     }
     if (medication.frequency === 'Other' && medication.customFrequency) {
       return medication.customFrequency;
@@ -377,9 +416,16 @@ const MedicationsList: React.FC<MedicationsListProps> = ({
                   value={editingMedication.frequency}
                   onValueChange={(value) => {
                     handleChange('frequency', value);
-                    if (value !== 'Other' && value !== 'Every X days') {
+                    if (value !== 'Other' && value !== 'Every X days' && value !== 'X days a week') {
                       handleChange('customFrequency', '');
                       handleChange('customDays', '');
+                      setEditingMedication(prev => {
+                        if (!prev) return prev;
+                        return {
+                          ...prev,
+                          selectedDaysOfWeek: []
+                        };
+                      });
                     }
                   }}
                 >
@@ -404,6 +450,26 @@ const MedicationsList: React.FC<MedicationsListProps> = ({
                       value={editingMedication.customDays || ''}
                       onChange={(e) => handleChange('customDays', e.target.value)}
                     />
+                  </div>
+                )}
+                
+                {editingMedication.frequency === 'X days a week' && (
+                  <div className="mt-2 space-y-2">
+                    <Label>Select days of the week</Label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {daysOfWeek.map((day) => (
+                        <div key={day.id} className="flex items-center space-x-2">
+                          <Checkbox 
+                            id={`edit-${day.id}`} 
+                            checked={(editingMedication.selectedDaysOfWeek || []).includes(day.id)}
+                            onCheckedChange={() => handleDayOfWeekToggle(day.id)}
+                          />
+                          <Label htmlFor={`edit-${day.id}`} className="text-sm font-normal cursor-pointer">
+                            {day.label}
+                          </Label>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
                 

@@ -37,6 +37,7 @@ interface Medication {
   frequency: string;
   customFrequency: string;
   customDays: string;
+  selectedDaysOfWeek?: string[];
 }
 
 const defaultMedication: Medication = {
@@ -55,7 +56,8 @@ const defaultMedication: Medication = {
   doseTimes: [{ id: `time_${Date.now()}`, time: '' }],
   frequency: 'Once daily',
   customFrequency: '',
-  customDays: ''
+  customDays: '',
+  selectedDaysOfWeek: []
 };
 
 const frequencyOptions = [
@@ -72,10 +74,21 @@ const frequencyOptions = [
   'Every 12 hours',
   'Once a week',
   'Twice a week',
+  'X days a week',
   'Once a month',
   'Every X days',
   'As needed',
   'Other'
+];
+
+const daysOfWeek = [
+  { id: 'monday', label: 'Monday' },
+  { id: 'tuesday', label: 'Tuesday' },
+  { id: 'wednesday', label: 'Wednesday' },
+  { id: 'thursday', label: 'Thursday' },
+  { id: 'friday', label: 'Friday' },
+  { id: 'saturday', label: 'Saturday' },
+  { id: 'sunday', label: 'Sunday' }
 ];
 
 const MedicalProfileMedicationsForm = () => {
@@ -196,6 +209,26 @@ const MedicalProfileMedicationsForm = () => {
             time.id === timeId ? { ...time, time: value } : time
           )
         };
+      }
+      return med;
+    }));
+  };
+
+  const toggleDayOfWeek = (medId: string, day: string) => {
+    setMedications(medications.map(med => {
+      if (med.id === medId) {
+        const selectedDays = med.selectedDaysOfWeek || [];
+        if (selectedDays.includes(day)) {
+          return {
+            ...med,
+            selectedDaysOfWeek: selectedDays.filter(d => d !== day)
+          };
+        } else {
+          return {
+            ...med,
+            selectedDaysOfWeek: [...selectedDays, day]
+          };
+        }
       }
       return med;
     }));
@@ -487,9 +520,12 @@ const MedicalProfileMedicationsForm = () => {
                     value={med.frequency}
                     onValueChange={(value) => {
                       updateMedication(med.id, 'frequency', value);
-                      if (value !== 'Other' && value !== 'Every X days') {
+                      if (value !== 'Other' && value !== 'Every X days' && value !== 'X days a week') {
                         updateMedication(med.id, 'customFrequency', '');
                         updateMedication(med.id, 'customDays', '');
+                        setMedications(medications.map(m => 
+                          m.id === med.id ? { ...m, selectedDaysOfWeek: [] } : m
+                        ));
                       }
                     }}
                   >
@@ -514,6 +550,29 @@ const MedicalProfileMedicationsForm = () => {
                         value={med.customDays || ''}
                         onChange={(e) => updateMedication(med.id, 'customDays', e.target.value)}
                       />
+                    </div>
+                  )}
+                  
+                  {med.frequency === 'X days a week' && (
+                    <div className="mt-2 space-y-2">
+                      <Label>Select days of the week</Label>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        {daysOfWeek.map((day) => (
+                          <div key={day.id} className="flex items-center space-x-2">
+                            <Checkbox 
+                              id={`day-${med.id}-${day.id}`} 
+                              checked={(med.selectedDaysOfWeek || []).includes(day.id)}
+                              onCheckedChange={() => toggleDayOfWeek(med.id, day.id)}
+                            />
+                            <Label 
+                              htmlFor={`day-${med.id}-${day.id}`} 
+                              className="text-sm font-normal cursor-pointer"
+                            >
+                              {day.label}
+                            </Label>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   )}
                   

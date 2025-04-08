@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -24,21 +23,16 @@ export interface Medication {
   frequency: string;
   customFrequency?: string;
   customDays?: string;
-  reason: string;
+  selectedDaysOfWeek?: string[];
+  reason?: string;
   startDate: string;
   endDate?: string;
   notes?: string;
-  discontinued?: boolean;
-  discontinuedReason?: string;
+  discontinuationReason?: string;
   foodInteractions?: string[];
   conditionInteractions?: string[];
   therapeuticDuplications?: string[];
-  interactionClassifications?: {
-    major?: string[];
-    moderate?: string[];
-    minor?: string[];
-    unknown?: string[];
-  };
+  interactionClassifications?: { [key: string]: string };
   pregnancy?: string;
   breastfeeding?: string;
 }
@@ -75,7 +69,7 @@ const MedicationsSection = () => {
     const discontinuedMed = {
       ...medicationToDiscontinue,
       discontinued: true,
-      discontinuedReason: reason,
+      discontinuationReason: reason,
       endDate: new Date().toISOString().split('T')[0]
     };
 

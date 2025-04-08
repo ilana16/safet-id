@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { FileText } from 'lucide-react';
 import { MedicationInfo } from '@/utils/medicationData.d';
 import { Medication } from '@/pages/medical-profile/MedicationsSection';
+import { Checkbox } from '@/components/ui/checkbox';
 
 interface MedicationAddFormProps {
   medicationInfo: MedicationInfo;
@@ -33,10 +34,21 @@ const frequencyOptions = [
   'Every 12 hours',
   'Once a week',
   'Twice a week',
+  'X days a week',
   'Once a month',
   'Every X days',
   'As needed',
   'Other'
+];
+
+const daysOfWeek = [
+  { id: 'monday', label: 'Monday' },
+  { id: 'tuesday', label: 'Tuesday' },
+  { id: 'wednesday', label: 'Wednesday' },
+  { id: 'thursday', label: 'Thursday' },
+  { id: 'friday', label: 'Friday' },
+  { id: 'saturday', label: 'Saturday' },
+  { id: 'sunday', label: 'Sunday' }
 ];
 
 const MedicationAddForm: React.FC<MedicationAddFormProps> = ({
@@ -68,6 +80,7 @@ const MedicationAddForm: React.FC<MedicationAddFormProps> = ({
       frequency: newMedication.frequency || 'Once daily',
       customFrequency: newMedication.customFrequency,
       customDays: newMedication.customDays,
+      selectedDaysOfWeek: newMedication.selectedDaysOfWeek || [],
       reason: newMedication.reason || '',
       startDate: newMedication.startDate || new Date().toISOString().split('T')[0],
       notes: newMedication.notes || '',
@@ -80,6 +93,23 @@ const MedicationAddForm: React.FC<MedicationAddFormProps> = ({
     };
     
     onAddMedication(medication);
+  };
+  
+  const handleDayOfWeekToggle = (day: string) => {
+    setNewMedication(prev => {
+      const selectedDays = prev.selectedDaysOfWeek || [];
+      if (selectedDays.includes(day)) {
+        return {
+          ...prev,
+          selectedDaysOfWeek: selectedDays.filter(d => d !== day)
+        };
+      } else {
+        return {
+          ...prev,
+          selectedDaysOfWeek: [...selectedDays, day]
+        };
+      }
+    });
   };
   
   return (
@@ -106,9 +136,13 @@ const MedicationAddForm: React.FC<MedicationAddFormProps> = ({
               value={newMedication.frequency}
               onValueChange={(value) => {
                 handleChange('frequency', value);
-                if (value !== 'Other' && value !== 'Every X days') {
+                if (value !== 'Other' && value !== 'Every X days' && value !== 'X days a week') {
                   handleChange('customFrequency', '');
                   handleChange('customDays', '');
+                  setNewMedication(prev => ({
+                    ...prev,
+                    selectedDaysOfWeek: []
+                  }));
                 }
               }}
             >
@@ -133,6 +167,26 @@ const MedicationAddForm: React.FC<MedicationAddFormProps> = ({
                   value={newMedication.customDays || ''}
                   onChange={(e) => handleChange('customDays', e.target.value)}
                 />
+              </div>
+            )}
+            
+            {newMedication.frequency === 'X days a week' && (
+              <div className="mt-2 space-y-2">
+                <Label>Select days of the week</Label>
+                <div className="grid grid-cols-2 gap-2">
+                  {daysOfWeek.map((day) => (
+                    <div key={day.id} className="flex items-center space-x-2">
+                      <Checkbox 
+                        id={day.id} 
+                        checked={(newMedication.selectedDaysOfWeek || []).includes(day.id)}
+                        onCheckedChange={() => handleDayOfWeekToggle(day.id)}
+                      />
+                      <Label htmlFor={day.id} className="text-sm font-normal cursor-pointer">
+                        {day.label}
+                      </Label>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
             
