@@ -49,6 +49,7 @@ export interface MedicationInfo {
     elimination?: string;
   };
   source?: string;
+  notes?: string;
 }
 
 export interface MedicationDatabase {

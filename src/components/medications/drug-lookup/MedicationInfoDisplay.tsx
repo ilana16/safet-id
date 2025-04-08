@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -13,7 +12,10 @@ import {
   ChevronUp, 
   FileText,
   Info,
-  Pill
+  Pill,
+  Clock,
+  ShieldCheck,
+  AlertOctagon
 } from 'lucide-react';
 import { MedicationInfo as MedicationInfoType } from '@/utils/medicationData';
 import { ScrollArea } from '@/components/ui/scroll-area';
