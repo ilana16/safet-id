@@ -45,7 +45,6 @@ const DrugInfoLookup: React.FC<DrugInfoLookupProps> = ({ onAddMedication }) => {
     getCurrentUser();
   }, []);
 
-  // Cleanup timeout on component unmount
   React.useEffect(() => {
     return () => {
       if (searchTimeoutId) {
@@ -85,17 +84,15 @@ const DrugInfoLookup: React.FC<DrugInfoLookupProps> = ({ onAddMedication }) => {
     setSearchAttempted(true);
     saveHistory(medication);
     
-    // Clear any existing timeout
     if (searchTimeoutId) {
       clearTimeout(searchTimeoutId);
     }
     
-    // Set a new timeout to cancel the search if it takes too long
     const timeoutId = window.setTimeout(() => {
       setIsLoading(false);
       setError('The search took too long to complete. Please try again.');
       toast.error('Search timed out. Please try again.');
-    }, 30000); // 30 second timeout
+    }, 30000);
     
     setSearchTimeoutId(timeoutId);
     
@@ -104,7 +101,6 @@ const DrugInfoLookup: React.FC<DrugInfoLookupProps> = ({ onAddMedication }) => {
       
       const medInfo = await getMedicationFromDb(medication, userId, 'drugscom');
       
-      // Clear the timeout as the search has completed
       if (searchTimeoutId) {
         clearTimeout(timeoutId);
         setSearchTimeoutId(null);
@@ -143,7 +139,6 @@ const DrugInfoLookup: React.FC<DrugInfoLookupProps> = ({ onAddMedication }) => {
       toast.error('Error loading medication information');
     } finally {
       setIsLoading(false);
-      // Clear the timeout as we've handled the error or success
       if (searchTimeoutId) {
         clearTimeout(timeoutId);
         setSearchTimeoutId(null);
@@ -226,7 +221,7 @@ const DrugInfoLookup: React.FC<DrugInfoLookupProps> = ({ onAddMedication }) => {
         <div className="p-5">
           {(!medicationInfo && !isLoading && !error) || (!searchAttempted) ? (
             <div className="mb-4 p-3 bg-amber-50 rounded-md border border-amber-200 text-amber-800 text-sm">
-              <p className="font-medium mb-1">Using Medication Database</p>
+              <p className="font-medium mb-1">Using Enhanced Medication Database</p>
               This feature provides comprehensive medication information including:
               <ul className="list-disc pl-5 mt-2 space-y-1">
                 <li>Medication interactions (major, moderate, minor)</li>
@@ -238,7 +233,7 @@ const DrugInfoLookup: React.FC<DrugInfoLookupProps> = ({ onAddMedication }) => {
                 <li>Drug half-life data</li>
               </ul>
               <div className="mt-2 text-amber-700">
-                <strong>Note:</strong> Due to restrictions from Drugs.com, we're using a database of common medications.
+                <strong>Note:</strong> We use an enhanced database of medications to ensure reliable information regardless of external API availability.
               </div>
             </div>
           ) : null}

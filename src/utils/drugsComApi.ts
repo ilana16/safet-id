@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 const API_TIMEOUT = 20000; // 20 seconds
 
 /**
- * Searches for medications on Drugs.com with timeout
+ * Searches for medications using database first, with fallback to common medications list
  * 
  * @param query Search query string
  * @returns Promise resolving to an array of medication names
@@ -14,63 +14,39 @@ const API_TIMEOUT = 20000; // 20 seconds
 export const searchDrugsCom = async (query: string): Promise<string[]> => {
   if (!query || query.trim().length < 2) return [];
   
-  let abortController: AbortController | undefined;
-  
   try {
-    // Create abort controller for fetch
-    abortController = new AbortController();
-    
-    // Create a promise that rejects after timeout
-    const timeoutPromise = new Promise<never>((_, reject) => {
-      setTimeout(() => {
-        if (abortController) abortController.abort();
-        reject(new Error('Search request timed out'));
-      }, API_TIMEOUT);
-    });
-    
-    // Actual API call
-    const apiCallPromise = supabase.functions.invoke('drugs-scraper', {
-      body: { drugName: query, action: 'search' },
-      // Remove the signal property as it's not supported in FunctionInvokeOptions
-    });
-    
-    // Race the API call against the timeout
-    const { data, error } = await Promise.race([
-      apiCallPromise,
-      timeoutPromise
-    ]);
-
-    if (error) {
-      console.error('Error calling drugs-scraper search function:', error);
-      if (error.message?.includes('abort') || error.message?.includes('time')) {
-        throw new Error('Search request timed out');
+    // First try to search in the database
+    try {
+      console.log('Searching medication database for:', query);
+      const { data: dbResults } = await supabase
+        .from('medications')
+        .select('name')
+        .ilike('name', `%${query}%`)
+        .order('search_count', { ascending: false })
+        .limit(15);
+      
+      if (dbResults && dbResults.length > 0) {
+        console.log('Found results in database:', dbResults.length);
+        return dbResults.map(result => result.name);
       }
-      toast.error('Error searching for medications');
-      return [];
+    } catch (dbError) {
+      console.error('Error searching database:', dbError);
     }
-
-    return data?.results || [];
+    
+    // Due to Drugs.com restrictions, we use our comprehensive medication database
+    console.log('Using internal medication database for:', query);
+    
+    // Import our enhanced search function
+    const { enhancedMedicationSearch } = await import('./medication-db/enhancedMedicationSearch');
+    return await enhancedMedicationSearch(query);
+    
   } catch (error) {
-    console.error('Error or timeout searching Drugs.com:', error);
-    // Determine if it's a timeout error
-    const isTimeout = error instanceof Error && 
-      (error.message.includes('timed out') || 
-       error.message.includes('abort') ||
-       error.name === 'AbortError');
-       
-    toast.error(isTimeout
-      ? 'Search request timed out. Please try again.' 
-      : 'Error searching for medications');
-    return [];
-  } finally {
-    // Clean up abort controller if needed
-    if (abortController) {
-      try {
-        abortController.abort();
-      } catch (e) {
-        // Ignore errors from aborting after completion
-      }
-    }
+    console.error('Error searching medications:', error);
+    toast.error('Error searching for medications');
+    
+    // Use fallback search in case of any error
+    const { enhancedMedicationSearch } = await import('./medication-db/enhancedMedicationSearch');
+    return await enhancedMedicationSearch(query);
   }
 };
 

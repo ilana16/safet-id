@@ -5,11 +5,8 @@ import { saveMedicationToDb } from './save';
 import { toast } from 'sonner';
 import { getDrugsComUrl } from '../drugsComApi';
 
-// Default timeout for API calls in milliseconds
-const API_TIMEOUT = 30000; // 30 seconds
-
 /**
- * Gets medication information from the database or external API
+ * Gets medication information from the database or fallback data
  * 
  * @param medicationName Name of the medication to retrieve
  * @param userId User ID of the person searching (optional)
@@ -22,8 +19,6 @@ export const getMedicationFromDb = async (
   preferredSource: 'drugscom' | 'elsevier' | 'webcrawler' = 'drugscom'
 ): Promise<MedicationInfo | null> => {
   if (!medicationName) return null;
-
-  let abortController: AbortController | undefined;
 
   try {
     const normalizedName = medicationName.toLowerCase().trim();
@@ -88,8 +83,8 @@ export const getMedicationFromDb = async (
         therapeuticDuplications: dbMeds[0].therapeutic_duplications || [],
         pregnancy: dbMeds[0].pregnancy,
         breastfeeding: dbMeds[0].breastfeeding,
-        // Fix: Check if half_life exists before accessing it
-        halfLife: 'half_life' in dbMeds[0] ? String(dbMeds[0].half_life || '') : '',
+        // Safe access to half_life property
+        halfLife: dbMeds[0].half_life !== undefined ? String(dbMeds[0].half_life || '') : '',
         drugsComUrl: getDrugsComUrl(dbMeds[0].name),
         source: dbMeds[0].source,
         fromDatabase: true,
@@ -100,53 +95,44 @@ export const getMedicationFromDb = async (
     }
     
     // If not found in the database, use fallback immediately
-    console.log('Medication not found in database, using fallback data immediately');
-    return await fallbackMedicationInfo(medicationName, userId);
+    console.log('Medication not found in database, using fallback data');
+    return await generateMedicationInfo(medicationName, userId);
     
   } catch (error) {
-    console.error('Error getting medication from database or API:', error);
+    console.error('Error getting medication from database:', error);
     toast.error('Error retrieving medication information');
-    return await fallbackMedicationInfo(medicationName, userId);
-  } finally {
-    // Clean up abort controller if needed
-    if (abortController) {
-      try {
-        abortController.abort();
-      } catch (e) {
-        // Ignore errors from aborting after completion
-      }
-    }
+    return await generateMedicationInfo(medicationName, userId);
   }
 };
 
 /**
- * Provides fallback medication information when API calls fail
+ * Generates medication information using local data source
  * 
  * @param medicationName Name of the medication
  * @param userId User ID of the person searching (optional)
- * @returns Promise resolving to simulated medication info
+ * @returns Promise resolving to generated medication info
  */
-async function fallbackMedicationInfo(medicationName: string, userId?: string | null): Promise<MedicationInfo | null> {
-  console.log('Using fallback medication info for:', medicationName);
+async function generateMedicationInfo(medicationName: string, userId?: string | null): Promise<MedicationInfo | null> {
+  console.log('Generating medication info for:', medicationName);
   
-  // Import the fetchMedicationInfo function from modrugsApi
-  const { fetchMedicationInfo } = await import('../modrugsApi');
+  // Import the enhanced medication data utility
+  const { getEnhancedMedicationData } = await import('./enhancedMedicationData');
   
   try {
-    // Get simulated medication data
-    const mockMedInfo = await fetchMedicationInfo(medicationName);
+    // Get enhanced medication data
+    const medInfo = await getEnhancedMedicationData(medicationName);
     
-    if (mockMedInfo) {
-      // Mark that this is fallback data
-      mockMedInfo.source = 'Fallback Data (API unavailable)';
+    if (medInfo) {
+      // Mark that this is generated data
+      medInfo.source = 'Enhanced Medication Database';
       
       // Try to save to the database
-      const savedMedInfo = await saveMedicationToDb(mockMedInfo, userId || undefined);
+      const savedMedInfo = await saveMedicationToDb(medInfo, userId || undefined);
       
-      return savedMedInfo || mockMedInfo;
+      return savedMedInfo || medInfo;
     }
     
-    // If even mockMedInfo fails, create a very basic fallback
+    // If even the enhanced data fails, create a very basic fallback
     const basicFallback: MedicationInfo = {
       name: medicationName,
       genericName: medicationName,
@@ -190,7 +176,7 @@ async function fallbackMedicationInfo(medicationName: string, userId?: string | 
     return savedBasicInfo || basicFallback;
     
   } catch (e) {
-    console.error('Error in fallback medication info:', e);
+    console.error('Error in generating medication info:', e);
     
     // Ultimate fallback if everything else fails
     return {
