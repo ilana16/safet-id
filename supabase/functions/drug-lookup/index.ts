@@ -47,7 +47,7 @@ serve(async (req) => {
       );
     }
     
-    // Next search in drugs table with drug_interactions
+    // Next search in drugs table with all related interactions
     const normalizedName = name.toLowerCase().trim();
     
     // Use RPC function to get drug data
@@ -62,12 +62,42 @@ serve(async (req) => {
       // Found drug data, now fetch interactions
       const drugId = drugsData[0].id;
       
-      // Get interactions for this drug
+      // Get drug interactions
       const { data: interactionsData, error: interactionsError } = await supabaseAdmin
         .rpc('get_drug_interactions', { drug_id: drugId });
       
       if (interactionsError) {
         console.error('Error fetching drug interactions:', interactionsError);
+      }
+      
+      // Get food interactions from new table
+      const { data: foodInteractionsData, error: foodInteractionsError } = await supabaseAdmin
+        .from('food_interactions')
+        .select('description')
+        .eq('drug_id', drugId);
+        
+      if (foodInteractionsError) {
+        console.error('Error fetching food interactions:', foodInteractionsError);
+      }
+      
+      // Get condition interactions from new table
+      const { data: conditionInteractionsData, error: conditionInteractionsError } = await supabaseAdmin
+        .from('condition_interactions')
+        .select('description')
+        .eq('drug_id', drugId);
+        
+      if (conditionInteractionsError) {
+        console.error('Error fetching condition interactions:', conditionInteractionsError);
+      }
+      
+      // Get therapeutic duplications from new table
+      const { data: therapeuticDuplicationsData, error: therapeuticDuplicationsError } = await supabaseAdmin
+        .from('therapeutic_duplications')
+        .select('description')
+        .eq('drug_id', drugId);
+        
+      if (therapeuticDuplicationsError) {
+        console.error('Error fetching therapeutic duplications:', therapeuticDuplicationsError);
       }
       
       // Group interactions by level
@@ -85,10 +115,25 @@ serve(async (req) => {
         }
       }
       
+      // Prepare food interactions array
+      const foodInteractions = foodInteractionsData ? 
+        foodInteractionsData.map(item => item.description) : [];
+        
+      // Prepare condition interactions array
+      const conditionInteractions = conditionInteractionsData ? 
+        conditionInteractionsData.map(item => item.description) : [];
+        
+      // Prepare therapeutic duplications array
+      const therapeuticDuplications = therapeuticDuplicationsData ? 
+        therapeuticDuplicationsData.map(item => item.description) : [];
+      
       // Add interactions to drug data
       const enrichedDrugData = {
         ...drugsData[0],
-        interactions: interactions
+        interactions: interactions,
+        foodInteractions: foodInteractions,
+        conditionInteractions: conditionInteractions,
+        therapeuticDuplications: therapeuticDuplications
       };
       
       return new Response(

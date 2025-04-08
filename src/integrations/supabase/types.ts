@@ -9,6 +9,32 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      condition_interactions: {
+        Row: {
+          description: string
+          drug_id: string | null
+          id: string
+        }
+        Insert: {
+          description: string
+          drug_id?: string | null
+          id?: string
+        }
+        Update: {
+          description?: string
+          drug_id?: string | null
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "condition_interactions_drug_id_fkey"
+            columns: ["drug_id"]
+            isOneToOne: false
+            referencedRelation: "drugs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       drug_interactions: {
         Row: {
           created_at: string | null
@@ -88,6 +114,32 @@ export type Database = {
           slug?: string | null
         }
         Relationships: []
+      }
+      food_interactions: {
+        Row: {
+          description: string
+          drug_id: string | null
+          id: string
+        }
+        Insert: {
+          description: string
+          drug_id?: string | null
+          id?: string
+        }
+        Update: {
+          description?: string
+          drug_id?: string | null
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "food_interactions_drug_id_fkey"
+            columns: ["drug_id"]
+            isOneToOne: false
+            referencedRelation: "drugs"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       medical_profiles: {
         Row: {
@@ -217,6 +269,32 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      therapeutic_duplications: {
+        Row: {
+          description: string
+          drug_id: string | null
+          id: string
+        }
+        Insert: {
+          description: string
+          drug_id?: string | null
+          id?: string
+        }
+        Update: {
+          description?: string
+          drug_id?: string | null
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "therapeutic_duplications_drug_id_fkey"
+            columns: ["drug_id"]
+            isOneToOne: false
+            referencedRelation: "drugs"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
