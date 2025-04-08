@@ -124,7 +124,7 @@ export const saveMedicationToDb = async (
           breastfeeding: medicationInfo.breastfeeding,
           forms: medicationInfo.forms,
           source: medicationInfo.source,
-          half_life: medicationInfo.halfLife,
+          half_life: medicationInfo.halfLife || null,
           searched_by: userId
         })
         .select()
@@ -231,7 +231,8 @@ export const getMedicationFromDb = async (
         therapeuticDuplications: dbMeds[0].therapeutic_duplications || [],
         pregnancy: dbMeds[0].pregnancy,
         breastfeeding: dbMeds[0].breastfeeding,
-        halfLife: dbMeds[0].half_life,
+        // Here's the fix - check if half_life exists before accessing it
+        halfLife: dbMeds[0].half_life !== undefined ? dbMeds[0].half_life : '',
         source: dbMeds[0].source,
         fromDatabase: true,
         databaseSearchCount: newCount
