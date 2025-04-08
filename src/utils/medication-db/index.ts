@@ -4,6 +4,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type { MedicationInfo } from '../medicationData.d';
+import { Json } from '@/integrations/supabase/types';
 
 /**
  * Increments the search count for a medication in the database
@@ -74,6 +75,8 @@ export const saveMedicationToDb = async (
       interaction_classifications: medicationInfo.interactionClassifications ? JSON.parse(JSON.stringify(medicationInfo.interactionClassifications)) : null,
       interaction_severity: medicationInfo.interactionSeverity ? JSON.parse(JSON.stringify(medicationInfo.interactionSeverity)) : null,
       dosage: medicationInfo.dosage ? JSON.parse(JSON.stringify(medicationInfo.dosage)) : null,
+      // Use halfLife property instead of half_life
+      // Change this line to match the database column name exactly
       half_life: medicationInfo.halfLife || null
     };
     
@@ -102,7 +105,7 @@ export const saveMedicationToDb = async (
       // Insert new medication
       const { error } = await supabase
         .from('medications')
-        .insert([medicationData]);
+        .insert(medicationData);
       
       if (error) {
         console.error('Error inserting medication:', error);
@@ -177,6 +180,7 @@ export const getMedicationFromDb = async (
         interactionClassifications: medData.interaction_classifications as any,
         interactionSeverity: medData.interaction_severity as any,
         dosage: medData.dosage as any,
+        // Change this line to access the correct database column
         halfLife: medData.half_life,
         drugsComUrl: getDrugsComUrl(medData.name)
       };

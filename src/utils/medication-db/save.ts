@@ -89,7 +89,7 @@ export const saveMedicationToDb = async (
         forms: medicationInfo.forms,
         pregnancy: medicationInfo.pregnancy,
         breastfeeding: medicationInfo.breastfeeding,
-        half_life: medicationInfo.halfLife || null,
+        half_life: medicationInfo.halfLife || null, // Make sure we use half_life here
         searched_by: userId,
         // Add the new properties if they exist
         imprints: medicationInfo.imprints || [],
@@ -98,7 +98,7 @@ export const saveMedicationToDb = async (
 
       const { data, error } = await supabase
         .from('medications')
-        .insert(medicationData)
+        .insert([medicationData]) // Wrap in array for insert operation
         .select()
         .single();
       
