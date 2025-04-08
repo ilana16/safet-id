@@ -27,12 +27,17 @@ export const searchDrugsCom = async (query: string): Promise<string[]> => {
     // Step 1: Try to search in the medications table
     try {
       console.log('Searching medication database for:', query);
-      const { data: dbResults } = await supabase
+      const { data: dbResults, error } = await supabase
         .from('medications')
         .select('name')
         .ilike('name', `%${query}%`)
         .order('search_count', { ascending: false })
         .limit(10);
+      
+      if (error) {
+        console.error('Error searching medications table:', error);
+        throw error;
+      }
       
       if (dbResults && dbResults.length > 0) {
         console.log('Found results in medications table:', dbResults.length);
@@ -55,11 +60,16 @@ export const searchDrugsCom = async (query: string): Promise<string[]> => {
       if (error) {
         console.error('Error in drugs search RPC:', error);
         // Fallback to simple query with fewer type guarantees
-        const { data: fallbackResults } = await supabase
+        const { data: fallbackResults, error: fallbackError } = await supabase
           .from('medications')
           .select('name')
           .ilike('name', `%${query}%`)
           .limit(10);
+          
+        if (fallbackError) {
+          console.error('Error in fallback search:', fallbackError);
+          throw fallbackError;
+        }
           
         if (fallbackResults && fallbackResults.length > 0) {
           return fallbackResults.map(result => result.name);

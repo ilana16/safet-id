@@ -28,12 +28,17 @@ export const performMedicationSearch = async (query: string): Promise<string[]> 
     
     // Step 1: Try to search in the medications table
     try {
-      const { data: dbResults } = await supabase
+      const { data: dbResults, error } = await supabase
         .from('medications')
         .select('name')
         .ilike('name', `%${query}%`)
         .order('search_count', { ascending: false })
         .limit(10);
+      
+      if (error) {
+        console.error('Error searching medications table:', error);
+        throw error;
+      }
       
       if (dbResults && dbResults.length > 0) {
         console.log('Found results in medications table:', dbResults.length);
