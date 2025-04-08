@@ -103,13 +103,13 @@ export const saveMedicationToDb = async (
  * 
  * @param medicationName Name of the medication to retrieve
  * @param userId User ID of the person searching (optional)
- * @param preferredSource Preferred data source ('drugscom' or 'elsevier')
+ * @param preferredSource Preferred data source ('drugscom', 'elsevier', or 'webcrawler')
  * @returns Promise resolving to medication info or null if not found
  */
 export const getMedicationFromDb = async (
   medicationName: string, 
   userId?: string,
-  preferredSource: 'drugscom' | 'elsevier' = 'drugscom'
+  preferredSource: 'drugscom' | 'elsevier' | 'webcrawler' = 'drugscom'
 ): Promise<MedicationInfo | null> => {
   if (!medicationName) return null;
 
@@ -284,7 +284,16 @@ export const getMedicationFromDb = async (
     
     let externalMedInfo: MedicationInfo | null = null;
     
-    if (preferredSource === 'elsevier') {
+    if (preferredSource === 'webcrawler') {
+      // First try Web Crawler
+      externalMedInfo = await fetchWebCrawlerDrugInfo(medicationName);
+      
+      // If not found in Web Crawler, fallback to drugs.com
+      if (!externalMedInfo) {
+        console.log(`Medication not found in Web Crawler: ${medicationName}. Trying drugs.com...`);
+        externalMedInfo = await fetchDrugsComLiveInfo(medicationName);
+      }
+    } else if (preferredSource === 'elsevier') {
       // First try Elsevier
       externalMedInfo = await fetchElsevierDrugInfo(medicationName);
       
@@ -312,7 +321,11 @@ export const getMedicationFromDb = async (
       
       // Set the source
       if (!externalMedInfo.source) {
-        externalMedInfo.source = preferredSource === 'elsevier' ? 'Elsevier Drug Info API' : 'Drugs.com';
+        externalMedInfo.source = preferredSource === 'elsevier' 
+          ? 'Elsevier Drug Info API' 
+          : preferredSource === 'webcrawler'
+            ? 'Web Crawler for Drug Interaction Data'
+            : 'Drugs.com';
       }
       
       // Set the URL
@@ -332,4 +345,4 @@ export const getMedicationFromDb = async (
 // Import from drugsComApi to get URL function and fetchDrugsComLiveInfo function
 import { getDrugsComUrl, fetchDrugsComLiveInfo } from './drugsComApi';
 import { fetchElsevierDrugInfo } from './elsevierApi';
-
+import { fetchWebCrawlerDrugInfo } from './webCrawlerApi';

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { getDrugsComUrl } from '@/utils/drugsComApi';
 import { Button } from '@/components/ui/button';
-import { ExternalLink, Loader2, Database, Archive, BookOpen } from 'lucide-react';
+import { ExternalLink, Loader2, Database, Archive, BookOpen, AlertTriangle } from 'lucide-react';
 import { MedicationInfo } from '@/utils/medicationData.d';
 import { toast } from 'sonner';
 import { v4 as uuidv4 } from 'uuid';
@@ -24,7 +24,7 @@ const DrugInfoLookup: React.FC<DrugInfoLookupProps> = ({ onAddMedication }) => {
   const [error, setError] = useState<string | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
   const [searchAttempted, setSearchAttempted] = useState(false);
-  const [activeDataSource, setActiveDataSource] = useState<'drugscom' | 'elsevier' | 'comprehensive'>('drugscom');
+  const [activeDataSource, setActiveDataSource] = useState<'drugscom' | 'elsevier' | 'comprehensive' | 'webcrawler'>('drugscom');
   const [userId, setUserId] = useState<string | null>(null);
   const [newMedication, setNewMedication] = useState<Partial<Medication>>({
     id: uuidv4(),
@@ -83,9 +83,11 @@ const DrugInfoLookup: React.FC<DrugInfoLookupProps> = ({ onAddMedication }) => {
       
       const preferredSource = activeDataSource === 'elsevier' 
         ? 'elsevier' 
-        : 'drugscom';
+        : activeDataSource === 'webcrawler'
+          ? 'webcrawler'
+          : 'drugscom';
       
-      const medInfo = await getMedicationFromDb(medication, userId, preferredSource as 'drugscom' | 'elsevier');
+      const medInfo = await getMedicationFromDb(medication, userId, preferredSource);
       
       if (medInfo) {
         console.log('Medication info received:', medInfo.name);
@@ -134,10 +136,18 @@ const DrugInfoLookup: React.FC<DrugInfoLookupProps> = ({ onAddMedication }) => {
     }
   };
 
-  const openComprehensiveDatabasePage = () => {
+  const openWebCrawlerPage = () => {
+    if (selectedMedication) {
+      window.open('https://github.com/shubhpawar/Web-Crawler-for-Drug-Interaction-Data', '_blank', 'noopener,noreferrer');
+    }
+  };
+
+  const openExternalPage = () => {
     if (selectedMedication) {
       if (activeDataSource === 'elsevier') {
         openElsevierPage();
+      } else if (activeDataSource === 'webcrawler') {
+        openWebCrawlerPage();
       } else {
         openDrugsComPage();
       }
@@ -150,6 +160,9 @@ const DrugInfoLookup: React.FC<DrugInfoLookupProps> = ({ onAddMedication }) => {
     if (activeDataSource === 'elsevier') {
       window.open('https://druginfo.elsevier.com', '_blank', 'noopener,noreferrer');
       toast.info(`Searching for "${query}" on Elsevier`);
+    } else if (activeDataSource === 'webcrawler') {
+      window.open('https://github.com/shubhpawar/Web-Crawler-for-Drug-Interaction-Data', '_blank', 'noopener,noreferrer');
+      toast.info(`Showing Web Crawler for Drug Interaction Data repository`);
     } else {
       const searchUrl = `https://www.drugs.com/search.php?searchterm=${encodeURIComponent(query)}`;
       window.open(searchUrl, '_blank', 'noopener,noreferrer');
@@ -202,33 +215,29 @@ const DrugInfoLookup: React.FC<DrugInfoLookupProps> = ({ onAddMedication }) => {
             variant="outline" 
             size="sm" 
             className="bg-white/10 hover:bg-white/20 text-white border-white/20"
-            onClick={
-              activeDataSource === 'drugscom' 
-                ? openDrugsComPage 
-                : activeDataSource === 'elsevier'
-                  ? openElsevierPage
-                  : openComprehensiveDatabasePage
-            }
+            onClick={openExternalPage}
             disabled={!selectedMedication}
           >
             <ExternalLink className="h-4 w-4 mr-1" />
-            {activeDataSource === 'drugscom' 
-              ? 'View on Drugs.com' 
-              : activeDataSource === 'elsevier'
-                ? 'View on Elsevier'
-                : 'View on Database'}
+            <span className="hidden sm:inline">
+              {activeDataSource === 'drugscom' && 'View on Drugs.com'}
+              {activeDataSource === 'elsevier' && 'View on Elsevier'}
+              {activeDataSource === 'webcrawler' && 'View Web Crawler Data'}
+              {activeDataSource === 'comprehensive' && 'View on Database'}
+            </span>
+            <span className="sm:hidden">External</span>
           </Button>
         </div>
         
         <div className="border-b border-[#D1DEE8]">
           <Tabs 
             value={activeDataSource} 
-            onValueChange={(value) => setActiveDataSource(value as 'drugscom' | 'elsevier' | 'comprehensive')}
+            onValueChange={(value) => setActiveDataSource(value as 'drugscom' | 'elsevier' | 'webcrawler' | 'comprehensive')}
           >
             <TabsList className="w-full">
               <TabsTrigger value="drugscom" className="flex-1">
                 <Database className="h-4 w-4 mr-1" />
-                Drugs.com Database
+                Drugs.com
                 {medicationInfo?.fromDatabase && medicationInfo?.source?.includes('Drugs.com') && (
                   <span className="ml-2 bg-green-100 text-green-800 text-xs py-0.5 px-1.5 rounded-full flex items-center">
                     <Archive className="h-3 w-3 mr-1" />
@@ -238,8 +247,18 @@ const DrugInfoLookup: React.FC<DrugInfoLookupProps> = ({ onAddMedication }) => {
               </TabsTrigger>
               <TabsTrigger value="elsevier" className="flex-1">
                 <BookOpen className="h-4 w-4 mr-1" />
-                Elsevier Database
+                Elsevier
                 {medicationInfo?.fromDatabase && medicationInfo?.source?.includes('Elsevier') && (
+                  <span className="ml-2 bg-green-100 text-green-800 text-xs py-0.5 px-1.5 rounded-full flex items-center">
+                    <Archive className="h-3 w-3 mr-1" />
+                    Saved
+                  </span>
+                )}
+              </TabsTrigger>
+              <TabsTrigger value="webcrawler" className="flex-1">
+                <AlertTriangle className="h-4 w-4 mr-1" />
+                Interaction Data
+                {medicationInfo?.fromDatabase && medicationInfo?.source?.includes('Web Crawler') && (
                   <span className="ml-2 bg-green-100 text-green-800 text-xs py-0.5 px-1.5 rounded-full flex items-center">
                     <Archive className="h-3 w-3 mr-1" />
                     Saved
@@ -248,7 +267,7 @@ const DrugInfoLookup: React.FC<DrugInfoLookupProps> = ({ onAddMedication }) => {
               </TabsTrigger>
               <TabsTrigger value="comprehensive" className="flex-1">
                 <Database className="h-4 w-4 mr-1" />
-                Comprehensive Database
+                Comprehensive
               </TabsTrigger>
             </TabsList>
           </Tabs>
@@ -261,6 +280,13 @@ const DrugInfoLookup: React.FC<DrugInfoLookupProps> = ({ onAddMedication }) => {
                 <div className="mb-4 p-3 bg-indigo-50 rounded-md border border-indigo-200 text-indigo-800 text-sm">
                   The Elsevier Drug Info database provides comprehensive clinical information about medications,
                   including drug interactions, side effects, and dosing guidelines.
+                </div>
+              )}
+              
+              {activeDataSource === 'webcrawler' && (
+                <div className="mb-4 p-3 bg-amber-50 rounded-md border border-amber-200 text-amber-800 text-sm">
+                  This database uses the Web Crawler for Drug Interaction Data to provide detailed information on drug-drug,
+                  drug-food, and drug-disease interactions. Data sourced from shubhpawar's GitHub repository.
                 </div>
               )}
               
@@ -308,15 +334,11 @@ const DrugInfoLookup: React.FC<DrugInfoLookupProps> = ({ onAddMedication }) => {
                 ? 'Drugs.com Live' 
                 : activeDataSource === 'elsevier'
                   ? 'Elsevier Drug Info Live'
-                  : 'Comprehensive Database'
+                  : activeDataSource === 'webcrawler'
+                    ? 'Web Crawler Interaction Data'
+                    : 'Comprehensive Database'
           }
-          onOpenExternalLink={
-            activeDataSource === 'drugscom' 
-              ? openDrugsComPage 
-              : activeDataSource === 'elsevier'
-                ? openElsevierPage
-                : openComprehensiveDatabasePage
-          }
+          onOpenExternalLink={openExternalPage}
         />
       )}
 

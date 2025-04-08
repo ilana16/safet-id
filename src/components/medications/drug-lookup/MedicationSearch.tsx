@@ -1,8 +1,7 @@
-
 import React, { useState, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Search, Loader2, X, Globe, Brain, Database, ExternalLink } from 'lucide-react';
+import { Search, Loader2, X, Globe, Brain, Database, ExternalLink, AlertTriangle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { Pill, PillIcon, ArrowRight } from 'lucide-react';
@@ -14,7 +13,7 @@ import { supabase } from '@/integrations/supabase/client';
 
 interface MedicationSearchProps {
   onSelectMedication: (medication: string) => void;
-  activeDataSource?: 'drugscom' | 'elsevier' | 'comprehensive';
+  activeDataSource?: 'drugscom' | 'elsevier' | 'comprehensive' | 'webcrawler';
   onExternalSearch?: (query: string) => void;
 }
 
@@ -36,7 +35,6 @@ const MedicationSearch: React.FC<MedicationSearchProps> = ({
   const debouncedSearchTerm = useDebounce(query, 300);
 
   useEffect(() => {
-    // Get current user ID
     const getCurrentUser = async () => {
       const { data } = await supabase.auth.getUser();
       setUserId(data.user?.id || null);
@@ -44,7 +42,6 @@ const MedicationSearch: React.FC<MedicationSearchProps> = ({
     
     getCurrentUser();
     
-    // Load search history from localStorage
     const savedHistory = localStorage.getItem('medicationSearchHistory');
     if (savedHistory) {
       try {
@@ -60,8 +57,14 @@ const MedicationSearch: React.FC<MedicationSearchProps> = ({
       if (debouncedSearchTerm.length >= 2) {
         setIsSearching(true);
         try {
-          // Use the live search for drugs.com
-          const results = await performLiveDrugsComSearch(debouncedSearchTerm);
+          let results: string[] = [];
+          
+          if (activeDataSource === 'webcrawler') {
+            results = await performLiveDrugsComSearch(debouncedSearchTerm);
+          } else {
+            results = await performLiveDrugsComSearch(debouncedSearchTerm);
+          }
+          
           setSearchResults(results);
         } catch (error) {
           console.error('Error searching medications:', error);
@@ -94,11 +97,9 @@ const MedicationSearch: React.FC<MedicationSearchProps> = ({
     setIsSearching(true);
     
     try {
-      // Use live search for real-time results
       const results = await performLiveDrugsComSearch(query);
       setSearchResults(results);
       
-      // If there's an exact match, select it
       if (results.length === 1 && results[0].toLowerCase() === query.toLowerCase()) {
         handleSelectMedication(results[0]);
       }
@@ -115,7 +116,6 @@ const MedicationSearch: React.FC<MedicationSearchProps> = ({
     setHistory(updatedHistory);
     localStorage.setItem('medicationSearchHistory', JSON.stringify(updatedHistory));
     
-    // Prefetch medication info to save to database
     getMedicationFromDb(medication, userId);
     
     onSelectMedication(medication);
@@ -132,7 +132,12 @@ const MedicationSearch: React.FC<MedicationSearchProps> = ({
   };
 
   const getPopularMedications = () => {
-    if (activeDataSource === 'comprehensive') {
+    if (activeDataSource === 'webcrawler') {
+      return {
+        "Common Medications": ['lisinopril', 'metformin', 'atorvastatin', 'amoxicillin'],
+        "Drug Interactions": ['warfarin', 'clopidogrel', 'digoxin', 'lithium']
+      };
+    } else if (activeDataSource === 'comprehensive') {
       return {
         "Common Medications": ['lisinopril', 'metformin', 'atorvastatin', 'amoxicillin'],
         "Psychiatric Medications": ['fluoxetine', 'escitalopram', 'risperidone', 'lithium'],
@@ -152,7 +157,12 @@ const MedicationSearch: React.FC<MedicationSearchProps> = ({
     <div>
       <div className="mb-3 p-3 bg-blue-50 rounded-md border border-blue-200 text-blue-800 text-sm flex items-center">
         <Database className="h-4 w-4 text-blue-500 mr-2 flex-shrink-0" />
-        <span>Performing live searches against {activeDataSource === 'drugscom' ? 'Drugs.com' : 'comprehensive medication database'}</span>
+        <span>
+          {activeDataSource === 'drugscom' && 'Performing live searches against Drugs.com'}
+          {activeDataSource === 'elsevier' && 'Performing live searches against Elsevier medication database'}
+          {activeDataSource === 'webcrawler' && 'Using Web Crawler for Drug Interaction Data'}
+          {activeDataSource === 'comprehensive' && 'Performing live searches against comprehensive medication database'}
+        </span>
       </div>
       
       <form onSubmit={handleSearch} className="flex gap-2">
@@ -269,6 +279,8 @@ const MedicationSearch: React.FC<MedicationSearchProps> = ({
                   <Brain className="h-4 w-4 text-safet-500 mr-2" />
                 ) : categoryName === "Vitamins & Supplements" ? (
                   <Database className="h-4 w-4 text-green-500 mr-2" />
+                ) : categoryName === "Drug Interactions" ? (
+                  <AlertTriangle className="h-4 w-4 text-amber-500 mr-2" />
                 ) : (
                   <PillIcon className="h-4 w-4 text-safet-500 mr-2" />
                 )}
@@ -286,6 +298,8 @@ const MedicationSearch: React.FC<MedicationSearchProps> = ({
                         <Brain className="h-4 w-4 text-safet-500 mr-2" />
                       ) : categoryName === "Vitamins & Supplements" ? (
                         <Database className="h-4 w-4 text-green-500 mr-2" />
+                      ) : categoryName === "Drug Interactions" ? (
+                        <AlertTriangle className="h-4 w-4 text-amber-500 mr-2" />
                       ) : (
                         <PillIcon className="h-4 w-4 text-safet-500 mr-2" />
                       )}
