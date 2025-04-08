@@ -27,6 +27,37 @@ def import_drug(file):
         click.echo(f"Error: {e}", err=True)
         sys.exit(1)
 
+@cli.command('add_drug')
+@click.argument('name')
+@click.option('--generic', help='Generic name of the drug')
+@click.option('--drug-class', help='Drug class/category')
+@click.option('--description', help='Brief description of the drug')
+@click.option('--otc', is_flag=True, help='Is this drug available over the counter?')
+def add_drug(name, generic, drug_class, description, otc):
+    """Add a basic drug entry by name"""
+    try:
+        # Create a basic drug record
+        drug_data = {
+            "name": name,
+            "slug": name.lower().replace(" ", "-"),
+            "generic_name": generic,
+            "drug_class": drug_class,
+            "description": description,
+            "prescription_only": not otc
+        }
+        
+        # Insert into medications table
+        response = supabase.table("medications").insert(drug_data).execute()
+        
+        if response.data and len(response.data) > 0:
+            drug_id = response.data[0]["id"]
+            click.echo(f"Successfully added {name} with ID: {drug_id}")
+        else:
+            click.echo(f"Failed to add {name}")
+    except Exception as e:
+        click.echo(f"Error: {e}", err=True)
+        sys.exit(1)
+
 @cli.command('search')
 @click.argument('query')
 @click.option('--limit', default=10, help='Maximum number of results to return')
