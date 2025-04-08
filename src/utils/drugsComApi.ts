@@ -4,7 +4,9 @@
  * This uses real medication data from our database and external APIs including international sources
  */
 
-import { MedicationInfo, medicationDatabase } from './medicationData.d';
+import { MedicationInfo } from './medicationData.d';
+import type { MedicationDatabase } from './medicationData.d';
+import { medicationDatabase } from './medicationData';
 import { enrichMedicationInfo } from './drugsComApi.util';
 import { toast } from 'sonner';
 

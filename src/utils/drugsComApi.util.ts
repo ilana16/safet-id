@@ -1,3 +1,4 @@
+
 /**
  * Helper functions for drugs.com API integration
  */
@@ -60,12 +61,19 @@ export const enrichMedicationInfo = (medicationInfo: MedicationInfo): Medication
     unknown: []
   };
   
+  const interactionSeverity = {
+    major: ['Dangerous combination that should be avoided'],
+    moderate: ['May require monitoring or dosage adjustment'],
+    minor: ['Minor effect, generally safe to use together']
+  };
+  
   return {
     ...medicationInfo,
     foodInteractions: foodInteractions.slice(0, Math.floor(Math.random() * 3) + 1),
     conditionInteractions: conditionInteractions.slice(0, Math.floor(Math.random() * 3) + 1),
     therapeuticDuplications: therapeuticDuplications.slice(0, Math.floor(Math.random() * 2) + 1),
     interactionClassifications,
+    interactionSeverity,
     pregnancy: medicationInfo.pregnancy || 'This medication should only be used during pregnancy when clearly needed. Discuss the risks and benefits with your doctor.',
     breastfeeding: medicationInfo.breastfeeding || 'This medication may pass into breast milk. Consult your doctor before breastfeeding.'
   };

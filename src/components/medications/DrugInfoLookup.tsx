@@ -1,8 +1,9 @@
+
 import React, { useState } from 'react';
 import { getDrugsComInfo, getDrugsComUrl, fetchDrugsComLiveInfo } from '@/utils/drugsComApi';
 import { Button } from '@/components/ui/button';
 import { ExternalLink, Loader2, Database } from 'lucide-react';
-import { MedicationInfo as MedicationInfoType } from '@/utils/medicationData';
+import { MedicationInfo } from '@/utils/medicationData.d';
 import { toast } from 'sonner';
 import { v4 as uuidv4 } from 'uuid';
 import { Medication } from '@/pages/medical-profile/MedicationsSection';
