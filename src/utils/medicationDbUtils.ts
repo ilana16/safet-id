@@ -141,7 +141,39 @@ export const getMedicationFromDb = async (medicationName: string): Promise<Medic
     
     console.log(`Found medication in database: ${data.name}`);
     
-    // Helper function to safely handle nested objects
+    // Define interface for side effects to ensure proper typing
+    interface SideEffectsObject {
+      common?: string[];
+      serious?: string[];
+      rare?: string[];
+    }
+    
+    // Define interface for dosage to ensure proper typing
+    interface DosageObject {
+      adult?: string;
+      child?: string;
+      elderly?: string;
+      frequency?: string;
+      renal?: string;
+      hepatic?: string;
+    }
+    
+    // Define interface for interaction classifications to ensure proper typing
+    interface InteractionClassificationsObject {
+      major?: string[];
+      moderate?: string[];
+      minor?: string[];
+      unknown?: string[];
+    }
+    
+    // Define interface for interaction severity to ensure proper typing
+    interface InteractionSeverityObject {
+      major?: string[];
+      moderate?: string[];
+      minor?: string[];
+    }
+
+    // Helper function to safely handle nested objects with proper type casting
     const safeGetNestedObject = <T>(obj: any, defaultValue: T): T => {
       if (typeof obj === 'object' && obj !== null && !Array.isArray(obj)) {
         return obj as unknown as T;
@@ -158,7 +190,10 @@ export const getMedicationFromDb = async (medicationName: string): Promise<Medic
     };
 
     // Safely get side effects with default values for each property
-    const sideEffectsObj = safeGetNestedObject(data.side_effects, {});
+    // Create default object with the expected structure
+    const defaultSideEffects: SideEffectsObject = { common: [], serious: [], rare: [] };
+    const sideEffectsObj = safeGetNestedObject(data.side_effects, defaultSideEffects);
+    
     const sideEffects = {
       common: Array.isArray(sideEffectsObj.common) ? sideEffectsObj.common : [],
       serious: Array.isArray(sideEffectsObj.serious) ? sideEffectsObj.serious : [],
@@ -166,7 +201,10 @@ export const getMedicationFromDb = async (medicationName: string): Promise<Medic
     };
 
     // Safely get dosage with default values for each property
-    const dosageObj = safeGetNestedObject(data.dosage, {});
+    // Create default object with the expected structure
+    const defaultDosage: DosageObject = { adult: '', child: '', elderly: '', frequency: '', renal: '', hepatic: '' };
+    const dosageObj = safeGetNestedObject(data.dosage, defaultDosage);
+    
     const dosage = {
       adult: typeof dosageObj.adult === 'string' ? dosageObj.adult : '',
       child: typeof dosageObj.child === 'string' ? dosageObj.child : '',
@@ -177,7 +215,15 @@ export const getMedicationFromDb = async (medicationName: string): Promise<Medic
     };
 
     // Safely get interaction classifications with default values for each property
-    const interactionClassificationsObj = safeGetNestedObject(data.interaction_classifications, {});
+    // Create default object with the expected structure
+    const defaultInteractionClassifications: InteractionClassificationsObject = { 
+      major: [], moderate: [], minor: [], unknown: [] 
+    };
+    const interactionClassificationsObj = safeGetNestedObject(
+      data.interaction_classifications, 
+      defaultInteractionClassifications
+    );
+    
     const interactionClassifications = {
       major: Array.isArray(interactionClassificationsObj.major) ? interactionClassificationsObj.major : [],
       moderate: Array.isArray(interactionClassificationsObj.moderate) ? interactionClassificationsObj.moderate : [],
@@ -186,7 +232,15 @@ export const getMedicationFromDb = async (medicationName: string): Promise<Medic
     };
 
     // Safely get interaction severity with default values for each property
-    const interactionSeverityObj = safeGetNestedObject(data.interaction_severity, {});
+    // Create default object with the expected structure
+    const defaultInteractionSeverity: InteractionSeverityObject = { 
+      major: [], moderate: [], minor: [] 
+    };
+    const interactionSeverityObj = safeGetNestedObject(
+      data.interaction_severity, 
+      defaultInteractionSeverity
+    );
+    
     const interactionSeverity = {
       major: Array.isArray(interactionSeverityObj.major) ? interactionSeverityObj.major : [],
       moderate: Array.isArray(interactionSeverityObj.moderate) ? interactionSeverityObj.moderate : [],
