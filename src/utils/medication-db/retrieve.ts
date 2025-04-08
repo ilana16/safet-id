@@ -220,7 +220,8 @@ async function generateMedicationInfo(medicationName: string, userId?: string | 
           setTimeout(() => reject(new Error("Save operation timed out")), 3000);
         });
         
-        const savedMedInfo = await Promise.race([savePromise, saveTimeoutPromise]);
+        // Fixed promise race - type now aligns with saveMedicationToDb return type
+        const savedMedInfo = await Promise.race([savePromise, saveTimeoutPromise]) as MedicationInfo;
         return savedMedInfo || medInfo;
       } catch (saveError) {
         console.warn('Failed to save to database, but returning data anyway:', saveError);

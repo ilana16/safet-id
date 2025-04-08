@@ -85,7 +85,7 @@ export const performMedicationSearch = async (query: string): Promise<string[]> 
  * @param query Search query string
  * @returns Array of medication names matching the query
  */
-const enhancedMedicationSearch = async (query: string): Promise<string[]> => {
+export const enhancedMedicationSearch = async (query: string): Promise<string[]> => {
   console.log('Using enhanced medication database search for:', query);
   
   // Comprehensive list of common medications

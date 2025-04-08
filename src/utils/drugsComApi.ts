@@ -5,6 +5,15 @@ import { toast } from 'sonner';
 // Default timeout for API calls in milliseconds - reduced for faster response
 const API_TIMEOUT = 5000; // 5 seconds (reduced from 10)
 
+// Define interface for drug search results from RPC
+interface DrugSearchResult {
+  id: string;
+  name: string;
+  generic: string | null;
+  drug_class: string | null;
+  otc: boolean | null;
+}
+
 /**
  * Searches for medications using multiple data sources in sequence
  * 
@@ -36,14 +45,6 @@ export const searchDrugsCom = async (query: string): Promise<string[]> => {
     // Step 2: Try to search in the drugs table using the RPC function
     try {
       console.log('Searching drugs table for:', query);
-      
-      interface DrugSearchResult {
-        id: string;
-        name: string;
-        generic: string | null;
-        drug_class: string | null;
-        otc: boolean | null;
-      }
       
       const { data: drugsResults, error } = await supabase
         .rpc('search_drugs', { 
@@ -92,8 +93,8 @@ export const searchDrugsCom = async (query: string): Promise<string[]> => {
       console.error('Search timed out, using direct method:', timeoutError);
       
       // If timeout occurred, try a more direct method with exact matching
-      const { enhancedMedicationSearch } = await import('./medication-db/enhancedMedicationSearch');
-      const directResults = await enhancedMedicationSearch(query);
+      const { enhancedMedicationSearch: directSearch } = await import('./medication-db/enhancedMedicationSearch');
+      const directResults = await directSearch(query);
       
       if (directResults.length > 0) {
         return directResults;
@@ -119,8 +120,8 @@ export const searchDrugsCom = async (query: string): Promise<string[]> => {
       
       // Last resort: try to match just the beginning of words
       try {
-        const { enhancedMedicationSearch } = await import('./medication-db/enhancedMedicationSearch');
-        const emergencyResults = await enhancedMedicationSearch(query.substring(0, 3));
+        const { enhancedMedicationSearch: emergencySearch } = await import('./medication-db/enhancedMedicationSearch');
+        const emergencyResults = await emergencySearch(query.substring(0, 3));
         return emergencyResults.filter(med => med.toLowerCase().includes(query.toLowerCase())).slice(0, 5);
       } catch (e) {
         return [];
