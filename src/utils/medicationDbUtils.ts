@@ -140,26 +140,58 @@ export const getMedicationFromDb = async (medicationName: string): Promise<Medic
     
     console.log(`Found medication in database: ${data.name}`);
     
-    // Convert database structure back to MedicationInfo
+    // Convert database structure back to MedicationInfo with proper type handling
     const medicationInfo: MedicationInfo = {
       name: data.name,
       genericName: data.generic_name || '',
       description: data.description || '',
       drugClass: data.drug_class || '',
       prescriptionOnly: data.prescription_only || false,
-      usedFor: data.used_for || [],
-      warnings: data.warnings || [],
-      sideEffects: data.side_effects || { common: [], serious: [], rare: [] },
-      interactions: data.interactions || [],
-      dosage: data.dosage || { adult: '', child: '', elderly: '' },
-      forms: data.forms || [],
+      usedFor: Array.isArray(data.used_for) ? data.used_for : [],
+      warnings: Array.isArray(data.warnings) ? data.warnings : [],
+      // Ensure side_effects has the correct structure
+      sideEffects: typeof data.side_effects === 'object' && data.side_effects !== null
+        ? {
+            common: Array.isArray(data.side_effects.common) ? data.side_effects.common : [],
+            serious: Array.isArray(data.side_effects.serious) ? data.side_effects.serious : [],
+            rare: Array.isArray(data.side_effects.rare) ? data.side_effects.rare : []
+          }
+        : { common: [], serious: [], rare: [] },
+      interactions: Array.isArray(data.interactions) ? data.interactions : [],
+      // Ensure dosage has the correct structure
+      dosage: typeof data.dosage === 'object' && data.dosage !== null
+        ? {
+            adult: data.dosage.adult || '',
+            child: data.dosage.child || '',
+            elderly: data.dosage.elderly || '',
+            frequency: data.dosage.frequency || '',
+            renal: data.dosage.renal || '',
+            hepatic: data.dosage.hepatic || ''
+          }
+        : { adult: '', child: '', elderly: '', frequency: '', renal: '', hepatic: '' },
+      forms: Array.isArray(data.forms) ? data.forms : [],
       pregnancy: data.pregnancy || '',
       breastfeeding: data.breastfeeding || '',
-      foodInteractions: data.food_interactions || [],
-      conditionInteractions: data.condition_interactions || [],
-      therapeuticDuplications: data.therapeutic_duplications || [],
-      interactionClassifications: data.interaction_classifications || {},
-      interactionSeverity: data.interaction_severity || {},
+      foodInteractions: Array.isArray(data.food_interactions) ? data.food_interactions : [],
+      conditionInteractions: Array.isArray(data.condition_interactions) ? data.condition_interactions : [],
+      therapeuticDuplications: Array.isArray(data.therapeutic_duplications) ? data.therapeutic_duplications : [],
+      // Ensure interaction_classifications has the correct structure
+      interactionClassifications: typeof data.interaction_classifications === 'object' && data.interaction_classifications !== null
+        ? {
+            major: Array.isArray(data.interaction_classifications.major) ? data.interaction_classifications.major : [],
+            moderate: Array.isArray(data.interaction_classifications.moderate) ? data.interaction_classifications.moderate : [],
+            minor: Array.isArray(data.interaction_classifications.minor) ? data.interaction_classifications.minor : [],
+            unknown: Array.isArray(data.interaction_classifications.unknown) ? data.interaction_classifications.unknown : []
+          }
+        : { major: [], moderate: [], minor: [], unknown: [] },
+      // Ensure interaction_severity has the correct structure
+      interactionSeverity: typeof data.interaction_severity === 'object' && data.interaction_severity !== null
+        ? {
+            major: Array.isArray(data.interaction_severity.major) ? data.interaction_severity.major : [],
+            moderate: Array.isArray(data.interaction_severity.moderate) ? data.interaction_severity.moderate : [],
+            minor: Array.isArray(data.interaction_severity.minor) ? data.interaction_severity.minor : []
+          }
+        : { major: [], moderate: [], minor: [] },
       source: data.source || 'Database',
       drugsComUrl: getDrugsComUrl(data.name),
       fromDatabase: true,
