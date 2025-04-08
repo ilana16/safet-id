@@ -6,9 +6,11 @@ import { Search, Loader2, X, Globe, Brain, Database, ExternalLink } from 'lucide
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { Pill, PillIcon, ArrowRight } from 'lucide-react';
-import { searchDrugsCom, performLiveDrugsComSearch } from '@/utils/drugsComApi';
+import { performLiveDrugsComSearch } from '@/utils/drugsComApi';
+import { getMedicationFromDb } from '@/utils/medicationDbUtils';
 import { toast } from 'sonner';
 import { useDebounce } from '@/hooks/useDebounce';
+import { supabase } from '@/integrations/supabase/client';
 
 interface MedicationSearchProps {
   onSelectMedication: (medication: string) => void;
@@ -30,9 +32,19 @@ const MedicationSearch: React.FC<MedicationSearchProps> = ({
   const [searchResults, setSearchResults] = useState<string[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [history, setHistory] = useState<string[]>([]);
+  const [userId, setUserId] = useState<string | null>(null);
   const debouncedSearchTerm = useDebounce(query, 300);
 
   useEffect(() => {
+    // Get current user ID
+    const getCurrentUser = async () => {
+      const { data } = await supabase.auth.getUser();
+      setUserId(data.user?.id || null);
+    };
+    
+    getCurrentUser();
+    
+    // Load search history from localStorage
     const savedHistory = localStorage.getItem('medicationSearchHistory');
     if (savedHistory) {
       try {
@@ -86,6 +98,7 @@ const MedicationSearch: React.FC<MedicationSearchProps> = ({
       const results = await performLiveDrugsComSearch(query);
       setSearchResults(results);
       
+      // If there's an exact match, select it
       if (results.length === 1 && results[0].toLowerCase() === query.toLowerCase()) {
         handleSelectMedication(results[0]);
       }
@@ -101,6 +114,9 @@ const MedicationSearch: React.FC<MedicationSearchProps> = ({
     const updatedHistory = [medication, ...history.filter(item => item !== medication)].slice(0, 5);
     setHistory(updatedHistory);
     localStorage.setItem('medicationSearchHistory', JSON.stringify(updatedHistory));
+    
+    // Prefetch medication info to save to database
+    getMedicationFromDb(medication, userId);
     
     onSelectMedication(medication);
     setQuery(medication);

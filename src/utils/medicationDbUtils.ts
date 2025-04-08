@@ -99,11 +99,13 @@ export const saveMedicationToDb = async (
 
 /**
  * Retrieve medication information from the database
+ * If not found in database, automatically fetch from drugs.com and save to database
  * 
  * @param medicationName Name of the medication to retrieve
+ * @param userId User ID of the person searching (optional)
  * @returns Promise resolving to medication info or null if not found
  */
-export const getMedicationFromDb = async (medicationName: string): Promise<MedicationInfo | null> => {
+export const getMedicationFromDb = async (medicationName: string, userId?: string): Promise<MedicationInfo | null> => {
   if (!medicationName) return null;
 
   try {
@@ -121,164 +123,181 @@ export const getMedicationFromDb = async (medicationName: string): Promise<Medic
       return null;
     }
     
-    if (!data) {
-      console.log(`Medication not found in database: ${medicationName}`);
-      return null;
-    }
-    
-    // Update search count
-    const { error: updateError } = await supabase
-      .from('medications')
-      .update({ 
-        search_count: (data.search_count || 0) + 1,
-        searched_at: new Date().toISOString()
-      })
-      .eq('id', data.id);
-    
-    if (updateError) {
-      console.error('Error updating search count:', updateError);
-    }
-    
-    console.log(`Found medication in database: ${data.name}`);
-    
-    // Define interface for side effects to ensure proper typing
-    interface SideEffectsObject {
-      common?: string[];
-      serious?: string[];
-      rare?: string[];
-    }
-    
-    // Define interface for dosage to ensure proper typing
-    interface DosageObject {
-      adult?: string;
-      child?: string;
-      elderly?: string;
-      frequency?: string;
-      renal?: string;
-      hepatic?: string;
-    }
-    
-    // Define interface for interaction classifications to ensure proper typing
-    interface InteractionClassificationsObject {
-      major?: string[];
-      moderate?: string[];
-      minor?: string[];
-      unknown?: string[];
-    }
-    
-    // Define interface for interaction severity to ensure proper typing
-    interface InteractionSeverityObject {
-      major?: string[];
-      moderate?: string[];
-      minor?: string[];
-    }
-
-    // Helper function to safely handle nested objects with proper type casting
-    const safeGetNestedObject = <T>(obj: any, defaultValue: T): T => {
-      if (typeof obj === 'object' && obj !== null && !Array.isArray(obj)) {
-        return obj as unknown as T;
+    if (data) {
+      console.log(`Found medication in database: ${data.name}`);
+      
+      // Update search count
+      const { error: updateError } = await supabase
+        .from('medications')
+        .update({ 
+          search_count: (data.search_count || 0) + 1,
+          searched_at: new Date().toISOString()
+        })
+        .eq('id', data.id);
+      
+      if (updateError) {
+        console.error('Error updating search count:', updateError);
       }
-      return defaultValue;
-    };
-
-    // Helper function to safely get array values
-    const safeGetArray = (value: any): string[] => {
-      if (Array.isArray(value)) {
-        return value as string[];
+      
+      // Define interface for side effects to ensure proper typing
+      interface SideEffectsObject {
+        common?: string[];
+        serious?: string[];
+        rare?: string[];
       }
-      return [];
-    };
+      
+      // Define interface for dosage to ensure proper typing
+      interface DosageObject {
+        adult?: string;
+        child?: string;
+        elderly?: string;
+        frequency?: string;
+        renal?: string;
+        hepatic?: string;
+      }
+      
+      // Define interface for interaction classifications to ensure proper typing
+      interface InteractionClassificationsObject {
+        major?: string[];
+        moderate?: string[];
+        minor?: string[];
+        unknown?: string[];
+      }
+      
+      // Define interface for interaction severity to ensure proper typing
+      interface InteractionSeverityObject {
+        major?: string[];
+        moderate?: string[];
+        minor?: string[];
+      }
 
-    // Safely get side effects with default values for each property
-    // Create default object with the expected structure
-    const defaultSideEffects: SideEffectsObject = { common: [], serious: [], rare: [] };
-    const sideEffectsObj = safeGetNestedObject(data.side_effects, defaultSideEffects);
-    
-    const sideEffects = {
-      common: Array.isArray(sideEffectsObj.common) ? sideEffectsObj.common : [],
-      serious: Array.isArray(sideEffectsObj.serious) ? sideEffectsObj.serious : [],
-      rare: Array.isArray(sideEffectsObj.rare) ? sideEffectsObj.rare : []
-    };
+      // Helper function to safely handle nested objects with proper type casting
+      const safeGetNestedObject = <T>(obj: any, defaultValue: T): T => {
+        if (typeof obj === 'object' && obj !== null && !Array.isArray(obj)) {
+          return obj as unknown as T;
+        }
+        return defaultValue;
+      };
 
-    // Safely get dosage with default values for each property
-    // Create default object with the expected structure
-    const defaultDosage: DosageObject = { adult: '', child: '', elderly: '', frequency: '', renal: '', hepatic: '' };
-    const dosageObj = safeGetNestedObject(data.dosage, defaultDosage);
-    
-    const dosage = {
-      adult: typeof dosageObj.adult === 'string' ? dosageObj.adult : '',
-      child: typeof dosageObj.child === 'string' ? dosageObj.child : '',
-      elderly: typeof dosageObj.elderly === 'string' ? dosageObj.elderly : '',
-      frequency: typeof dosageObj.frequency === 'string' ? dosageObj.frequency : '',
-      renal: typeof dosageObj.renal === 'string' ? dosageObj.renal : '',
-      hepatic: typeof dosageObj.hepatic === 'string' ? dosageObj.hepatic : ''
-    };
+      // Helper function to safely get array values
+      const safeGetArray = (value: any): string[] => {
+        if (Array.isArray(value)) {
+          return value as string[];
+        }
+        return [];
+      };
 
-    // Safely get interaction classifications with default values for each property
-    // Create default object with the expected structure
-    const defaultInteractionClassifications: InteractionClassificationsObject = { 
-      major: [], moderate: [], minor: [], unknown: [] 
-    };
-    const interactionClassificationsObj = safeGetNestedObject(
-      data.interaction_classifications, 
-      defaultInteractionClassifications
-    );
-    
-    const interactionClassifications = {
-      major: Array.isArray(interactionClassificationsObj.major) ? interactionClassificationsObj.major : [],
-      moderate: Array.isArray(interactionClassificationsObj.moderate) ? interactionClassificationsObj.moderate : [],
-      minor: Array.isArray(interactionClassificationsObj.minor) ? interactionClassificationsObj.minor : [],
-      unknown: Array.isArray(interactionClassificationsObj.unknown) ? interactionClassificationsObj.unknown : []
-    };
+      // Safely get side effects with default values for each property
+      // Create default object with the expected structure
+      const defaultSideEffects: SideEffectsObject = { common: [], serious: [], rare: [] };
+      const sideEffectsObj = safeGetNestedObject(data.side_effects, defaultSideEffects);
+      
+      const sideEffects = {
+        common: Array.isArray(sideEffectsObj.common) ? sideEffectsObj.common : [],
+        serious: Array.isArray(sideEffectsObj.serious) ? sideEffectsObj.serious : [],
+        rare: Array.isArray(sideEffectsObj.rare) ? sideEffectsObj.rare : []
+      };
 
-    // Safely get interaction severity with default values for each property
-    // Create default object with the expected structure
-    const defaultInteractionSeverity: InteractionSeverityObject = { 
-      major: [], moderate: [], minor: [] 
-    };
-    const interactionSeverityObj = safeGetNestedObject(
-      data.interaction_severity, 
-      defaultInteractionSeverity
-    );
+      // Safely get dosage with default values for each property
+      // Create default object with the expected structure
+      const defaultDosage: DosageObject = { adult: '', child: '', elderly: '', frequency: '', renal: '', hepatic: '' };
+      const dosageObj = safeGetNestedObject(data.dosage, defaultDosage);
+      
+      const dosage = {
+        adult: typeof dosageObj.adult === 'string' ? dosageObj.adult : '',
+        child: typeof dosageObj.child === 'string' ? dosageObj.child : '',
+        elderly: typeof dosageObj.elderly === 'string' ? dosageObj.elderly : '',
+        frequency: typeof dosageObj.frequency === 'string' ? dosageObj.frequency : '',
+        renal: typeof dosageObj.renal === 'string' ? dosageObj.renal : '',
+        hepatic: typeof dosageObj.hepatic === 'string' ? dosageObj.hepatic : ''
+      };
+
+      // Safely get interaction classifications with default values for each property
+      // Create default object with the expected structure
+      const defaultInteractionClassifications: InteractionClassificationsObject = { 
+        major: [], moderate: [], minor: [], unknown: [] 
+      };
+      const interactionClassificationsObj = safeGetNestedObject(
+        data.interaction_classifications, 
+        defaultInteractionClassifications
+      );
+      
+      const interactionClassifications = {
+        major: Array.isArray(interactionClassificationsObj.major) ? interactionClassificationsObj.major : [],
+        moderate: Array.isArray(interactionClassificationsObj.moderate) ? interactionClassificationsObj.moderate : [],
+        minor: Array.isArray(interactionClassificationsObj.minor) ? interactionClassificationsObj.minor : [],
+        unknown: Array.isArray(interactionClassificationsObj.unknown) ? interactionClassificationsObj.unknown : []
+      };
+
+      // Safely get interaction severity with default values for each property
+      // Create default object with the expected structure
+      const defaultInteractionSeverity: InteractionSeverityObject = { 
+        major: [], moderate: [], minor: [] 
+      };
+      const interactionSeverityObj = safeGetNestedObject(
+        data.interaction_severity, 
+        defaultInteractionSeverity
+      );
+      
+      const interactionSeverity = {
+        major: Array.isArray(interactionSeverityObj.major) ? interactionSeverityObj.major : [],
+        moderate: Array.isArray(interactionSeverityObj.moderate) ? interactionSeverityObj.moderate : [],
+        minor: Array.isArray(interactionSeverityObj.minor) ? interactionSeverityObj.minor : []
+      };
+      
+      // Convert database structure back to MedicationInfo with proper type handling
+      const medicationInfo: MedicationInfo = {
+        name: data.name,
+        genericName: data.generic_name || '',
+        description: data.description || '',
+        drugClass: data.drug_class || '',
+        prescriptionOnly: data.prescription_only || false,
+        usedFor: safeGetArray(data.used_for),
+        warnings: safeGetArray(data.warnings),
+        sideEffects: sideEffects,
+        interactions: safeGetArray(data.interactions),
+        dosage: dosage,
+        forms: safeGetArray(data.forms),
+        pregnancy: data.pregnancy || '',
+        breastfeeding: data.breastfeeding || '',
+        foodInteractions: safeGetArray(data.food_interactions),
+        conditionInteractions: safeGetArray(data.condition_interactions),
+        therapeuticDuplications: safeGetArray(data.therapeutic_duplications),
+        interactionClassifications: interactionClassifications,
+        interactionSeverity: interactionSeverity,
+        source: data.source || 'Database',
+        drugsComUrl: getDrugsComUrl(data.name),
+        fromDatabase: true,
+        databaseSearchCount: data.search_count
+      };
+      
+      return medicationInfo;
+    }
     
-    const interactionSeverity = {
-      major: Array.isArray(interactionSeverityObj.major) ? interactionSeverityObj.major : [],
-      moderate: Array.isArray(interactionSeverityObj.moderate) ? interactionSeverityObj.moderate : [],
-      minor: Array.isArray(interactionSeverityObj.minor) ? interactionSeverityObj.minor : []
-    };
+    // If not found in database, fetch from drugs.com
+    console.log(`Medication not found in database: ${medicationName}. Fetching from drugs.com...`);
+    const drugsComMedInfo = await fetchDrugsComLiveInfo(medicationName);
     
-    // Convert database structure back to MedicationInfo with proper type handling
-    const medicationInfo: MedicationInfo = {
-      name: data.name,
-      genericName: data.generic_name || '',
-      description: data.description || '',
-      drugClass: data.drug_class || '',
-      prescriptionOnly: data.prescription_only || false,
-      usedFor: safeGetArray(data.used_for),
-      warnings: safeGetArray(data.warnings),
-      sideEffects: sideEffects,
-      interactions: safeGetArray(data.interactions),
-      dosage: dosage,
-      forms: safeGetArray(data.forms),
-      pregnancy: data.pregnancy || '',
-      breastfeeding: data.breastfeeding || '',
-      foodInteractions: safeGetArray(data.food_interactions),
-      conditionInteractions: safeGetArray(data.condition_interactions),
-      therapeuticDuplications: safeGetArray(data.therapeutic_duplications),
-      interactionClassifications: interactionClassifications,
-      interactionSeverity: interactionSeverity,
-      source: data.source || 'Database',
-      drugsComUrl: getDrugsComUrl(data.name),
-      fromDatabase: true,
-      databaseSearchCount: data.search_count
-    };
+    if (drugsComMedInfo) {
+      console.log(`Retrieved information for ${medicationName} from drugs.com. Saving to database...`);
+      
+      // Save the medication info to the database
+      await saveMedicationToDb(drugsComMedInfo, userId);
+      
+      // Mark as retrieved from drugs.com
+      drugsComMedInfo.source = 'Drugs.com';
+      drugsComMedInfo.drugsComUrl = getDrugsComUrl(drugsComMedInfo.name || medicationName);
+      
+      return drugsComMedInfo;
+    }
     
-    return medicationInfo;
+    console.log(`No information found for ${medicationName} on drugs.com`);
+    return null;
   } catch (error) {
     console.error(`Error retrieving medication from database:`, error);
     return null;
   }
 };
 
-// Import from drugsComApi to get URL function
-import { getDrugsComUrl } from './drugsComApi';
+// Import from drugsComApi to get URL function and fetchDrugsComLiveInfo function
+import { getDrugsComUrl, fetchDrugsComLiveInfo } from './drugsComApi';

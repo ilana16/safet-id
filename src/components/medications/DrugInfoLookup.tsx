@@ -1,6 +1,5 @@
-
 import React, { useState } from 'react';
-import { getDrugsComInfo, getDrugsComUrl, fetchDrugsComLiveInfo } from '@/utils/drugsComApi';
+import { getDrugsComUrl } from '@/utils/drugsComApi';
 import { Button } from '@/components/ui/button';
 import { ExternalLink, Loader2, Database, Archive } from 'lucide-react';
 import { MedicationInfo } from '@/utils/medicationData.d';
@@ -12,7 +11,7 @@ import MedicationInfoDisplay from './drug-lookup/MedicationInfoDisplay';
 import MedicationAddForm from './drug-lookup/MedicationAddForm';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
-import { saveMedicationToDb, getMedicationFromDb } from '@/utils/medicationDbUtils';
+import { getMedicationFromDb } from '@/utils/medicationDbUtils';
 
 interface DrugInfoLookupProps {
   onAddMedication?: (medication: Medication) => void;
@@ -66,15 +65,6 @@ const DrugInfoLookup: React.FC<DrugInfoLookupProps> = ({ onAddMedication }) => {
     }
   };
 
-  const fetchComprehensiveMedicationData = async (medication: string): Promise<MedicationInfo | null> => {
-    try {
-      return await fetchDrugsComLiveInfo(medication);
-    } catch (error) {
-      console.error('Error fetching comprehensive medication data:', error);
-      return null;
-    }
-  };
-
   const selectMedication = async (medication: string) => {
     if (!medication || medication.trim() === '') {
       toast.error('Please enter a valid medication name');
@@ -90,85 +80,32 @@ const DrugInfoLookup: React.FC<DrugInfoLookupProps> = ({ onAddMedication }) => {
     saveHistory(medication);
     
     try {
-      console.log(`Fetching information for medication: ${medication} from source: ${activeDataSource}`);
+      console.log(`Fetching information for medication: ${medication} from database or API`);
       
-      // First check if the medication exists in our database
-      const dbMedication = await getMedicationFromDb(medication);
+      // Enhanced function now checks database first, then fetches from drugs.com if needed
+      const medInfo = await getMedicationFromDb(medication, userId);
       
-      if (dbMedication) {
-        console.log('Medication info retrieved from database:', dbMedication.name);
-        setMedicationInfo(dbMedication);
+      if (medInfo) {
+        console.log('Medication info received:', medInfo.name);
+        setMedicationInfo(medInfo);
+        
         setNewMedication(prev => ({
           ...prev,
-          name: dbMedication.name,
+          name: medInfo.name,
           id: uuidv4(),
           dosage: '',
           frequency: 'Once daily',
           reason: '',
           startDate: new Date().toISOString().split('T')[0],
           notes: '',
-          foodInteractions: dbMedication.foodInteractions || [],
-          conditionInteractions: dbMedication.conditionInteractions || [],
-          therapeuticDuplications: dbMedication.therapeuticDuplications || [],
-          pregnancy: dbMedication.pregnancy || '',
-          breastfeeding: dbMedication.breastfeeding || '',
+          foodInteractions: medInfo.foodInteractions || [],
+          conditionInteractions: medInfo.conditionInteractions || [],
+          therapeuticDuplications: medInfo.therapeuticDuplications || [],
+          pregnancy: medInfo.pregnancy || '',
+          breastfeeding: medInfo.breastfeeding || '',
         }));
-        toast.success(`Information loaded for ${dbMedication.name} from database`);
-        setIsLoading(false);
-        return;
-      }
-      
-      // If not found in database, fetch from external API
-      let info: MedicationInfo | null;
-      
-      if (activeDataSource === 'drugscom') {
-        info = await getDrugsComInfo(medication);
-      } else {
-        info = await fetchComprehensiveMedicationData(medication);
-      }
-      
-      if (info) {
-        console.log('Medication info received from external API:', info.name);
         
-        // Save the medication info to the database
-        if (userId) {
-          saveMedicationToDb(info, userId)
-            .then(success => {
-              if (success) {
-                console.log(`Saved ${info!.name} to database`);
-                info!.fromDatabase = true; // Mark as saved in database
-              }
-            })
-            .catch(err => console.error('Error saving medication to database:', err));
-        } else {
-          // Even if no user is logged in, try to save anonymously
-          saveMedicationToDb(info)
-            .then(success => {
-              if (success) {
-                console.log(`Saved ${info!.name} to database anonymously`);
-                info!.fromDatabase = true; // Mark as saved in database
-              }
-            })
-            .catch(err => console.error('Error saving medication to database:', err));
-        }
-        
-        setMedicationInfo(info);
-        setNewMedication(prev => ({
-          ...prev,
-          name: info.name,
-          id: uuidv4(),
-          dosage: '',
-          frequency: 'Once daily',
-          reason: '',
-          startDate: new Date().toISOString().split('T')[0],
-          notes: '',
-          foodInteractions: info.foodInteractions || [],
-          conditionInteractions: info.conditionInteractions || [],
-          therapeuticDuplications: info.therapeuticDuplications || [],
-          pregnancy: info.pregnancy || '',
-          breastfeeding: info.breastfeeding || '',
-        }));
-        toast.success(`Information loaded for ${info.name}`);
+        toast.success(`Information loaded for ${medInfo.name}`);
       } else {
         console.error('No information returned for:', medication);
         setError(`No information found for ${medication}`);
