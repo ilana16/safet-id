@@ -113,9 +113,9 @@ export const getMedicationFromDb = async (
           source: dbMeds[0].source,
           fromDatabase: true,
           databaseSearchCount: newCount,
-          // Add the new properties
-          imprints: dbMeds[0].imprints || [],
-          internationalNames: dbMeds[0].internationalNames || []
+          // Handle imprints and internationalNames with null/undefined checks
+          imprints: Array.isArray(dbMeds[0].imprints) ? dbMeds[0].imprints : [],
+          internationalNames: Array.isArray(dbMeds[0].international_names) ? dbMeds[0].international_names : []
         };
         
         return medicationInfo;

@@ -49,8 +49,9 @@ export const saveMedicationToDb = async (
         ...medicationInfo,
         fromDatabase: true,
         databaseSearchCount: newCount,
-        imprints: med.imprints || [],
-        internationalNames: med.internationalNames || []
+        // Handle potential missing properties with safe defaults
+        imprints: Array.isArray(med.imprints) ? med.imprints : [],
+        internationalNames: Array.isArray(med.international_names) ? med.international_names : []
       };
     } else {
       // Medication doesn't exist, insert it
@@ -77,7 +78,10 @@ export const saveMedicationToDb = async (
           pregnancy: medicationInfo.pregnancy,
           breastfeeding: medicationInfo.breastfeeding,
           half_life: medicationInfo.halfLife || null,
-          searched_by: userId
+          searched_by: userId,
+          // Add the new properties if they exist
+          imprints: medicationInfo.imprints || [],
+          international_names: medicationInfo.internationalNames || []
         })
         .select()
         .single();
@@ -93,8 +97,9 @@ export const saveMedicationToDb = async (
         ...medicationInfo,
         fromDatabase: true,
         databaseSearchCount: 1,
-        imprints: [],
-        internationalNames: []
+        // Initialize with empty arrays if not provided
+        imprints: medicationInfo.imprints || [],
+        internationalNames: medicationInfo.internationalNames || []
       };
     }
   } catch (error) {
