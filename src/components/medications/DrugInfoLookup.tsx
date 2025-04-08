@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { ExternalLink, Loader2, AlertTriangle } from 'lucide-react';
@@ -100,7 +99,6 @@ const DrugInfoLookup: React.FC<DrugInfoLookupProps> = ({ onAddMedication }) => {
     try {
       console.log(`Fetching information for medication: ${medication} from database or fallback data`);
       
-      // Normalize medication name
       const normalizedMedicationName = medication.trim();
       
       const medInfo = await getMedicationFromDb(normalizedMedicationName, userId, 'drugscom');
@@ -328,12 +326,12 @@ const DrugInfoLookup: React.FC<DrugInfoLookupProps> = ({ onAddMedication }) => {
 
       {medicationInfo && showAddForm && (
         <MedicationAddForm 
-          medicationInfo={medicationInfo}
           open={showAddForm}
           onOpenChange={setShowAddForm}
           onAddMedication={handleAddMedication}
           newMedication={newMedication}
           setNewMedication={setNewMedication}
+          medicationInfo={medicationInfo}
         />
       )}
     </div>
