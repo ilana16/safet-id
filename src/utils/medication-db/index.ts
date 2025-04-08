@@ -129,6 +129,8 @@ export const getMedicationFromDb = async (
   source?: string
 ): Promise<MedicationInfo | null> => {
   try {
+    console.log(`Searching for medication: "${medicationName}"`);
+    
     // Try to get exact match first
     let { data: medData } = await supabase
       .from('medications')
@@ -139,6 +141,7 @@ export const getMedicationFromDb = async (
     
     // If not found, try partial match
     if (!medData) {
+      console.log('Exact match not found, trying partial match');
       const { data: partialMatches } = await supabase
         .from('medications')
         .select('*')
@@ -151,6 +154,7 @@ export const getMedicationFromDb = async (
     
     // Increment search count if found
     if (medData) {
+      console.log('Medication found:', medData.name);
       incrementMedicationSearchCount(medData.name, userId);
       
       // Define a proper DB response type with all needed fields
@@ -177,6 +181,8 @@ export const getMedicationFromDb = async (
         dosage?: any;
         half_life?: string | null;
         search_count?: number | null;
+        imprints?: Array<{imprint_code: string | null, image_url: string | null, description: string | null}> | null;
+        international_names?: Array<{country: string, name: string}> | null;
       }
       
       // Cast to our defined type to ensure we have all expected fields
@@ -208,12 +214,16 @@ export const getMedicationFromDb = async (
         halfLife: typedMedData.half_life,
         drugsComUrl: getDrugsComUrl(typedMedData.name),
         databaseSearchCount: typedMedData.search_count || 1,
-        fromDatabase: true
+        fromDatabase: true,
+        // Add the new property fields with safe defaults
+        imprints: Array.isArray(typedMedData.imprints) ? typedMedData.imprints : [],
+        internationalNames: Array.isArray(typedMedData.international_names) ? typedMedData.international_names : []
       };
       
       return medicationInfo;
     }
     
+    console.log('Medication not found in database');
     return null;
   } catch (error) {
     console.error('Error getting medication from database:', error);
@@ -234,6 +244,8 @@ export const performMedicationSearch = async (
   try {
     if (!query || query.length < 2) return [];
     
+    console.log(`Searching medications for: "${query}"`);
+    
     // Search for medications
     const { data: results, error } = await supabase
       .from('medications')
@@ -247,7 +259,9 @@ export const performMedicationSearch = async (
       return [];
     }
     
-    return results?.map(item => item.name) || [];
+    const medicationNames = results?.map(item => item.name) || [];
+    console.log(`Found ${medicationNames.length} results for "${query}"`);
+    return medicationNames;
   } catch (error) {
     console.error('Error in medication search:', error);
     return [];

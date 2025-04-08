@@ -68,6 +68,8 @@ export const getMedicationFromDb = async (
 ): Promise<MedicationInfo | null> => {
   if (!medicationName) return null;
 
+  console.log(`Starting search for medication: "${medicationName}"`);
+
   // Create a promise that will reject after the timeout period
   const timeoutPromise = new Promise<MedicationInfo | null>((_, reject) => {
     setTimeout(() => reject(new Error("Database operation timed out")), DB_OPERATION_TIMEOUT);
@@ -104,6 +106,8 @@ export const getMedicationFromDb = async (
               searched_by: userId || dbMeds[0].searched_by
             })
             .eq('id', dbMeds[0].id);
+            
+          console.log(`Updated search count to ${newCount} for ${dbMeds[0].name}`);
         } catch (updateError) {
           console.warn('Could not update search count, but continuing:', updateError);
         }
@@ -151,7 +155,10 @@ export const getMedicationFromDb = async (
           internationalNames: Array.isArray(dbMed.international_names) ? dbMed.international_names : []
         };
         
+        console.log(`Successfully processed medication data for ${dbMed.name}`);
         return medicationInfo;
+      } else {
+        console.log(`No medication found with name: ${normalizedName}`);
       }
     } catch (medTableError) {
       console.error('Error checking medications table:', medTableError);
@@ -203,6 +210,7 @@ export const getMedicationFromDb = async (
           internationalNames: []
         };
         
+        console.log(`Successfully processed drug data for ${drugData[0].name}`);
         return medicationInfo;
       }
     } catch (drugTableError) {

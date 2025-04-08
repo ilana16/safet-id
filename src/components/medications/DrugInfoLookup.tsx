@@ -130,6 +130,7 @@ const DrugInfoLookup: React.FC<DrugInfoLookupProps> = ({ onAddMedication }) => {
       } else {
         console.error('No information returned for:', medication);
         setError(`No information found for ${medication}. Please check the spelling or try another medication.`);
+        toast.error(`No information found for ${medication}`);
       }
     } catch (error) {
       console.error('Error fetching medication information:', error);
