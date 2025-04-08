@@ -10,7 +10,7 @@ import { toast } from 'sonner';
 import { useDebounce } from '@/hooks/useDebounce';
 import { supabase } from '@/integrations/supabase/client';
 import { Switch } from '@/components/ui/switch';
-import { performMedicationSearch } from '@/utils/medication-db'; 
+import { searchDrugsCom } from '@/utils/drugsComApi'; 
 
 interface MedicationSearchProps {
   onSelectMedication: (medication: string) => void;
@@ -28,7 +28,7 @@ const MedicationSearch: React.FC<MedicationSearchProps> = ({
   const [userId, setUserId] = useState<string | null>(null);
   const [searchError, setSearchError] = useState<string | null>(null);
   const [searchTimeoutId, setSearchTimeoutId] = useState<number | null>(null);
-  const [autoSearchEnabled, setAutoSearchEnabled] = useState(false);
+  const [autoSearchEnabled, setAutoSearchEnabled] = useState(true);
   const debouncedSearchTerm = useDebounce(query, 300, autoSearchEnabled);
 
   useEffect(() => {
@@ -60,6 +60,7 @@ const MedicationSearch: React.FC<MedicationSearchProps> = ({
       return;
     }
     
+    console.log(`Auto search triggering for: "${debouncedSearchTerm}"`);
     performSearch(debouncedSearchTerm, true);
   }, [debouncedSearchTerm, autoSearchEnabled]);
 
@@ -85,7 +86,10 @@ const MedicationSearch: React.FC<MedicationSearchProps> = ({
   };
 
   const performSearch = async (searchTerm: string, isAuto = false) => {
-    if (searchTerm.length < 2) return;
+    if (searchTerm.length < 2) {
+      console.log('Search term too short, skipping search');
+      return;
+    }
     
     if (searchTimeoutId) {
       clearTimeout(searchTimeoutId);
@@ -99,6 +103,7 @@ const MedicationSearch: React.FC<MedicationSearchProps> = ({
     
     try {
       const timeoutId = window.setTimeout(() => {
+        console.log('Search timeout triggered');
         setIsSearching(false);
         setSearchError('Search request timed out. Please try again with a simpler query.');
         toast.error('Search timed out. Please try again.');
@@ -106,17 +111,21 @@ const MedicationSearch: React.FC<MedicationSearchProps> = ({
       
       setSearchTimeoutId(timeoutId);
       
-      console.log(`${isAuto ? 'Auto' : 'Manual'} search for:`, searchTerm);
-      const results = await performMedicationSearch(searchTerm);
+      console.log(`${isAuto ? 'Auto' : 'Manual'} search for: "${searchTerm}"`);
+      const results = await searchDrugsCom(searchTerm);
+      console.log(`Search returned ${results.length} results`);
       
       clearTimeout(timeoutId);
       setSearchTimeoutId(null);
       
       setSearchResults(results);
+      setIsSearching(false);
       
       if (results.length === 0) {
+        console.log('No results found for search');
         toast.info(`No results found for "${searchTerm}"`);
       } else if (!isAuto && results.length === 1 && results[0].toLowerCase() === searchTerm.toLowerCase()) {
+        console.log('Exact match found, selecting it');
         handleSelectMedication(results[0]);
       }
     } catch (error) {
@@ -132,15 +141,21 @@ const MedicationSearch: React.FC<MedicationSearchProps> = ({
       toast.error(errorMessage);
     } finally {
       setIsSearching(false);
+      if (searchTimeoutId) {
+        clearTimeout(searchTimeoutId);
+        setSearchTimeoutId(null);
+      }
     }
   };
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log(`Manual search submission for: "${query}"`);
     await performSearch(query);
   };
 
   const handleCancelSearch = () => {
+    console.log('Search cancelled by user');
     setIsSearching(false);
     if (searchTimeoutId) {
       clearTimeout(searchTimeoutId);
@@ -149,6 +164,7 @@ const MedicationSearch: React.FC<MedicationSearchProps> = ({
   };
 
   const handleSelectMedication = (medication: string) => {
+    console.log(`Selected medication: "${medication}"`);
     const updatedHistory = [medication, ...history.filter(item => item !== medication)].slice(0, 5);
     setHistory(updatedHistory);
     localStorage.setItem('medicationSearchHistory', JSON.stringify(updatedHistory));
@@ -161,6 +177,7 @@ const MedicationSearch: React.FC<MedicationSearchProps> = ({
 
   const handleExternalSearch = () => {
     if (onExternalSearch && query.length >= 2) {
+      console.log(`External search for: "${query}"`);
       onExternalSearch(query);
     } else if (query.length < 2) {
       toast.error('Please enter at least 2 characters to search');
@@ -168,8 +185,10 @@ const MedicationSearch: React.FC<MedicationSearchProps> = ({
   };
 
   const handleToggleAutoSearch = () => {
-    setAutoSearchEnabled(!autoSearchEnabled);
-    toast.info(`Auto-search ${!autoSearchEnabled ? 'enabled' : 'disabled'}`);
+    const newState = !autoSearchEnabled;
+    console.log(`Auto-search ${newState ? 'enabled' : 'disabled'}`);
+    setAutoSearchEnabled(newState);
+    toast.info(`Auto-search ${newState ? 'enabled' : 'disabled'}`);
   };
 
   const popularMedicationCategories = {
@@ -329,6 +348,7 @@ const MedicationSearch: React.FC<MedicationSearchProps> = ({
         </div>
       )}
       
+      {/* Show history section */}
       {history.length > 0 && !isSearching && !searchError && (
         <div className="mt-4">
           <p className="text-sm text-gray-500 mb-2">Recent searches:</p>
@@ -346,6 +366,7 @@ const MedicationSearch: React.FC<MedicationSearchProps> = ({
         </div>
       )}
       
+      {/* Show common medications section */}
       {!query && !searchError && !isSearching && (
         <div className="mt-6">
           <h3 className="text-sm font-medium text-gray-700 mb-3">Common Medications by Category</h3>
