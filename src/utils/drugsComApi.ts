@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 const API_TIMEOUT = 5000; // 5 seconds (reduced from 10)
 
 /**
- * Searches for medications using database first, with fallback to common medications list
+ * Searches for medications using multiple data sources in sequence
  * 
  * @param query Search query string
  * @returns Promise resolving to an array of medication names
@@ -15,7 +15,7 @@ export const searchDrugsCom = async (query: string): Promise<string[]> => {
   if (!query || query.trim().length < 2) return [];
   
   try {
-    // First try to search in the database
+    // Step 1: Try to search in the medications table
     try {
       console.log('Searching medication database for:', query);
       const { data: dbResults } = await supabase
@@ -23,18 +23,35 @@ export const searchDrugsCom = async (query: string): Promise<string[]> => {
         .select('name')
         .ilike('name', `%${query}%`)
         .order('search_count', { ascending: false })
-        .limit(15);
+        .limit(10);
       
       if (dbResults && dbResults.length > 0) {
-        console.log('Found results in database:', dbResults.length);
+        console.log('Found results in medications table:', dbResults.length);
         return dbResults.map(result => result.name);
       }
     } catch (dbError) {
-      console.error('Error searching database:', dbError);
+      console.error('Error searching medications table:', dbError);
     }
     
-    // Due to Drugs.com restrictions, we use our comprehensive medication database
-    console.log('Using internal medication database for:', query);
+    // Step 2: Try to search in the new drugs table
+    try {
+      console.log('Searching drugs table for:', query);
+      const { data: drugsResults } = await supabase
+        .from('drugs')
+        .select('name')
+        .ilike('name', `%${query}%`)
+        .limit(10);
+      
+      if (drugsResults && drugsResults.length > 0) {
+        console.log('Found results in drugs table:', drugsResults.length);
+        return drugsResults.map(result => result.name);
+      }
+    } catch (drugsError) {
+      console.error('Error searching drugs table:', drugsError);
+    }
+    
+    // Step 3: Use enhanced local medication database as fallback
+    console.log('Using enhanced medication database for:', query);
     
     // Import our enhanced search function - use with timeout control
     const { enhancedMedicationSearch } = await import('./medication-db/enhancedMedicationSearch');

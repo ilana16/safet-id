@@ -9,6 +9,54 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      drugs: {
+        Row: {
+          breastfeeding: string | null
+          classification: string | null
+          consumer_info: string | null
+          created_at: string | null
+          dosage: string | null
+          drug_class: string | null
+          generic: string | null
+          id: string
+          name: string
+          otc: boolean | null
+          pregnancy: string | null
+          side_effects: string | null
+          slug: string | null
+        }
+        Insert: {
+          breastfeeding?: string | null
+          classification?: string | null
+          consumer_info?: string | null
+          created_at?: string | null
+          dosage?: string | null
+          drug_class?: string | null
+          generic?: string | null
+          id?: string
+          name: string
+          otc?: boolean | null
+          pregnancy?: string | null
+          side_effects?: string | null
+          slug?: string | null
+        }
+        Update: {
+          breastfeeding?: string | null
+          classification?: string | null
+          consumer_info?: string | null
+          created_at?: string | null
+          dosage?: string | null
+          drug_class?: string | null
+          generic?: string | null
+          id?: string
+          name?: string
+          otc?: boolean | null
+          pregnancy?: string | null
+          side_effects?: string | null
+          slug?: string | null
+        }
+        Relationships: []
+      }
       medical_profiles: {
         Row: {
           created_at: string

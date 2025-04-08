@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { MedicationInfo } from '../medicationData.d';
 import { saveMedicationToDb } from './save';
@@ -33,8 +32,8 @@ export const getMedicationFromDb = async (
     
     console.log(`Getting medication from database: ${normalizedName} using source: ${preferredSource}`);
     
-    // First try to get the medication from the database with timeout control
-    const dbLookupPromise = (async () => {
+    // First, check the medications table
+    try {
       const { data: dbMeds, error: dbError } = await supabase
         .from('medications')
         .select('*')
@@ -42,13 +41,9 @@ export const getMedicationFromDb = async (
         .limit(1);
       
       if (dbError) {
-        console.error('Error getting medication from database:', dbError);
-        throw dbError;
-      }
-      
-      // If found in the database, increment the search count and return the medication
-      if (dbMeds && dbMeds.length > 0) {
-        console.log('Medication found in database:', dbMeds[0].name);
+        console.error('Error getting medication from medications table:', dbError);
+      } else if (dbMeds && dbMeds.length > 0) {
+        console.log('Medication found in medications table:', dbMeds[0].name);
         
         // Increment the search count
         const newCount = (dbMeds[0].search_count || 0) + 1;
@@ -97,7 +92,6 @@ export const getMedicationFromDb = async (
           therapeuticDuplications: dbMeds[0].therapeutic_duplications || [],
           pregnancy: dbMeds[0].pregnancy,
           breastfeeding: dbMeds[0].breastfeeding,
-          // Fix: Safely handle half_life property by checking if it exists and casting as needed
           halfLife: dbMeds[0] && 'half_life' in dbMeds[0] ? String(dbMeds[0].half_life || '') : '',
           drugsComUrl: getDrugsComUrl(dbMeds[0].name),
           source: dbMeds[0].source,
@@ -107,17 +101,63 @@ export const getMedicationFromDb = async (
         
         return medicationInfo;
       }
+    } catch (medTableError) {
+      console.error('Error checking medications table:', medTableError);
+    }
+    
+    // Next, check the new drugs table
+    try {
+      const { data: drugData, error: drugError } = await supabase
+        .from('drugs')
+        .select('*')
+        .ilike('name', normalizedName)
+        .limit(1);
       
-      return null;
-    })();
+      if (drugError) {
+        console.error('Error getting medication from drugs table:', drugError);
+      } else if (drugData && drugData.length > 0) {
+        console.log('Medication found in drugs table:', drugData[0].name);
+        
+        // Convert drugs table data to MedicationInfo format
+        const medicationInfo: MedicationInfo = {
+          name: drugData[0].name,
+          genericName: drugData[0].generic || '',
+          description: drugData[0].consumer_info || '',
+          drugClass: drugData[0].drug_class || '',
+          prescriptionOnly: drugData[0].otc ? false : true,
+          usedFor: [],
+          warnings: [],
+          sideEffects: { 
+            common: drugData[0].side_effects ? [drugData[0].side_effects] : [], 
+            serious: [] 
+          },
+          interactions: [],
+          dosage: { 
+            adult: drugData[0].dosage || '', 
+            child: '' 
+          },
+          forms: [],
+          interactionClassifications: { major: [], moderate: [], minor: [] },
+          interactionSeverity: { major: [], moderate: [], minor: [] },
+          foodInteractions: [],
+          conditionInteractions: [],
+          therapeuticDuplications: [],
+          pregnancy: drugData[0].pregnancy || '',
+          breastfeeding: drugData[0].breastfeeding || '',
+          halfLife: '',
+          drugsComUrl: getDrugsComUrl(drugData[0].name),
+          source: 'Drugs Database',
+          fromDatabase: true,
+          databaseSearchCount: 1
+        };
+        
+        return medicationInfo;
+      }
+    } catch (drugTableError) {
+      console.error('Error checking drugs table:', drugTableError);
+    }
     
-    // Race the database lookup against the timeout
-    const dbResult = await Promise.race([dbLookupPromise, timeoutPromise]);
-    
-    // If we got a result from the database, return it
-    if (dbResult) return dbResult;
-    
-    // If not found in the database or timed out, use fallback immediately
+    // If not found in either database, use fallback data generation
     console.log('Medication not found in database or lookup timed out, using fallback data');
     return await generateMedicationInfo(medicationName, userId);
     

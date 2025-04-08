@@ -17,24 +17,40 @@ export const performMedicationSearch = async (query: string): Promise<string[]> 
   try {
     console.log(`Performing medication search for: ${query}`);
     
-    // First try to search in the database
+    // Step 1: Try to search in the medications table
     try {
       const { data: dbResults } = await supabase
         .from('medications')
         .select('name')
         .ilike('name', `%${query}%`)
         .order('search_count', { ascending: false })
-        .limit(15);
+        .limit(10);
       
       if (dbResults && dbResults.length > 0) {
-        console.log('Found results in database:', dbResults.length);
+        console.log('Found results in medications table:', dbResults.length);
         return dbResults.map(result => result.name);
       }
     } catch (dbError) {
-      console.error('Error searching database:', dbError);
+      console.error('Error searching medications table:', dbError);
+    }
+
+    // Step 2: Try to search in the new drugs table
+    try {
+      const { data: drugsResults } = await supabase
+        .from('drugs')
+        .select('name')
+        .ilike('name', `%${query}%`)
+        .limit(10);
+      
+      if (drugsResults && drugsResults.length > 0) {
+        console.log('Found results in drugs table:', drugsResults.length);
+        return drugsResults.map(result => result.name);
+      }
+    } catch (drugsError) {
+      console.error('Error searching drugs table:', drugsError);
     }
     
-    // Use enhanced local medication database search
+    // Step 3: Use enhanced local medication database as fallback
     console.log('Using enhanced medication database search');
     return await enhancedMedicationSearch(query);
     
