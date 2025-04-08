@@ -194,7 +194,7 @@ export const medicationDatabase: Record<string, MedicationInfo> = {
     interactionSeverity: {
       major: ["Iodinated contrast media", "Topiramate", "Dofetilide"],
       moderate: ["Cimetidine", "Alcohol", "Sulfonylureas", "Furosemide"],
-      minor: ["Beta-blockers", "Corticosteroids"]
+      minor: ["Antacids", "Calcium channel blockers"]
     },
     pharmacokinetics: {
       absorption: "50-60% of an oral dose is absorbed from the GI tract; food delays and slightly decreases absorption",
@@ -269,7 +269,7 @@ export const medicationDatabase: Record<string, MedicationInfo> = {
     interactionSeverity: {
       major: ["Cyclosporine", "Gemfibrozil", "Strong CYP3A4 inhibitors (clarithromycin, itraconazole, protease inhibitors)"],
       moderate: ["Grapefruit juice", "Erythromycin", "Diltiazem", "Fibrates", "Niacin"],
-      minor: ["Digoxin", "Oral contraceptives", "Colchicine"]
+      minor: ["Beta-blockers", "Corticosteroids"]
     },
     pharmacokinetics: {
       absorption: "Rapidly absorbed; food decreases rate but not extent of absorption",
@@ -439,7 +439,6 @@ export const medicationDatabase: Record<string, MedicationInfo> = {
     source: "Drugs.com"
   },
   
-  // New medications added below:
   levothyroxine: {
     name: "Levothyroxine",
     genericName: "Levothyroxine Sodium",
@@ -514,7 +513,7 @@ export const medicationDatabase: Record<string, MedicationInfo> = {
     interactionSeverity: {
       major: ["Imatinib", "Kinase inhibitors", "Amiodarone"],
       moderate: ["Warfarin", "Carbamazepine", "Phenytoin", "Rifampin", "Estrogens"],
-      minor: ["Antacids", "Calcium supplements", "Iron supplements", "Sucralfate"]
+      minor: ["Digoxin", "Oral contraceptives", "Colchicine"]
     },
     pharmacokinetics: {
       absorption: "40-80% absorbed from GI tract; absorption occurs primarily in jejunum and ileum",
@@ -670,3 +669,14 @@ export const medicationDatabase: Record<string, MedicationInfo> = {
     interactionSeverity: {
       major: ["Methotrexate (increased toxicity)"],
       moderate: ["Probenecid", "Oral contraceptives", "Warfarin", "Allopurinol"],
+      minor: ["Tetracyclines", "Chloramphenicol", "Live bacterial vaccines"]
+    },
+    pharmacokinetics: {
+      absorption: "Rapidly absorbed from GI tract; approximately 90% bioavailability",
+      distribution: "Widely distributed in most body fluids including synovial fluid, bile, and pleural fluid",
+      metabolism: "Partially metabolized to penicilloic acid (inactive)",
+      elimination: "Primarily renal excretion; half-life of about 1-1.5 hours"
+    },
+    source: "Drugs.com"
+  }
+};
