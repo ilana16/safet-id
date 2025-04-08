@@ -1,4 +1,3 @@
-
 import click
 import json
 import sys
@@ -146,6 +145,23 @@ def export_medication(name, output):
         click.echo(f"Exported medication data to {output}")
     except Exception as e:
         click.echo(f"Error: {e}", err=True)
+        sys.exit(1)
+
+@cli.command('api')
+@click.option('--host', default='0.0.0.0', help='Host to run the API server on')
+@click.option('--port', default=5000, help='Port to run the API server on')
+@click.option('--debug', is_flag=True, help='Run in debug mode')
+def start_api_server(host, port, debug):
+    """Start the Flask API server"""
+    try:
+        from .api import start_api
+        click.echo(f"Starting API server on http://{host}:{port}")
+        start_api(host=host, port=port, debug=debug)
+    except ImportError as e:
+        click.echo("Error: Flask or Flask-RESTful not installed. Install with 'pip install flask flask-restful'")
+        sys.exit(1)
+    except Exception as e:
+        click.echo(f"Error starting API server: {e}", err=True)
         sys.exit(1)
 
 def import_drug_with_relationships(drug_data: Dict[str, Any]) -> Optional[str]:

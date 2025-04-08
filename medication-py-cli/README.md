@@ -43,6 +43,51 @@ medication-cli get "Acetaminophen"
 medication-cli export "Aspirin" -o aspirin.json
 ```
 
+### Start the API server
+```
+medication-cli api
+# Or specify host/port
+medication-cli api --host 127.0.0.1 --port 8000 --debug
+```
+
+## RESTful API
+
+The API provides the following endpoints:
+
+### Get all medications
+```
+GET /medications
+```
+
+### Search medications
+```
+GET /medications?query=aspirin
+```
+
+### Get medication by ID
+```
+GET /medications/{medication_id}
+```
+
+### Add new medication
+```
+POST /medications
+Content-Type: application/json
+
+{
+  "name": "Aspirin",
+  "generic_name": "Acetylsalicylic Acid",
+  "drug_class": "NSAID",
+  "description": "Pain reliever and fever reducer",
+  "prescription_only": false
+}
+```
+
+### Delete medication
+```
+DELETE /medications/{medication_id}
+```
+
 ## Environment Variables
 
 Create a `.env` file with your Supabase credentials:
