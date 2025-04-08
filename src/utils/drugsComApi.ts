@@ -1,4 +1,3 @@
-
 import { toast } from '@/lib/toast';
 import { supabase } from '@/integrations/supabase/client';
 import { MedicationInfo } from './medicationData.d';
@@ -10,18 +9,12 @@ interface DrugSearchResult {
   name: string;
 }
 
-/**
- * Searches for medications using the Drugs.com API
- * @param query Search term
- * @returns Promise with array of medication names and IDs
- */
 export const searchDrugsCom = async (query: string): Promise<DrugSearchResult[]> => {
   if (query.length < 2) {
     return [];
   }
-  
+
   try {
-    // First try to use the Drugs.com API via Edge Function
     const response = await fetch(`${EDGE_FUNCTION_URL}/search?q=${encodeURIComponent(query)}`);
     
     if (!response.ok) {
@@ -41,24 +34,15 @@ export const searchDrugsCom = async (query: string): Promise<DrugSearchResult[]>
       }));
     }
     
-    // Fallback to simulated results if API response format is unexpected
     return fallbackSearch(query);
     
   } catch (error) {
     console.error('Error searching medications via API:', error);
-    
-    // Fallback to simulated data if API fails
     return fallbackSearch(query);
   }
 };
 
-/**
- * Fallback search function that simulates API results
- * @param query Search term
- * @returns Array of medication names and IDs
- */
 const fallbackSearch = (query: string): DrugSearchResult[] => {
-  // Same list as before for fallback
   const commonMedications = [
     'Acetaminophen', 'Adderall', 'Albuterol', 'Alprazolam', 'Amoxicillin', 
     'Atorvastatin', 'Azithromycin', 'Benzonatate', 'Bupropion', 'Buspirone',
@@ -85,7 +69,6 @@ const fallbackSearch = (query: string): DrugSearchResult[] => {
     'Zithromax', 'Zofran', 'Zohydro', 'Zoloft', 'Zomig'
   ];
   
-  // Filter and return medications that match the query
   const results = commonMedications
     .filter(med => med.toLowerCase().includes(query.toLowerCase()))
     .map(name => ({
@@ -93,7 +76,6 @@ const fallbackSearch = (query: string): DrugSearchResult[] => {
       name
     }));
   
-  // Sort results by relevance
   return results.sort((a, b) => {
     const aLower = a.name.toLowerCase();
     const bLower = b.name.toLowerCase();
@@ -109,34 +91,20 @@ const fallbackSearch = (query: string): DrugSearchResult[] => {
   });
 };
 
-/**
- * Generate a Drugs.com URL for a medication
- * @param drugName The name of the medication
- * @returns URL to the drugs.com page
- */
 export const getDrugsComUrl = (drugName: string): string => {
-  // Format drug name for URL
   const formattedDrug = drugName.trim().toLowerCase().replace(/\s+/g, '-');
   return `https://www.drugs.com/${formattedDrug}.html`;
 };
 
-// Local in-memory cache for medication info
 const medicationInfoCache = new Map<string, MedicationInfo>();
 
-/**
- * Get detailed information about a medication from the API
- * @param drugId The ID of the medication
- * @returns Promise with drug information
- */
 export const getDrugDetails = async (drugId: string): Promise<MedicationInfo | null> => {
   try {
-    // Check in-memory cache first
     if (medicationInfoCache.has(drugId)) {
       console.log('Retrieved drug details from in-memory cache');
       return medicationInfoCache.get(drugId) || null;
     }
-    
-    // Try to fetch from the medications table where we store drug info
+
     const { data: cached, error } = await supabase
       .from('medications')
       .select('*')
@@ -149,8 +117,7 @@ export const getDrugDetails = async (drugId: string): Promise<MedicationInfo | n
       medicationInfoCache.set(drugId, medicationInfo);
       return medicationInfo;
     }
-    
-    // Fetch drug details from API
+
     const response = await fetch(`${EDGE_FUNCTION_URL}/details?id=${encodeURIComponent(drugId)}`);
     
     if (!response.ok) {
@@ -163,15 +130,12 @@ export const getDrugDetails = async (drugId: string): Promise<MedicationInfo | n
       throw new Error(detailsData.error);
     }
     
-    // Fetch side effects from API
     const sideEffectsResponse = await fetch(`${EDGE_FUNCTION_URL}/side-effects?id=${encodeURIComponent(drugId)}`);
     const sideEffectsData = sideEffectsResponse.ok ? await sideEffectsResponse.json() : { sideEffects: [] };
     
-    // Fetch dosage from API
     const dosageResponse = await fetch(`${EDGE_FUNCTION_URL}/dosage?id=${encodeURIComponent(drugId)}`);
     const dosageData = dosageResponse.ok ? await dosageResponse.json() : { dosage: "Information not available" };
     
-    // Compile the medication info
     const medicationInfo: MedicationInfo = {
       name: detailsData.name || drugId,
       genericName: detailsData.generic_name || "",
@@ -209,13 +173,10 @@ export const getDrugDetails = async (drugId: string): Promise<MedicationInfo | n
         unknown: []
       }
     };
-    
-    // Cache the results in memory
+
     medicationInfoCache.set(drugId, medicationInfo);
     
-    // Try to store in database when possible
     try {
-      // Convert our object properties to match the database column names
       await supabase
         .from('medications')
         .upsert({
@@ -240,24 +201,16 @@ export const getDrugDetails = async (drugId: string): Promise<MedicationInfo | n
         });
     } catch (dbError) {
       console.error('Error caching drug details:', dbError);
-      // Non-blocking error - continue even if caching fails
     }
     
     return medicationInfo;
   } catch (error) {
     console.error('Error fetching drug details:', error);
     toast.error('Error retrieving medication details');
-    
-    // Return simulated data as fallback
     return fallbackDrugDetails(drugId);
   }
 };
 
-/**
- * Get drug interactions between multiple medications
- * @param drugIds Array of drug IDs to check for interactions
- * @returns Promise with interaction information
- */
 export const checkDrugInteractions = async (drugIds: string[]): Promise<any> => {
   if (drugIds.length < 2) {
     return { interactions: [], summary: "At least two medications are required to check interactions" };
@@ -286,8 +239,6 @@ export const checkDrugInteractions = async (drugIds: string[]): Promise<any> => 
   } catch (error) {
     console.error('Error checking drug interactions:', error);
     toast.error('Error checking medication interactions');
-    
-    // Return simulated interaction data as fallback
     return {
       interactions: [
         {
@@ -301,9 +252,6 @@ export const checkDrugInteractions = async (drugIds: string[]): Promise<any> => 
   }
 };
 
-/**
- * Fallback function to provide simulated drug details if the API fails
- */
 const fallbackDrugDetails = (drugId: string): MedicationInfo => {
   const drugName = drugId.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
   
