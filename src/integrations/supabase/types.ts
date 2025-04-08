@@ -223,7 +223,41 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_drug_by_name: {
+        Args: { drug_name: string }
+        Returns: {
+          id: string
+          name: string
+          generic: string
+          drug_class: string
+          otc: boolean
+          consumer_info: string
+          side_effects: string
+          dosage: string
+          pregnancy: string
+          breastfeeding: string
+          classification: string
+        }[]
+      }
+      get_drug_interactions: {
+        Args: { drug_id: string }
+        Returns: {
+          id: string
+          level: string
+          interaction: string
+          created_at: string
+        }[]
+      }
+      search_drugs: {
+        Args: { search_term: string; result_limit: number }
+        Returns: {
+          id: string
+          name: string
+          generic: string
+          drug_class: string
+          otc: boolean
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never

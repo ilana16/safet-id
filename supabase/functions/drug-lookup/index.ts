@@ -47,20 +47,52 @@ serve(async (req) => {
       );
     }
     
-    // Next search in drugs table
+    // Next search in drugs table with drug_interactions
+    const normalizedName = name.toLowerCase().trim();
+    
+    // Use RPC function to get drug data
     const { data: drugsData, error: drugsError } = await supabaseAdmin
-      .from('drugs')
-      .select('*, drug_interactions(*)')
-      .ilike('name', `%${name}%`)
-      .limit(1);
+      .rpc('get_drug_by_name', { drug_name: normalizedName });
       
     if (drugsError) {
       console.error('Error querying drugs:', drugsError);
     }
     
     if (drugsData && drugsData.length > 0) {
+      // Found drug data, now fetch interactions
+      const drugId = drugsData[0].id;
+      
+      // Get interactions for this drug
+      const { data: interactionsData, error: interactionsError } = await supabaseAdmin
+        .rpc('get_drug_interactions', { drug_id: drugId });
+      
+      if (interactionsError) {
+        console.error('Error fetching drug interactions:', interactionsError);
+      }
+      
+      // Group interactions by level
+      const interactions = {
+        major: [],
+        moderate: [],
+        minor: [],
+        unknown: []
+      };
+      
+      if (interactionsData && interactionsData.length > 0) {
+        for (const item of interactionsData) {
+          const level = item.level as keyof typeof interactions;
+          interactions[level].push(item.interaction);
+        }
+      }
+      
+      // Add interactions to drug data
+      const enrichedDrugData = {
+        ...drugsData[0],
+        interactions: interactions
+      };
+      
       return new Response(
-        JSON.stringify({ source: 'drugs', data: drugsData[0] }),
+        JSON.stringify({ source: 'drugs', data: enrichedDrugData }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }

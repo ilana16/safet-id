@@ -5,6 +5,15 @@ import { toast } from 'sonner';
 // Default timeout for API calls in milliseconds
 const API_TIMEOUT = 15000; // 15 seconds
 
+// Interface for RPC function results
+interface DrugSearchResult {
+  id: string;
+  name: string;
+  generic: string | null;
+  drug_class: string | null;
+  otc: boolean | null;
+}
+
 /**
  * Performs a search for medications in the database with enhanced fallback
  * 
@@ -34,11 +43,14 @@ export const performMedicationSearch = async (query: string): Promise<string[]> 
       console.error('Error searching medications table:', dbError);
     }
 
-    // Step 2: Try to search in the new drugs table using a raw query
+    // Step 2: Try to search in the drugs table using the RPC function
     try {
       console.log('Searching drugs table for:', query);
       const { data: drugsResults, error } = await supabase
-        .rpc('search_drugs', { search_term: `%${query}%`, result_limit: 10 });
+        .rpc('search_drugs', { 
+          search_term: `%${query}%`, 
+          result_limit: 10 
+        }) as { data: DrugSearchResult[] | null, error: any };
       
       if (error) {
         console.error('Error in drugs search RPC:', error);
@@ -48,7 +60,7 @@ export const performMedicationSearch = async (query: string): Promise<string[]> 
       
       if (drugsResults && drugsResults.length > 0) {
         console.log('Found results in drugs table:', drugsResults.length);
-        return drugsResults.map((result: any) => result.name as string);
+        return drugsResults.map((result) => result.name);
       }
     } catch (drugsError) {
       console.error('Error searching drugs table:', drugsError);

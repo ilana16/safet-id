@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { MedicationInfo } from '../medicationData.d';
 import { saveMedicationToDb } from './save';
@@ -6,6 +7,21 @@ import { getDrugsComUrl } from '../drugsComApi';
 
 // Configurable timeout for database operations
 const DB_OPERATION_TIMEOUT = 8000; // 8 seconds
+
+// Define interfaces for RPC results
+interface DrugResult {
+  id: string;
+  name: string;
+  generic: string | null;
+  drug_class: string | null;
+  otc: boolean | null;
+  consumer_info: string | null;
+  side_effects: string | null;
+  dosage: string | null;
+  pregnancy: string | null;
+  breastfeeding: string | null;
+  classification: string | null;
+}
 
 /**
  * Gets medication information from the database or fallback data
@@ -108,7 +124,7 @@ export const getMedicationFromDb = async (
     // Next, check the new drugs table using RPC to avoid type issues
     try {
       const { data: drugData, error: drugError } = await supabase
-        .rpc('get_drug_by_name', { drug_name: normalizedName });
+        .rpc('get_drug_by_name', { drug_name: normalizedName }) as { data: DrugResult[] | null, error: any };
       
       if (drugError) {
         console.error('Error getting medication from drugs table:', drugError);
