@@ -1,8 +1,7 @@
 
 import React, { useState } from 'react';
-import { getDrugsComUrl } from '@/utils/drugsComApi';
 import { Button } from '@/components/ui/button';
-import { ExternalLink, Loader2, Database, Archive, BookOpen, AlertTriangle, Microscope, Globe } from 'lucide-react';
+import { ExternalLink, Loader2, Archive } from 'lucide-react';
 import { MedicationInfo } from '@/utils/medicationData.d';
 import { toast } from 'sonner';
 import { v4 as uuidv4 } from 'uuid';
@@ -10,7 +9,6 @@ import { Medication } from '@/pages/medical-profile/MedicationsSection';
 import MedicationSearch from './drug-lookup/MedicationSearch';
 import MedicationInfoDisplay from './drug-lookup/MedicationInfoDisplay';
 import MedicationAddForm from './drug-lookup/MedicationAddForm';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
 import { getMedicationFromDb } from '@/utils/medicationDbUtils';
 
@@ -25,7 +23,6 @@ const DrugInfoLookup: React.FC<DrugInfoLookupProps> = ({ onAddMedication }) => {
   const [error, setError] = useState<string | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
   const [searchAttempted, setSearchAttempted] = useState(false);
-  const [activeDataSource, setActiveDataSource] = useState<'drugscom' | 'elsevier' | 'comprehensive' | 'webcrawler' | 'modrugs'>('drugscom');
   const [userId, setUserId] = useState<string | null>(null);
   const [newMedication, setNewMedication] = useState<Partial<Medication>>({
     id: uuidv4(),
@@ -82,15 +79,7 @@ const DrugInfoLookup: React.FC<DrugInfoLookupProps> = ({ onAddMedication }) => {
     try {
       console.log(`Fetching information for medication: ${medication} from database or API`);
       
-      const preferredSource = activeDataSource === 'elsevier' 
-        ? 'elsevier' 
-        : activeDataSource === 'webcrawler'
-          ? 'webcrawler'
-          : activeDataSource === 'modrugs'
-            ? 'modrugs'
-            : 'drugscom';
-      
-      const medInfo = await getMedicationFromDb(medication, userId, preferredSource);
+      const medInfo = await getMedicationFromDb(medication, userId, 'drugscomScraper');
       
       if (medInfo) {
         console.log('Medication info received:', medInfo.name);
@@ -128,73 +117,16 @@ const DrugInfoLookup: React.FC<DrugInfoLookupProps> = ({ onAddMedication }) => {
 
   const openDrugsComPage = () => {
     if (selectedMedication) {
-      const drugsComUrl = getDrugsComUrl(selectedMedication);
-      window.open(drugsComUrl, '_blank', 'noopener,noreferrer');
-    }
-  };
-
-  const openElsevierPage = () => {
-    if (selectedMedication) {
-      window.open('https://druginfo.elsevier.com/docs/api/docs.json', '_blank', 'noopener,noreferrer');
-    }
-  };
-
-  const openWebCrawlerPage = () => {
-    if (selectedMedication) {
-      window.open('https://github.com/shubhpawar/Web-Crawler-for-Drug-Interaction-Data', '_blank', 'noopener,noreferrer');
-    }
-  };
-
-  const openMoDrugsPage = () => {
-    if (selectedMedication) {
-      window.open('https://github.com/Liuzhe30/modrugs', '_blank', 'noopener,noreferrer');
-    }
-  };
-
-  const openExternalPage = () => {
-    if (selectedMedication) {
-      if (activeDataSource === 'elsevier') {
-        openElsevierPage();
-      } else if (activeDataSource === 'webcrawler') {
-        openWebCrawlerPage();
-      } else if (activeDataSource === 'modrugs') {
-        openMoDrugsPage();
-      } else if (activeDataSource === 'comprehensive') {
-        // For comprehensive, use the most appropriate external resource
-        if (medicationInfo?.source?.includes('Drugs.com')) {
-          openDrugsComPage();
-        } else if (medicationInfo?.source?.includes('Elsevier')) {
-          openElsevierPage();
-        } else if (medicationInfo?.source?.includes('Web Crawler')) {
-          openWebCrawlerPage();
-        } else if (medicationInfo?.source?.includes('MoDrugs')) {
-          openMoDrugsPage();
-        } else {
-          openDrugsComPage(); // Default to drugs.com
-        }
-      } else {
-        openDrugsComPage();
-      }
+      window.open(`https://www.drugs.com/search.php?searchterm=${encodeURIComponent(selectedMedication)}`, '_blank', 'noopener,noreferrer');
     }
   };
 
   const handleDirectExternalSearch = (query: string) => {
     if (!query || query.trim() === '') return;
     
-    if (activeDataSource === 'elsevier') {
-      window.open('https://druginfo.elsevier.com', '_blank', 'noopener,noreferrer');
-      toast.info(`Searching for "${query}" on Elsevier`);
-    } else if (activeDataSource === 'webcrawler') {
-      window.open('https://github.com/shubhpawar/Web-Crawler-for-Drug-Interaction-Data', '_blank', 'noopener,noreferrer');
-      toast.info(`Showing Web Crawler for Drug Interaction Data repository`);
-    } else if (activeDataSource === 'modrugs') {
-      window.open('https://github.com/Liuzhe30/modrugs', '_blank', 'noopener,noreferrer');
-      toast.info(`Showing MoDrugs GitHub repository`);
-    } else {
-      const searchUrl = `https://www.drugs.com/search.php?searchterm=${encodeURIComponent(query)}`;
-      window.open(searchUrl, '_blank', 'noopener,noreferrer');
-      toast.info(`Searching for "${query}" on Drugs.com`);
-    }
+    const searchUrl = `https://www.drugs.com/search.php?searchterm=${encodeURIComponent(query)}`;
+    window.open(searchUrl, '_blank', 'noopener,noreferrer');
+    toast.info(`Searching for "${query}" on Drugs.com`);
   };
 
   const handleAddToProfile = () => {
@@ -242,113 +174,33 @@ const DrugInfoLookup: React.FC<DrugInfoLookupProps> = ({ onAddMedication }) => {
             variant="outline" 
             size="sm" 
             className="bg-white/10 hover:bg-white/20 text-white border-white/20"
-            onClick={openExternalPage}
+            onClick={openDrugsComPage}
             disabled={!selectedMedication}
           >
             <ExternalLink className="h-4 w-4 mr-1" />
-            <span className="hidden sm:inline">
-              {activeDataSource === 'drugscom' && 'View on Drugs.com'}
-              {activeDataSource === 'elsevier' && 'View on Elsevier'}
-              {activeDataSource === 'webcrawler' && 'View Web Crawler Data'}
-              {activeDataSource === 'modrugs' && 'View MoDrugs Data'}
-              {activeDataSource === 'comprehensive' && 'View Source'}
-            </span>
+            <span className="hidden sm:inline">View on Drugs.com</span>
             <span className="sm:hidden">External</span>
           </Button>
         </div>
         
-        <div className="border-b border-[#D1DEE8]">
-          <Tabs 
-            value={activeDataSource} 
-            onValueChange={(value) => setActiveDataSource(value as 'drugscom' | 'elsevier' | 'comprehensive' | 'webcrawler' | 'modrugs')}
-          >
-            <TabsList className="w-full">
-              <TabsTrigger value="drugscom" className="flex-1">
-                <Database className="h-4 w-4 mr-1" />
-                Drugs.com
-                {medicationInfo?.fromDatabase && medicationInfo?.source?.includes('Drugs.com') && (
-                  <span className="ml-2 bg-green-100 text-green-800 text-xs py-0.5 px-1.5 rounded-full flex items-center">
-                    <Archive className="h-3 w-3 mr-1" />
-                    Saved
-                  </span>
-                )}
-              </TabsTrigger>
-              <TabsTrigger value="elsevier" className="flex-1">
-                <BookOpen className="h-4 w-4 mr-1" />
-                Elsevier
-                {medicationInfo?.fromDatabase && medicationInfo?.source?.includes('Elsevier') && (
-                  <span className="ml-2 bg-green-100 text-green-800 text-xs py-0.5 px-1.5 rounded-full flex items-center">
-                    <Archive className="h-3 w-3 mr-1" />
-                    Saved
-                  </span>
-                )}
-              </TabsTrigger>
-              <TabsTrigger value="webcrawler" className="flex-1">
-                <AlertTriangle className="h-4 w-4 mr-1" />
-                Interactions
-                {medicationInfo?.fromDatabase && medicationInfo?.source?.includes('Web Crawler') && (
-                  <span className="ml-2 bg-green-100 text-green-800 text-xs py-0.5 px-1.5 rounded-full flex items-center">
-                    <Archive className="h-3 w-3 mr-1" />
-                    Saved
-                  </span>
-                )}
-              </TabsTrigger>
-              <TabsTrigger value="modrugs" className="flex-1">
-                <Microscope className="h-4 w-4 mr-1" />
-                Molecular
-                {medicationInfo?.fromDatabase && medicationInfo?.source?.includes('MoDrugs') && (
-                  <span className="ml-2 bg-green-100 text-green-800 text-xs py-0.5 px-1.5 rounded-full flex items-center">
-                    <Archive className="h-3 w-3 mr-1" />
-                    Saved
-                  </span>
-                )}
-              </TabsTrigger>
-              <TabsTrigger value="comprehensive" className="flex-1">
-                <Globe className="h-4 w-4 mr-1" />
-                All Sources
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
-        </div>
-        
         <div className="p-5">
           {(!medicationInfo && !isLoading && !error) || (!searchAttempted) ? (
-            <>
-              {activeDataSource === 'elsevier' && (
-                <div className="mb-4 p-3 bg-indigo-50 rounded-md border border-indigo-200 text-indigo-800 text-sm">
-                  The Elsevier Drug Info database provides comprehensive clinical information about medications,
-                  including drug interactions, side effects, and dosing guidelines.
-                </div>
-              )}
-              
-              {activeDataSource === 'webcrawler' && (
-                <div className="mb-4 p-3 bg-amber-50 rounded-md border border-amber-200 text-amber-800 text-sm">
-                  This database uses the Web Crawler for Drug Interaction Data to provide detailed information on drug-drug,
-                  drug-food, and drug-disease interactions. Data sourced from shubhpawar's GitHub repository.
-                </div>
-              )}
-              
-              {activeDataSource === 'modrugs' && (
-                <div className="mb-4 p-3 bg-purple-50 rounded-md border border-purple-200 text-purple-800 text-sm">
-                  The MoDrugs database provides molecular-level drug information and interactions.
-                  This specialized database focuses on pharmacokinetics and receptor-level interactions.
-                  Data sourced from Liuzhe30's MoDrugs GitHub repository.
-                </div>
-              )}
-              
-              {activeDataSource === 'comprehensive' && (
-                <div className="mb-4 p-3 bg-blue-50 rounded-md border border-blue-200 text-blue-800 text-sm">
-                  Searching across all medication databases simultaneously for the most comprehensive results.
-                  Results will include medications from Drugs.com, Elsevier, Web Crawler, and MoDrugs databases.
-                </div>
-              )}
-              
-              <MedicationSearch 
-                onSelectMedication={selectMedication}
-                activeDataSource={activeDataSource}
-                onExternalSearch={handleDirectExternalSearch}
-              />
-            </>
+            <div className="mb-4 p-3 bg-amber-50 rounded-md border border-amber-200 text-amber-800 text-sm">
+              This database uses the Drugs.com scraper to provide comprehensive medication information including 
+              detailed side effects, interactions, and warnings.
+              <div className="mt-2">
+                <a href="https://github.com/miteoshi/Drugs.com-scrapper" target="_blank" rel="noopener noreferrer" className="underline">
+                  View the Drugs.com scraper on GitHub
+                </a>
+              </div>
+            </div>
+          ) : null}
+          
+          {(!medicationInfo && !isLoading && !error) || (!searchAttempted) ? (
+            <MedicationSearch 
+              onSelectMedication={selectMedication}
+              onExternalSearch={handleDirectExternalSearch}
+            />
           ) : null}
           
           {isLoading && (
@@ -375,18 +227,10 @@ const DrugInfoLookup: React.FC<DrugInfoLookupProps> = ({ onAddMedication }) => {
           error={error}
           dataSource={
             medicationInfo?.fromDatabase
-              ? `${medicationInfo.source || 'Database'} (Searched ${medicationInfo.databaseSearchCount || 1} time${medicationInfo.databaseSearchCount !== 1 ? 's' : ''})`
-              : activeDataSource === 'drugscom' 
-                ? 'Drugs.com Live' 
-                : activeDataSource === 'elsevier'
-                  ? 'Elsevier Drug Info Live'
-                  : activeDataSource === 'webcrawler'
-                    ? 'Web Crawler Interaction Data'
-                    : activeDataSource === 'modrugs'
-                      ? 'MoDrugs Molecular Database'
-                      : 'Comprehensive Database'
+              ? `Drugs.com Scraper (Searched ${medicationInfo.databaseSearchCount || 1} time${medicationInfo.databaseSearchCount !== 1 ? 's' : ''})`
+              : 'Drugs.com Scraper'
           }
-          onOpenExternalLink={openExternalPage}
+          onOpenExternalLink={openDrugsComPage}
         />
       )}
 
