@@ -130,7 +130,7 @@ const DrugsDotComMedicationsForm = () => {
   // State for search suggestions
   const [searchTerm, setSearchTerm] = useState('');
   const [searchResults, setSearchResults] = useState<string[]>([]);
-  const [loadingSuggestions, setLoadingSuggestions] = useState(false);
+  const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [activeTab, setActiveTab] = useState('prescriptions');
 
@@ -170,7 +170,7 @@ const DrugsDotComMedicationsForm = () => {
       return;
     }
 
-    setIsSearching(true);
+    setIsLoadingSuggestions(true);
     try {
       const results = await searchDrugsCom(query);
       // Extract names only for compatibility with existing code
@@ -180,7 +180,7 @@ const DrugsDotComMedicationsForm = () => {
       console.error('Error searching medications:', error);
       setSearchResults([]);
     } finally {
-      setIsSearching(false);
+      setIsLoadingSuggestions(false);
     }
   };
 
@@ -441,7 +441,7 @@ const DrugsDotComMedicationsForm = () => {
               {/* Suggestions dropdown */}
               {showSuggestions && item.name === searchTerm && searchResults.length > 0 && (
                 <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto">
-                  {loadingSuggestions ? (
+                  {isLoadingSuggestions ? (
                     <div className="p-2 text-gray-500">Loading suggestions...</div>
                   ) : (
                     searchResults.map((suggestion, idx) => (
@@ -711,7 +711,6 @@ const DrugsDotComMedicationsForm = () => {
               <Button
                 type="button"
                 variant="outline"
-                size="sm"
                 onClick={() => addDoseTime(type, item.id)}
                 className="text-blue-600 border-blue-200 hover:bg-blue-50"
               >
