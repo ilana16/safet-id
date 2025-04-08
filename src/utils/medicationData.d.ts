@@ -2,32 +2,31 @@
 export interface MedicationInfo {
   name: string;
   genericName?: string;
-  description: string;
-  usedFor?: string[];
-  prescriptionOnly?: boolean;
+  description?: string;
   drugClass?: string;
+  prescriptionOnly?: boolean;
+  usedFor?: string[];
+  warnings?: string[];
+  sideEffects?: {
+    common: string[];
+    serious: string[];
+    rare?: string[];
+  };
+  interactions?: string[];
   dosage?: {
     adult?: string;
     child?: string;
     elderly?: string;
     frequency?: string;
-    renal?: string;
-    hepatic?: string;
   };
-  interactions?: string[];
-  warnings?: string[];
-  sideEffects?: {
-    common?: string[];
-    serious?: string[];
-    rare?: string[];
-  };
-  drugsComUrl?: string;
   forms?: string[];
   pregnancy?: string;
   breastfeeding?: string;
+  drugsComUrl?: string;
   foodInteractions?: string[];
   conditionInteractions?: string[];
   therapeuticDuplications?: string[];
+  source?: string;
   interactionClassifications?: {
     major?: string[];
     moderate?: string[];
@@ -39,22 +38,9 @@ export interface MedicationInfo {
     moderate?: string[];
     minor?: string[];
   };
-  overdose?: {
-    symptoms: string[];
-    treatment: string;
-    antidote?: string;
-  };
-  blackBoxWarning?: string;
-  halfLife?: string;
-  controlledSubstance?: string;
-  pharmacokinetics?: {
-    absorption?: string;
-    distribution?: string;
-    metabolism?: string;
-    elimination?: string;
-  };
-  source?: string;
-  notes?: string;
+  // New properties for database integration
+  fromDatabase?: boolean;
+  databaseSearchCount?: number;
 }
 
 export interface MedicationDatabase {

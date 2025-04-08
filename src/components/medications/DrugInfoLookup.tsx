@@ -1,7 +1,8 @@
+
 import React, { useState } from 'react';
 import { getDrugsComInfo, getDrugsComUrl, fetchDrugsComLiveInfo } from '@/utils/drugsComApi';
 import { Button } from '@/components/ui/button';
-import { ExternalLink, Loader2, Database } from 'lucide-react';
+import { ExternalLink, Loader2, Database, Archive } from 'lucide-react';
 import { MedicationInfo } from '@/utils/medicationData.d';
 import { toast } from 'sonner';
 import { v4 as uuidv4 } from 'uuid';
@@ -10,6 +11,8 @@ import MedicationSearch from './drug-lookup/MedicationSearch';
 import MedicationInfoDisplay from './drug-lookup/MedicationInfoDisplay';
 import MedicationAddForm from './drug-lookup/MedicationAddForm';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { supabase } from '@/integrations/supabase/client';
+import { saveMedicationToDb, getMedicationFromDb } from '@/utils/medicationDbUtils';
 
 interface DrugInfoLookupProps {
   onAddMedication?: (medication: Medication) => void;
@@ -23,6 +26,7 @@ const DrugInfoLookup: React.FC<DrugInfoLookupProps> = ({ onAddMedication }) => {
   const [showAddForm, setShowAddForm] = useState(false);
   const [searchAttempted, setSearchAttempted] = useState(false);
   const [activeDataSource, setActiveDataSource] = useState<'drugscom' | 'comprehensive'>('drugscom');
+  const [userId, setUserId] = useState<string | null>(null);
   const [newMedication, setNewMedication] = useState<Partial<Medication>>({
     id: uuidv4(),
     dosage: '',
@@ -35,6 +39,16 @@ const DrugInfoLookup: React.FC<DrugInfoLookupProps> = ({ onAddMedication }) => {
     therapeuticDuplications: [],
   });
   
+  // Get current user ID when component mounts
+  React.useEffect(() => {
+    const getCurrentUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setUserId(user?.id || null);
+    };
+    
+    getCurrentUser();
+  }, []);
+
   const saveHistory = (medication: string) => {
     if (!medication || medication.trim() === '') return;
     
@@ -78,6 +92,33 @@ const DrugInfoLookup: React.FC<DrugInfoLookupProps> = ({ onAddMedication }) => {
     try {
       console.log(`Fetching information for medication: ${medication} from source: ${activeDataSource}`);
       
+      // First check if the medication exists in our database
+      const dbMedication = await getMedicationFromDb(medication);
+      
+      if (dbMedication) {
+        console.log('Medication info retrieved from database:', dbMedication.name);
+        setMedicationInfo(dbMedication);
+        setNewMedication(prev => ({
+          ...prev,
+          name: dbMedication.name,
+          id: uuidv4(),
+          dosage: '',
+          frequency: 'Once daily',
+          reason: '',
+          startDate: new Date().toISOString().split('T')[0],
+          notes: '',
+          foodInteractions: dbMedication.foodInteractions || [],
+          conditionInteractions: dbMedication.conditionInteractions || [],
+          therapeuticDuplications: dbMedication.therapeuticDuplications || [],
+          pregnancy: dbMedication.pregnancy || '',
+          breastfeeding: dbMedication.breastfeeding || '',
+        }));
+        toast.success(`Information loaded for ${dbMedication.name} from database`);
+        setIsLoading(false);
+        return;
+      }
+      
+      // If not found in database, fetch from external API
       let info: MedicationInfo | null;
       
       if (activeDataSource === 'drugscom') {
@@ -87,7 +128,30 @@ const DrugInfoLookup: React.FC<DrugInfoLookupProps> = ({ onAddMedication }) => {
       }
       
       if (info) {
-        console.log('Medication info received:', info.name);
+        console.log('Medication info received from external API:', info.name);
+        
+        // Save the medication info to the database
+        if (userId) {
+          saveMedicationToDb(info, userId)
+            .then(success => {
+              if (success) {
+                console.log(`Saved ${info!.name} to database`);
+                info!.fromDatabase = true; // Mark as saved in database
+              }
+            })
+            .catch(err => console.error('Error saving medication to database:', err));
+        } else {
+          // Even if no user is logged in, try to save anonymously
+          saveMedicationToDb(info)
+            .then(success => {
+              if (success) {
+                console.log(`Saved ${info!.name} to database anonymously`);
+                info!.fromDatabase = true; // Mark as saved in database
+              }
+            })
+            .catch(err => console.error('Error saving medication to database:', err));
+        }
+        
         setMedicationInfo(info);
         setNewMedication(prev => ({
           ...prev,
@@ -198,7 +262,14 @@ const DrugInfoLookup: React.FC<DrugInfoLookupProps> = ({ onAddMedication }) => {
           <Tabs value={activeDataSource} onValueChange={(value) => setActiveDataSource(value as 'drugscom' | 'comprehensive')}>
             <TabsList className="w-full">
               <TabsTrigger value="drugscom" className="flex-1">
+                <Database className="h-4 w-4 mr-1" />
                 Drugs.com Database
+                {medicationInfo?.fromDatabase && (
+                  <span className="ml-2 bg-green-100 text-green-800 text-xs py-0.5 px-1.5 rounded-full flex items-center">
+                    <Archive className="h-3 w-3 mr-1" />
+                    Saved
+                  </span>
+                )}
               </TabsTrigger>
               <TabsTrigger value="comprehensive" className="flex-1">
                 <Database className="h-4 w-4 mr-1" />
@@ -230,7 +301,7 @@ const DrugInfoLookup: React.FC<DrugInfoLookupProps> = ({ onAddMedication }) => {
               <div className="flex items-center space-x-2">
                 <Loader2 className="h-6 w-6 animate-spin text-safet-500" />
                 <span className="text-gray-600">
-                  Loading live medication information from drugs.com...
+                  Loading {medicationInfo?.fromDatabase ? 'saved' : 'live'} medication information...
                 </span>
               </div>
             </div>
@@ -247,7 +318,13 @@ const DrugInfoLookup: React.FC<DrugInfoLookupProps> = ({ onAddMedication }) => {
           canAddToProfile={Boolean(onAddMedication)}
           isLoading={isLoading}
           error={error}
-          dataSource={activeDataSource === 'drugscom' ? 'Drugs.com Live' : 'Comprehensive Database (Drugs.com)'}
+          dataSource={
+            medicationInfo?.fromDatabase
+              ? `Database (Searched ${medicationInfo.databaseSearchCount || 1} time${medicationInfo.databaseSearchCount !== 1 ? 's' : ''})`
+              : activeDataSource === 'drugscom' 
+                ? 'Drugs.com Live' 
+                : 'Comprehensive Database (Drugs.com)'
+          }
           onOpenExternalLink={openDrugsComPage}
         />
       )}

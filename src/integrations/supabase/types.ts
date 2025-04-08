@@ -36,6 +36,84 @@ export type Database = {
         }
         Relationships: []
       }
+      medications: {
+        Row: {
+          breastfeeding: string | null
+          condition_interactions: string[] | null
+          description: string | null
+          dosage: Json | null
+          drug_class: string | null
+          food_interactions: string[] | null
+          forms: string[] | null
+          generic_name: string | null
+          id: string
+          interaction_classifications: Json | null
+          interaction_severity: Json | null
+          interactions: string[] | null
+          name: string
+          pregnancy: string | null
+          prescription_only: boolean | null
+          search_count: number | null
+          searched_at: string
+          searched_by: string | null
+          side_effects: Json | null
+          source: string | null
+          therapeutic_duplications: string[] | null
+          used_for: string[] | null
+          warnings: string[] | null
+        }
+        Insert: {
+          breastfeeding?: string | null
+          condition_interactions?: string[] | null
+          description?: string | null
+          dosage?: Json | null
+          drug_class?: string | null
+          food_interactions?: string[] | null
+          forms?: string[] | null
+          generic_name?: string | null
+          id?: string
+          interaction_classifications?: Json | null
+          interaction_severity?: Json | null
+          interactions?: string[] | null
+          name: string
+          pregnancy?: string | null
+          prescription_only?: boolean | null
+          search_count?: number | null
+          searched_at?: string
+          searched_by?: string | null
+          side_effects?: Json | null
+          source?: string | null
+          therapeutic_duplications?: string[] | null
+          used_for?: string[] | null
+          warnings?: string[] | null
+        }
+        Update: {
+          breastfeeding?: string | null
+          condition_interactions?: string[] | null
+          description?: string | null
+          dosage?: Json | null
+          drug_class?: string | null
+          food_interactions?: string[] | null
+          forms?: string[] | null
+          generic_name?: string | null
+          id?: string
+          interaction_classifications?: Json | null
+          interaction_severity?: Json | null
+          interactions?: string[] | null
+          name?: string
+          pregnancy?: string | null
+          prescription_only?: boolean | null
+          search_count?: number | null
+          searched_at?: string
+          searched_by?: string | null
+          side_effects?: Json | null
+          source?: string | null
+          therapeutic_duplications?: string[] | null
+          used_for?: string[] | null
+          warnings?: string[] | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string | null
