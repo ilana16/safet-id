@@ -6,15 +6,6 @@ import { enhancedMedicationSearch } from './enhancedMedicationSearch';
 // Default timeout for API calls in milliseconds
 const API_TIMEOUT = 10000; // 10 seconds
 
-// Interface for RPC function results
-interface DrugSearchResult {
-  id: string;
-  name: string;
-  generic: string | null;
-  drug_class: string | null;
-  otc: boolean | null;
-}
-
 /**
  * Performs a search for medications in the database with enhanced fallback
  * 

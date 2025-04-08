@@ -1,6 +1,6 @@
 
 import { toast } from 'sonner';
-import { performMedicationSearch } from './medication-db';
+import { performMedicationSearch } from './medication-db/search';
 import { enhancedMedicationSearch } from './medication-db/enhancedMedicationSearch';
 
 /**
@@ -41,49 +41,6 @@ export async function searchDrugsCom(query: string): Promise<string[]> {
     return await enhancedMedicationSearch(query.trim().toLowerCase());
   }
 }
-
-/**
- * Local fallback search that doesn't require database access
- */
-const enhancedLocalSearch = async (query: string): Promise<string[]> => {
-  console.log('Using local fallback search for:', query);
-  
-  // Common medications for immediate results
-  const commonMedications = [
-    'Acetaminophen', 'Adderall', 'Albuterol', 'Alprazolam', 'Amoxicillin', 
-    'Atorvastatin', 'Azithromycin', 'Benzonatate', 'Bupropion', 'Buspirone',
-    'Cefdinir', 'Cephalexin', 'Ciprofloxacin', 'Citalopram', 'Clindamycin', 
-    'Clonazepam', 'Cyclobenzaprine', 'Diazepam', 'Doxycycline', 'Duloxetine',
-    'Escitalopram', 'Fluoxetine', 'Gabapentin', 'Hydrochlorothiazide', 'Hydroxyzine',
-    'Ibuprofen', 'Levothyroxine', 'Lisinopril', 'Loperamide', 'Loratadine',
-    'Lorazepam', 'Losartan', 'Metformin', 'Metoprolol', 'Metronidazole',
-    'Naproxen', 'Omeprazole', 'Ondansetron', 'Oxycodone', 'Pantoprazole',
-    'Prednisone', 'Propranolol', 'Sertraline', 'Simvastatin', 'Trazodone',
-    'Vitamin D', 'Warfarin', 'Zoloft', 'Zolpidem', 'Tylenol',
-    'Advil', 'Motrin', 'Lipitor', 'Prozac', 'Xanax'
-  ];
-
-  // Filter medications based on query
-  const lowercaseQuery = query.toLowerCase();
-  
-  // First look for medications that start with the query
-  const startsWithResults = commonMedications.filter(med => 
-    med.toLowerCase().startsWith(lowercaseQuery)
-  );
-  
-  // Then look for medications that include the query
-  const includesResults = commonMedications.filter(med => 
-    !med.toLowerCase().startsWith(lowercaseQuery) && 
-    med.toLowerCase().includes(lowercaseQuery)
-  );
-  
-  // Combine results, prioritizing exact matches
-  const results = [...startsWithResults, ...includesResults];
-  console.log(`Local search found ${results.length} results for "${query}"`);
-  
-  // Return top 15 results
-  return results.slice(0, 15);
-};
 
 /**
  * Gets the Drugs.com URL for a medication
