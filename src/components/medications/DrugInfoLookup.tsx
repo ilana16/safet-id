@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { ExternalLink, Loader2 } from 'lucide-react';
@@ -10,7 +9,7 @@ import MedicationSearch from './drug-lookup/MedicationSearch';
 import MedicationInfoDisplay from './drug-lookup/MedicationInfoDisplay';
 import MedicationAddForm from './drug-lookup/MedicationAddForm';
 import { supabase } from '@/integrations/supabase/client';
-import { getMedicationFromDb } from '@/utils/medicationDbUtils';
+import { getMedicationFromDb } from '@/utils/medication-db';
 
 interface DrugInfoLookupProps {
   onAddMedication?: (medication: Medication) => void;
@@ -79,7 +78,6 @@ const DrugInfoLookup: React.FC<DrugInfoLookupProps> = ({ onAddMedication }) => {
     try {
       console.log(`Fetching information for medication: ${medication} from database or Python scraper`);
       
-      // Using the drugscom source which uses our Python scraper
       const medInfo = await getMedicationFromDb(medication, userId, 'drugscom');
       
       if (medInfo) {

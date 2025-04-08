@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -5,8 +6,7 @@ import { Search, Loader2, X, Database, ExternalLink, PillIcon, ArrowRight } from
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { Pill } from 'lucide-react';
-import { performMedicationSearch } from '@/utils/medicationDbUtils';
-import { getMedicationFromDb } from '@/utils/medicationDbUtils';
+import { performMedicationSearch, getMedicationFromDb } from '@/utils/medication-db'; 
 import { toast } from 'sonner';
 import { useDebounce } from '@/hooks/useDebounce';
 import { supabase } from '@/integrations/supabase/client';
