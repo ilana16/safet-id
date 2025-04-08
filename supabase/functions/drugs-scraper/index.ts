@@ -52,91 +52,86 @@ const searchDrugsCom = async (drugName: string) => {
 };
 
 const getDrugInfo = async (drugName: string) => {
-  const searchUrl = `https://www.drugs.com/search.php?searchterm=${encodeURIComponent(drugName)}`;
-  console.log(`Getting drug info from Drugs.com: ${searchUrl}`);
+  // Try multiple URL patterns for the drug
+  const attempts = [
+    // Search results page
+    `https://www.drugs.com/search.php?searchterm=${encodeURIComponent(drugName)}`,
+    // Direct drug page (lowercase)
+    `https://www.drugs.com/${encodeURIComponent(drugName.toLowerCase())}.html`,
+    // Direct drug page (capitalized)
+    `https://www.drugs.com/${encodeURIComponent(drugName.charAt(0).toUpperCase() + drugName.slice(1).toLowerCase())}.html`,
+    // MTM page
+    `https://www.drugs.com/mtm/${encodeURIComponent(drugName.toLowerCase())}.html`,
+    // Cons page
+    `https://www.drugs.com/cons/${encodeURIComponent(drugName.toLowerCase())}.html`,
+    // Cdi page
+    `https://www.drugs.com/cdi/${encodeURIComponent(drugName.toLowerCase())}.html`,
+  ];
   
-  try {
-    // First, do a search to find the exact drug page
-    const response = await fetch(searchUrl);
-    const html = await response.text();
-    let $ = cheerio.load(html);
-    
-    // Check if we landed on a direct drug page
-    let drugPageUrl = '';
-    const mainHeading = $('h1.drug-name').text().trim();
-    
-    if (mainHeading) {
-      // We're already on a drug page
-      drugPageUrl = searchUrl;
-      console.log(`Already on drug page: ${drugPageUrl}`);
-    } else {
-      // Try to find the drug in search results
-      console.log('Not on drug page, looking for drug in search results');
+  console.log(`Attempting to get drug info for: ${drugName}`);
+  
+  let drugPageUrl = '';
+  let $ = null;
+  let drugHtml = '';
+  
+  // Try each pattern until we find a valid drug page
+  for (const url of attempts) {
+    try {
+      console.log(`Trying URL: ${url}`);
+      const response = await fetch(url);
+      if (!response.ok) {
+        console.log(`URL failed with status ${response.status}: ${url}`);
+        continue;
+      }
       
-      // Look for the first result that exactly matches or contains our drug name
-      let bestMatch = null;
+      const html = await response.text();
+      const tempCheerio = cheerio.load(html);
       
-      $('.ddc-media-list .ddc-media-content a').each((i, el) => {
-        const resultText = $(el).text().trim().toLowerCase();
-        const resultHref = $(el).attr('href');
-        const drugNameLower = drugName.toLowerCase();
-        
-        // Check if this result contains our drug name
-        if (resultText.includes(drugNameLower)) {
-          if (!bestMatch || resultText === drugNameLower) {
-            bestMatch = resultHref;
-            console.log(`Found match: ${resultText} -> ${resultHref}`);
-          }
-        }
-      });
+      // Check if this is a drug page
+      const drugName = tempCheerio('h1.drug-name').text().trim();
+      if (drugName) {
+        console.log(`Found drug page: ${url} for ${drugName}`);
+        drugPageUrl = url;
+        $ = tempCheerio;
+        drugHtml = html;
+        break;
+      }
       
-      if (bestMatch) {
-        drugPageUrl = new URL(bestMatch, 'https://www.drugs.com').toString();
-        console.log(`Best match drug URL: ${drugPageUrl}`);
-      } else {
-        // If no exact match, try to find a generic "drug info" link
-        $('.ddc-search-results a').each((i, el) => {
-          const href = $(el).attr('href');
-          const text = $(el).text().toLowerCase();
-          if (href && text.includes(drugName.toLowerCase())) {
-            drugPageUrl = new URL(href, 'https://www.drugs.com').toString();
-            console.log(`Found generic info link: ${drugPageUrl}`);
-            return false; // Break the loop
-          }
-        });
-        
-        // Try to find by exact URL pattern for known drugs
-        if (!drugPageUrl) {
-          const directUrl = `https://www.drugs.com/${encodeURIComponent(drugName.toLowerCase())}.html`;
-          try {
-            const directResponse = await fetch(directUrl);
-            if (directResponse.ok) {
-              drugPageUrl = directUrl;
-              console.log(`Found by direct URL pattern: ${drugPageUrl}`);
-            }
-          } catch (e) {
-            console.log(`Direct URL not found: ${directUrl}`);
+      // Check if this is a search results page
+      const firstResult = tempCheerio('.ddc-media-list .ddc-media-content a').first();
+      if (firstResult.length > 0) {
+        const resultHref = firstResult.attr('href');
+        if (resultHref) {
+          const resultUrl = new URL(resultHref, 'https://www.drugs.com').toString();
+          console.log(`Found search result, following to: ${resultUrl}`);
+          
+          const resultResponse = await fetch(resultUrl);
+          if (resultResponse.ok) {
+            drugHtml = await resultResponse.text();
+            $ = cheerio.load(drugHtml);
+            drugPageUrl = resultUrl;
+            break;
           }
         }
       }
+    } catch (e) {
+      console.log(`Error trying URL ${url}: ${e.message}`);
+      continue;
     }
-    
-    if (!drugPageUrl) {
-      console.log(`No drug page found for: ${drugName}`);
-      return null;
-    }
-    
-    console.log(`Found drug page: ${drugPageUrl}`);
-    
-    // Fetch the drug's page
-    const drugResponse = await fetch(drugPageUrl);
-    const drugHtml = await drugResponse.text();
-    $ = cheerio.load(drugHtml);
-    
+  }
+  
+  if (!$ || !drugPageUrl) {
+    console.log(`No drug page found for: ${drugName}`);
+    return null;
+  }
+  
+  try {
     // Extract basic information
     const name = $('h1.drug-name').text().trim();
     const genericNameEl = $('.drug-subtitle').first();
     const genericName = genericNameEl.text().trim();
+    
+    console.log(`Extracting information for: ${name || drugName}`);
     
     // Get drug class
     let drugClass = '';
@@ -145,7 +140,9 @@ const getDrugInfo = async (drugName: string) => {
     });
     
     // Get description
-    const description = $('.drug-mol-header-description').text().trim();
+    const description = $('.drug-mol-header-description').text().trim() || 
+                       $('.drug-subtitle + p').text().trim() ||
+                       $('meta[name="description"]').attr('content') || '';
     
     // Get prescription status
     const rxStatus = $('.ddc-status-label').text().trim();
@@ -159,25 +156,41 @@ const getDrugInfo = async (drugName: string) => {
     };
     
     // Try to find common side effects
-    $('.side-effects-list li').each((i, el) => {
+    $('.side-effects-list li, .drug-side-effects li, ul.more-list-content li').each((i, el) => {
       const effect = $(el).text().trim();
       if (effect) {
         sideEffects.common.push(effect);
       }
     });
     
+    // Ensure we have some side effects
+    if (sideEffects.common.length === 0) {
+      $('p:contains("side effects")').next('ul').find('li').each((i, el) => {
+        const effect = $(el).text().trim();
+        if (effect) sideEffects.common.push(effect);
+      });
+    }
+    
     // Extract uses/indications
     const usedFor: string[] = [];
-    $('.drug-aids-list li, .ddc-use-for-list li').each((i, el) => {
+    $('.drug-aids-list li, .ddc-use-for-list li, .ddc-list-uses li').each((i, el) => {
       const use = $(el).text().trim();
       if (use) {
         usedFor.push(use);
       }
     });
     
+    // Try to find uses in paragraphs if list is empty
+    if (usedFor.length === 0) {
+      $('p:contains("used for"), p:contains("Used to"), p:contains("treatment of")').each((i, el) => {
+        const text = $(el).text().trim();
+        if (text) usedFor.push(text);
+      });
+    }
+    
     // Extract warnings
     const warnings: string[] = [];
-    $('.ddc-warning-container p, .boxed-warning p').each((i, el) => {
+    $('.ddc-warning-container p, .boxed-warning p, p.black-box-warning').each((i, el) => {
       const warning = $(el).text().trim();
       if (warning) {
         warnings.push(warning);
@@ -186,27 +199,24 @@ const getDrugInfo = async (drugName: string) => {
     
     // Dosage information
     const dosage = {
-      adult: $('.ddc-dosage-adult').text().trim(),
-      child: $('.ddc-dosage-child').text().trim()
+      adult: $('.ddc-dosage-adult, div:contains("Adult Dosage:") + div').text().trim(),
+      child: $('.ddc-dosage-child, div:contains("Child Dosage:") + div').text().trim()
     };
     
     // Forms
     const forms: string[] = [];
-    $('.ddc-drug-forms span').each((i, el) => {
-      const form = $(el).text().trim();
+    $('.ddc-drug-forms span, p:contains("available in the following")').each((i, el) => {
+      const form = $(el).text().replace(/available in the following dosage forms:/i, '').trim();
       if (form) forms.push(form);
     });
     
-    // Get the drug interactions page URL
-    let interactionsUrl = '';
-    $('a').each((i, el) => {
-      const href = $(el).attr('href');
-      const text = $(el).text().toLowerCase();
-      if (href && (text.includes('interaction') || href.includes('interaction'))) {
-        interactionsUrl = new URL(href, 'https://www.drugs.com').toString();
-        return false; // Break the loop when found
-      }
-    });
+    // Get interactions URL pattern
+    const drugNameForUrl = name ? name.toLowerCase().replace(/\s+/g, '-') : drugName.toLowerCase();
+    const possibleInteractionUrls = [
+      `https://www.drugs.com/drug-interactions/${encodeURIComponent(drugNameForUrl)}.html`,
+      `https://www.drugs.com/drug-interactions/${encodeURIComponent(drugName.toLowerCase())}.html`,
+      `https://www.drugs.com/${encodeURIComponent(drugName.toLowerCase())}-interactions.html`
+    ];
     
     // Interactions data
     let interactions: string[] = [];
@@ -219,64 +229,68 @@ const getDrugInfo = async (drugName: string) => {
     let breastfeeding = '';
     let halfLife = '';
     
-    // If we have an interactions URL, fetch additional interaction data
-    if (interactionsUrl) {
-      console.log(`Fetching interactions from: ${interactionsUrl}`);
+    // Try to get interactions from any known URL pattern
+    for (const interactionsUrl of possibleInteractionUrls) {
       try {
+        console.log(`Trying to fetch interactions from: ${interactionsUrl}`);
         const intResponse = await fetch(interactionsUrl);
-        const intHtml = await intResponse.text();
-        const $int = cheerio.load(intHtml);
-        
-        // Extract major interactions
-        $int('.ddc-list-interactions.major li').each((i, el) => {
-          const drug = $int(el).find('a').first().text().trim();
-          const desc = $int(el).text().trim();
-          if (drug) {
-            interactions.push(desc);
-            interactionClassifications.major.push(drug);
-            interactionSeverity.major.push(drug);
-          }
-        });
-        
-        // Extract moderate interactions
-        $int('.ddc-list-interactions.moderate li').each((i, el) => {
-          const drug = $int(el).find('a').first().text().trim();
-          const desc = $int(el).text().trim();
-          if (drug) {
-            interactions.push(desc);
-            interactionClassifications.moderate.push(drug);
-            interactionSeverity.moderate.push(drug);
-          }
-        });
-        
-        // Extract minor interactions
-        $int('.ddc-list-interactions.minor li').each((i, el) => {
-          const drug = $int(el).find('a').first().text().trim();
-          const desc = $int(el).text().trim();
-          if (drug) {
-            interactions.push(desc);
-            interactionClassifications.minor.push(drug);
-            interactionSeverity.minor.push(drug);
-          }
-        });
-        
-        // Extract food interactions
-        $int('.ddc-list-interactions-food li').each((i, el) => {
-          const food = $int(el).text().trim();
-          if (food) foodInteractions.push(food);
-        });
-        
-        // Extract disease/condition interactions
-        $int('.ddc-list-interactions-disease li').each((i, el) => {
-          const condition = $int(el).text().trim();
-          if (condition) conditionInteractions.push(condition);
-        });
-        
-        // Extract therapeutic duplications
-        $int('.ddc-list-duplications li').each((i, el) => {
-          const duplication = $int(el).text().trim();
-          if (duplication) therapeuticDuplications.push(duplication);
-        });
+        if (intResponse.ok) {
+          const intHtml = await intResponse.text();
+          const $int = cheerio.load(intHtml);
+          
+          // Extract major interactions
+          $int('.ddc-list-interactions.major li, .major-interaction li').each((i, el) => {
+            const drug = $int(el).find('a').first().text().trim();
+            const desc = $int(el).text().trim();
+            if (drug) {
+              interactions.push(desc);
+              interactionClassifications.major.push(drug);
+              interactionSeverity.major.push(drug);
+            }
+          });
+          
+          // Extract moderate interactions
+          $int('.ddc-list-interactions.moderate li, .moderate-interaction li').each((i, el) => {
+            const drug = $int(el).find('a').first().text().trim();
+            const desc = $int(el).text().trim();
+            if (drug) {
+              interactions.push(desc);
+              interactionClassifications.moderate.push(drug);
+              interactionSeverity.moderate.push(drug);
+            }
+          });
+          
+          // Extract minor interactions
+          $int('.ddc-list-interactions.minor li, .minor-interaction li').each((i, el) => {
+            const drug = $int(el).find('a').first().text().trim();
+            const desc = $int(el).text().trim();
+            if (drug) {
+              interactions.push(desc);
+              interactionClassifications.minor.push(drug);
+              interactionSeverity.minor.push(drug);
+            }
+          });
+          
+          // Extract food interactions
+          $int('.ddc-list-interactions-food li, .food-interaction li').each((i, el) => {
+            const food = $int(el).text().trim();
+            if (food) foodInteractions.push(food);
+          });
+          
+          // Extract disease/condition interactions
+          $int('.ddc-list-interactions-disease li, .disease-interaction li').each((i, el) => {
+            const condition = $int(el).text().trim();
+            if (condition) conditionInteractions.push(condition);
+          });
+          
+          // Extract therapeutic duplications
+          $int('.ddc-list-duplications li, .duplicate-interaction li').each((i, el) => {
+            const duplication = $int(el).text().trim();
+            if (duplication) therapeuticDuplications.push(duplication);
+          });
+          
+          break; // Exit loop if we found interactions
+        }
       } catch (error) {
         console.error('Error fetching interaction data:', error);
       }
@@ -284,9 +298,19 @@ const getDrugInfo = async (drugName: string) => {
     
     // Get pregnancy information
     try {
-      const pregnancySection = $('.pregnancy-breastfeeding h2:contains("Pregnancy")').next('p');
+      const pregnancySection = $('.pregnancy-breastfeeding h2:contains("Pregnancy"), h2:contains("Pregnancy"), div:contains("Pregnancy")').next('p');
       if (pregnancySection.length > 0) {
         pregnancy = pregnancySection.text().trim();
+      }
+      
+      // Try alternative selector if above doesn't work
+      if (!pregnancy) {
+        $('p:contains("Pregnancy Category")').each((i, el) => {
+          const text = $(el).text().trim();
+          if (text.includes("Pregnancy Category")) {
+            pregnancy = text;
+          }
+        });
       }
     } catch (e) {
       console.error('Error extracting pregnancy info:', e);
@@ -294,9 +318,19 @@ const getDrugInfo = async (drugName: string) => {
     
     // Get breastfeeding information
     try {
-      const breastfeedingSection = $('.pregnancy-breastfeeding h2:contains("Breastfeeding")').next('p');
+      const breastfeedingSection = $('.pregnancy-breastfeeding h2:contains("Breastfeeding"), h2:contains("Breastfeeding")').next('p');
       if (breastfeedingSection.length > 0) {
         breastfeeding = breastfeedingSection.text().trim();
+      }
+      
+      // Try alternative selector
+      if (!breastfeeding) {
+        $('p:contains("breast-feeding"), p:contains("breastfeeding")').each((i, el) => {
+          const text = $(el).text().trim();
+          if (text.includes("breastfeed") || text.includes("breast-feed")) {
+            breastfeeding = text;
+          }
+        });
       }
     } catch (e) {
       console.error('Error extracting breastfeeding info:', e);
@@ -308,13 +342,23 @@ const getDrugInfo = async (drugName: string) => {
       if (halfLifeMatch) {
         halfLife = halfLifeMatch[1];
       }
+      
+      // Try alternative approach
+      if (!halfLife) {
+        $('p:contains("half-life"), li:contains("half-life")').each((i, el) => {
+          const text = $(el).text().trim();
+          if (text.includes("half-life")) {
+            halfLife = text;
+          }
+        });
+      }
     } catch (e) {
       console.error('Error extracting half-life:', e);
     }
     
     // Construct the result object
     const result = {
-      name,
+      name: name || drugName,
       genericName,
       description,
       drugClass,
