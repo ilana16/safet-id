@@ -112,7 +112,10 @@ export const getMedicationFromDb = async (
           drugsComUrl: getDrugsComUrl(dbMeds[0].name),
           source: dbMeds[0].source,
           fromDatabase: true,
-          databaseSearchCount: newCount
+          databaseSearchCount: newCount,
+          // Add the new properties
+          imprints: dbMeds[0].imprints || [],
+          internationalNames: dbMeds[0].internationalNames || []
         };
         
         return medicationInfo;

@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -104,6 +103,9 @@ const MedicationInfoDisplay: React.FC<MedicationInfoDisplayProps> = ({
             </TabsTrigger>
             <TabsTrigger value="interactions" className="flex-1 rounded-none border-b-2 border-transparent data-[state=active]:border-safet-500">
               Interactions
+            </TabsTrigger>
+            <TabsTrigger value="identification" className="flex-1 rounded-none border-b-2 border-transparent data-[state=active]:border-safet-500">
+              Identification
             </TabsTrigger>
           </TabsList>
           
@@ -304,6 +306,59 @@ const MedicationInfoDisplay: React.FC<MedicationInfoDisplayProps> = ({
                (!medicationInfo.conditionInteractions || medicationInfo.conditionInteractions.length === 0) &&
                (!medicationInfo.therapeuticDuplications || medicationInfo.therapeuticDuplications.length === 0) && (
                 <p className="text-gray-500 italic">No specific interaction information available. Please consult your healthcare provider.</p>
+              )}
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="identification" className="p-4">
+            <div className="space-y-4">
+              {medicationInfo.imprints && medicationInfo.imprints.length > 0 ? (
+                <div>
+                  <h3 className="text-sm font-medium text-gray-500 mb-1">Pill Imprints</h3>
+                  <div className="space-y-2">
+                    {medicationInfo.imprints.map((imprint, index) => (
+                      <div key={index} className="border rounded p-3 bg-gray-50">
+                        {imprint.imprint_code && (
+                          <p className="font-medium">Code: {imprint.imprint_code}</p>
+                        )}
+                        {imprint.description && (
+                          <p className="text-gray-700">{imprint.description}</p>
+                        )}
+                        {imprint.image_url && (
+                          <div className="mt-2">
+                            <img 
+                              src={imprint.image_url} 
+                              alt={`${medicationInfo.name} pill imprint`}
+                              className="max-w-[200px] rounded border"
+                              onError={(e) => {
+                                e.currentTarget.src = "/placeholder.svg";
+                                e.currentTarget.alt = "Image unavailable";
+                              }}
+                            />
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+              
+              {medicationInfo.internationalNames && medicationInfo.internationalNames.length > 0 ? (
+                <div>
+                  <h3 className="text-sm font-medium text-gray-500 mb-1">International Names</h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {medicationInfo.internationalNames.map((intlName, index) => (
+                      <div key={index} className="border rounded p-2 bg-gray-50">
+                        <span className="font-medium">{intlName.country}:</span> {intlName.name}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+              
+              {(!medicationInfo.imprints || medicationInfo.imprints.length === 0) && 
+               (!medicationInfo.internationalNames || medicationInfo.internationalNames.length === 0) && (
+                <p className="text-gray-500 italic">No identification information available for this medication.</p>
               )}
             </div>
           </TabsContent>

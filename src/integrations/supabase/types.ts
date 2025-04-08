@@ -109,6 +109,7 @@ export type Database = {
           drug_class: string | null
           generic: string | null
           id: string
+          interactions: Json | null
           name: string
           otc: boolean | null
           pregnancy: string | null
@@ -124,6 +125,7 @@ export type Database = {
           drug_class?: string | null
           generic?: string | null
           id?: string
+          interactions?: Json | null
           name: string
           otc?: boolean | null
           pregnancy?: string | null
@@ -139,6 +141,7 @@ export type Database = {
           drug_class?: string | null
           generic?: string | null
           id?: string
+          interactions?: Json | null
           name?: string
           otc?: boolean | null
           pregnancy?: string | null

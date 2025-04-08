@@ -1,4 +1,3 @@
-
 export interface MedicationInfo {
   name: string;
   genericName?: string;
@@ -56,6 +55,16 @@ export interface MedicationInfo {
     metabolism?: string;
     elimination?: string;
   };
+  // New properties for imprints and international names
+  imprints?: Array<{
+    imprint_code: string | null;
+    image_url: string | null;
+    description: string | null;
+  }>;
+  internationalNames?: Array<{
+    country: string;
+    name: string;
+  }>;
 }
 
 export interface MedicationDatabase {
