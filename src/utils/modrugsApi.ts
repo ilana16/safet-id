@@ -1,6 +1,12 @@
+
 import { MedicationInfo } from './medicationData.d';
 import { toast } from 'sonner';
 import { searchDrugsCom, getDrugDetails, checkDrugInteractions } from './drugsComApi';
+
+interface DrugSearchResult {
+  id: string;
+  name: string;
+}
 
 /**
  * Performs a search in the Drugs.com API for medications matching the query

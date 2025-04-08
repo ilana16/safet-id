@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { PlusCircle, Trash2, Clock, Pill, Search, ChevronDown, ChevronUp, Loader2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
@@ -149,7 +148,8 @@ const MedicalProfileMedicationsForm = () => {
 
     try {
       const results = await searchDrugsCom(query);
-      setSearchResults(results);
+      const medicationNames = results.map(drug => drug.name);
+      setSearchResults(medicationNames);
     } catch (error) {
       console.error('Error searching medications:', error);
       setSearchResults([]);

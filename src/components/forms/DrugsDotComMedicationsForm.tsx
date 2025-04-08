@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { PlusCircle, Trash2, Clock, Info } from 'lucide-react';
 import { Input } from '@/components/ui/input';
@@ -130,7 +129,7 @@ const DrugsDotComMedicationsForm = () => {
 
   // State for search suggestions
   const [searchTerm, setSearchTerm] = useState('');
-  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [searchResults, setSearchResults] = useState<string[]>([]);
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [activeTab, setActiveTab] = useState('prescriptions');
@@ -165,25 +164,23 @@ const DrugsDotComMedicationsForm = () => {
   }, []);
 
   // Search for medication suggestions
-  const handleSearch = async (name: string, type: 'prescription' | 'otc' | 'supplement', id: string) => {
-    if (name.length < 2) {
-      setSuggestions([]);
-      setShowSuggestions(false);
+  const handleSearchMedication = async (query: string) => {
+    if (query.length < 2) {
+      setSearchResults([]);
       return;
     }
 
-    setLoadingSuggestions(true);
-    setSearchTerm(name);
-    setShowSuggestions(true);
-
+    setIsSearching(true);
     try {
-      const results = await searchDrugsCom(name);
-      setSuggestions(results);
+      const results = await searchDrugsCom(query);
+      // Extract names only for compatibility with existing code
+      const medicationNames = results.map(drug => drug.name);
+      setSearchResults(medicationNames);
     } catch (error) {
       console.error('Error searching medications:', error);
-      setSuggestions([]);
+      setSearchResults([]);
     } finally {
-      setLoadingSuggestions(false);
+      setIsSearching(false);
     }
   };
 
@@ -434,7 +431,7 @@ const DrugsDotComMedicationsForm = () => {
                   else if (type === 'otc') updateOtcMedication(item.id, 'name', value);
                   else updateSupplement(item.id, 'name', value);
                   
-                  handleSearch(value, type, item.id);
+                  handleSearchMedication(value);
                 }}
                 placeholder={`Enter ${type === 'supplement' ? 'supplement' : 'medication'} name`}
                 className="border-gray-300 focus:border-blue-500 focus:ring-blue-500"
@@ -442,12 +439,12 @@ const DrugsDotComMedicationsForm = () => {
               />
               
               {/* Suggestions dropdown */}
-              {showSuggestions && item.name === searchTerm && suggestions.length > 0 && (
+              {showSuggestions && item.name === searchTerm && searchResults.length > 0 && (
                 <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto">
                   {loadingSuggestions ? (
                     <div className="p-2 text-gray-500">Loading suggestions...</div>
                   ) : (
-                    suggestions.map((suggestion, idx) => (
+                    searchResults.map((suggestion, idx) => (
                       <div
                         key={idx}
                         className="px-4 py-2 cursor-pointer hover:bg-gray-100"

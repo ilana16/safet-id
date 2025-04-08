@@ -1,413 +1,217 @@
-
 import React, { useState, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Search, Loader2, X, Database, ExternalLink, PillIcon, ArrowRight, AlertTriangle } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
-import { Card } from '@/components/ui/card';
-import { Pill } from 'lucide-react';
-import { toast } from 'sonner';
-import { useDebounce } from '@/hooks/useDebounce';
-import { supabase } from '@/integrations/supabase/client';
-import { Switch } from '@/components/ui/switch';
-import { searchDrugsCom } from '@/utils/drugsComApi'; 
+import { Card, CardContent } from '@/components/ui/card';
+import { Search, ExternalLink, History, X, Loader2, Info, ArrowRight } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { searchDrugsCom } from '@/utils/drugsComApi';
+import { Pill } from '@/components/ui/pill';
 
 interface MedicationSearchProps {
   onSelectMedication: (medication: string) => void;
-  onExternalSearch?: (query: string) => void;
+  onExternalSearch: (query: string) => void;
 }
 
-const MedicationSearch: React.FC<MedicationSearchProps> = ({ 
-  onSelectMedication,
-  onExternalSearch
-}) => {
-  const [query, setQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<string[]>([]);
+const MedicationSearch: React.FC<MedicationSearchProps> = ({ onSelectMedication, onExternalSearch }) => {
+  const [searchTerm, setSearchTerm] = useState('');
   const [isSearching, setIsSearching] = useState(false);
-  const [history, setHistory] = useState<string[]>([]);
-  const [userId, setUserId] = useState<string | null>(null);
-  const [searchError, setSearchError] = useState<string | null>(null);
-  const [searchTimeoutId, setSearchTimeoutId] = useState<NodeJS.Timeout | null>(null);
-  const [autoSearchEnabled, setAutoSearchEnabled] = useState(true);
-  const debouncedSearchTerm = useDebounce(query, 300);
+  const [searchResults, setSearchResults] = useState<string[]>([]);
+  const [searchHistory, setSearchHistory] = useState<string[]>([]);
+  const [showHistory, setShowHistory] = useState(false);
+  const [showInfo, setShowInfo] = useState(false);
 
   useEffect(() => {
-    const getCurrentUser = async () => {
-      const { data } = await supabase.auth.getUser();
-      setUserId(data.user?.id || null);
-    };
-    
-    getCurrentUser();
-    
-    const savedHistory = localStorage.getItem('medicationSearchHistory');
-    if (savedHistory) {
-      try {
-        setHistory(JSON.parse(savedHistory));
-      } catch (e) {
-        console.error('Error parsing medication search history:', e);
-      }
-    }
-    
-    return () => {
-      if (searchTimeoutId) {
-        clearTimeout(searchTimeoutId);
-      }
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!autoSearchEnabled || debouncedSearchTerm.length < 2) {
-      return;
-    }
-    
-    console.log(`Auto search triggering for: "${debouncedSearchTerm}"`);
-    performSearch(debouncedSearchTerm, true);
-  }, [debouncedSearchTerm, autoSearchEnabled]);
-
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setQuery(value);
-    setSearchError(null);
-    
-    if (!autoSearchEnabled && searchResults.length > 0) {
-      setSearchResults([]);
-    }
-  };
-
-  const handleClearSearch = () => {
-    setQuery('');
-    setSearchResults([]);
-    setSearchError(null);
-    
-    if (searchTimeoutId) {
-      clearTimeout(searchTimeoutId);
-      setSearchTimeoutId(null);
-    }
-  };
-
-  const performSearch = async (searchTerm: string, isAuto = false) => {
-    if (searchTerm.length < 2) {
-      console.log('Search term too short, skipping search');
-      return;
-    }
-    
-    if (searchTimeoutId) {
-      clearTimeout(searchTimeoutId);
-      setSearchTimeoutId(null);
-    }
-    
-    setIsSearching(true);
-    setSearchError(null);
-    
-    const timeoutDuration = isAuto ? 8000 : 15000;
-    
     try {
-      console.log(`Setting search timeout for ${timeoutDuration}ms`);
-      const timeoutId = setTimeout(() => {
-        console.log('Search timeout triggered');
-        setIsSearching(false);
-        setSearchError('Search request timed out. Please try again with a simpler query.');
-        toast.error('Search timed out. Please try again.');
-      }, timeoutDuration);
-      
-      setSearchTimeoutId(timeoutId);
-      
-      console.log(`${isAuto ? 'Auto' : 'Manual'} search for: "${searchTerm}"`);
-      const results = await searchDrugsCom(searchTerm);
-      console.log(`Search returned ${results.length} results:`, results);
-      
-      clearTimeout(timeoutId);
-      setSearchTimeoutId(null);
-      
-      setSearchResults(results);
-      setIsSearching(false);
-      
-      if (results.length === 0 && searchTerm.length >= 2) {
-        console.log('No results found for search');
-        toast.info(`No results found for "${searchTerm}"`);
-      } else if (!isAuto && results.length === 1 && results[0].toLowerCase() === searchTerm.toLowerCase()) {
-        console.log('Exact match found, selecting it');
-        handleSelectMedication(results[0]);
+      const savedHistory = localStorage.getItem('medicationSearchHistory');
+      if (savedHistory) {
+        setSearchHistory(JSON.parse(savedHistory));
       }
     } catch (error) {
+      console.error('Error loading search history:', error);
+    }
+  }, []);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(e.target.value);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleSearch();
+    }
+  };
+
+  const handleSearch = async () => {
+    if (!searchTerm || searchTerm.length < 2) {
+      return;
+    }
+
+    setIsSearching(true);
+    setSearchResults([]);
+
+    try {
+      const results = await searchDrugsCom(searchTerm);
+      // Extract just the names for the search results display
+      const medicationNames = results.map(result => result.name);
+      setSearchResults(medicationNames);
+    } catch (error) {
       console.error('Error searching medications:', error);
-      
-      const errorMessage = error instanceof Error 
-        ? (error.message.includes('timed out') 
-            ? 'Search request timed out. Please try with a shorter medication name.' 
-            : error.message)
-        : 'Error searching for medications';
-      
-      setSearchError(errorMessage);
-      toast.error(errorMessage);
     } finally {
       setIsSearching(false);
-      if (searchTimeoutId) {
-        clearTimeout(searchTimeoutId);
-        setSearchTimeoutId(null);
-      }
     }
   };
 
-  const handleSearch = async (e: React.FormEvent) => {
-    e.preventDefault();
-    console.log(`Manual search submission for: "${query}"`);
-    await performSearch(query);
-  };
-
-  const handleCancelSearch = () => {
-    console.log('Search cancelled by user');
-    setIsSearching(false);
-    if (searchTimeoutId) {
-      clearTimeout(searchTimeoutId);
-      setSearchTimeoutId(null);
-    }
-  };
-
-  const handleSelectMedication = (medication: string) => {
-    console.log(`Selected medication: "${medication}"`);
-    const updatedHistory = [medication, ...history.filter(item => item !== medication)].slice(0, 5);
-    setHistory(updatedHistory);
-    localStorage.setItem('medicationSearchHistory', JSON.stringify(updatedHistory));
-    
+  const selectMedication = (medication: string) => {
     onSelectMedication(medication);
-    setQuery(medication);
+  };
+
+  const clearSearch = () => {
+    setSearchTerm('');
     setSearchResults([]);
-    setSearchError(null);
+  };
+
+  const toggleHistory = () => {
+    setShowHistory(!showHistory);
+  };
+
+  const selectHistoryItem = (item: string) => {
+    setSearchTerm(item);
+    handleSearch();
+    setShowHistory(false);
+  };
+
+  const clearHistory = () => {
+    localStorage.removeItem('medicationSearchHistory');
+    setSearchHistory([]);
   };
 
   const handleExternalSearch = () => {
-    if (onExternalSearch && query.length >= 2) {
-      console.log(`External search for: "${query}"`);
-      onExternalSearch(query);
-    } else if (query.length < 2) {
-      toast.error('Please enter at least 2 characters to search');
-    }
-  };
-
-  const handleToggleAutoSearch = () => {
-    const newState = !autoSearchEnabled;
-    console.log(`Auto-search ${newState ? 'enabled' : 'disabled'}`);
-    setAutoSearchEnabled(newState);
-    toast.info(`Auto-search ${newState ? 'enabled' : 'disabled'}`);
-  };
-
-  const popularMedicationCategories = {
-    "Common Medications": ['lisinopril', 'metformin', 'atorvastatin', 'amoxicillin'],
-    "Psychiatric Medications": ['fluoxetine', 'escitalopram', 'risperidone', 'lithium'],
-    "Vitamins & Supplements": ['vitamin d', 'calcium', 'iron', 'omega-3']
+    onExternalSearch(searchTerm);
   };
 
   return (
-    <div>
-      <div className="mb-3 p-3 bg-amber-50 rounded-md border border-amber-200 text-amber-800 text-sm flex items-center">
-        <Database className="h-4 w-4 text-amber-500 mr-2 flex-shrink-0" />
-        <span>
-          Searching our enhanced medication database for faster results
-        </span>
-      </div>
-      
-      <div className="flex justify-end mb-2">
-        <div className="flex items-center space-x-2">
-          <span className="text-sm text-gray-500">Auto-search</span>
-          <Switch 
-            checked={autoSearchEnabled} 
-            onCheckedChange={handleToggleAutoSearch}
-            aria-label="Toggle auto-search"
-          />
-        </div>
-      </div>
-      
-      <form onSubmit={handleSearch} className="flex gap-2">
+    <div className="space-y-4">
+      <div className="flex items-center gap-2">
         <div className="relative flex-1">
           <Input
-            type="text"
-            placeholder="Enter medication name (e.g., aspirin, lisinopril, metformin)..."
-            value={query}
-            onChange={handleSearchChange}
-            className="pl-10 w-full pr-10"
-            autoComplete="off"
-            disabled={isSearching}
+            value={searchTerm}
+            onChange={handleInputChange}
+            onKeyDown={handleKeyDown}
+            placeholder="Search for a medication..."
+            className="pr-10"
           />
-          <Search className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
-          
-          {query && !isSearching && (
-            <button 
+          {searchTerm && (
+            <button
               type="button"
-              onClick={handleClearSearch}
-              className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600"
+              onClick={clearSearch}
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
             >
-              <X className="h-5 w-5" />
+              <X className="h-4 w-4" />
             </button>
           )}
-          
-          {searchResults.length > 0 && query.length >= 2 && !isSearching && (
-            <div className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-auto">
-              <ul className="py-1">
-                {searchResults.map((result, index) => {
-                  const isVitaminOrSupplement = 
-                    /\b(vitamin|supplement|mineral|herb|omega|fish oil|probiotics)\b/i.test(result);
-                    
-                  return (
-                    <li 
-                      key={index}
-                      className="px-4 py-2 hover:bg-gray-100 cursor-pointer flex items-center"
-                      onClick={() => handleSelectMedication(result)}
-                    >
-                      {isVitaminOrSupplement ? (
-                        <PillIcon className="h-4 w-4 text-green-500 mr-2" />
-                      ) : (
-                        <Pill className="h-4 w-4 text-safet-500 mr-2" />
-                      )}
-                      <span>{result}</span>
-                      {isVitaminOrSupplement && (
-                        <Badge className="ml-2 bg-green-100 text-green-800 border-green-200">
-                          <span className="text-xs">Supplement</span>
-                        </Badge>
-                      )}
-                    </li>
-                  );
-                })}
-              </ul>
-            </div>
-          )}
         </div>
-        
-        {isSearching ? (
-          <Button 
-            type="button" 
-            variant="destructive"
-            onClick={handleCancelSearch}
-          >
-            <X className="h-4 w-4" />
-            <span className="ml-2">Cancel</span>
-          </Button>
-        ) : (
-          <Button 
-            type="submit" 
-            disabled={query.length < 2}
-            className="bg-safet-500 hover:bg-safet-600"
-          >
-            <Search className="h-4 w-4" />
-            <span className="ml-2">Search</span>
-          </Button>
-        )}
-        
-        {onExternalSearch && (
-          <Button 
-            type="button" 
-            variant="outline"
-            onClick={handleExternalSearch}
-            disabled={query.length < 2 || isSearching}
-            className="text-safet-500 border-safet-200"
-          >
-            <ExternalLink className="h-4 w-4 mr-1" />
-            <span className="hidden sm:inline">Search on Drugs.com</span>
-            <span className="sm:hidden">External</span>
-          </Button>
-        )}
-      </form>
+        <Button onClick={handleSearch} disabled={isSearching || searchTerm.length < 2}>
+          {isSearching ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Search className="mr-2 h-4 w-4" />}
+          Search
+        </Button>
+        <Button variant="outline" onClick={toggleHistory} title="Search History">
+          <History className="h-4 w-4" />
+        </Button>
+        <Button variant="outline" onClick={() => setShowInfo(!showInfo)} title="Information">
+          <Info className="h-4 w-4" />
+        </Button>
+      </div>
 
-      {searchError && (
-        <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-md text-red-700 text-sm flex items-center">
-          <AlertTriangle className="h-4 w-4 text-red-500 mr-2 flex-shrink-0" />
-          <div>
-            <p className="font-medium">Search error</p>
-            <p>{searchError}</p>
-            <div className="mt-2 flex gap-2">
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="text-red-600 border-red-300 hover:bg-red-50"
-                onClick={() => setSearchError(null)}
-              >
-                Dismiss
+      {showInfo && (
+        <Alert>
+          <AlertDescription>
+            Search for medications by name. You can click on a result to view detailed information about the medication, including usage, side effects, and interactions.
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {showHistory && searchHistory.length > 0 && (
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="font-medium">Recent Searches</h3>
+              <Button variant="ghost" size="sm" onClick={clearHistory}>
+                Clear History
               </Button>
-              
-              {searchError.includes('timed out') && (
-                <Button
-                  variant="default"
-                  size="sm"
-                  className="bg-safet-500 hover:bg-safet-600"
-                  onClick={() => performSearch(query)}
-                >
-                  Try Again
-                </Button>
-              )}
             </div>
-          </div>
-        </div>
+            <ul className="space-y-1">
+              {searchHistory.map((item, index) => (
+                <li key={index}>
+                  <Button
+                    variant="ghost"
+                    className="w-full justify-start text-left"
+                    onClick={() => selectHistoryItem(item)}
+                  >
+                    <History className="mr-2 h-4 w-4" />
+                    {item}
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
       )}
-      
-      {isSearching && (
-        <div className="mt-4 p-3 bg-blue-50 border border-blue-100 rounded-md text-blue-700 flex items-center">
-          <Loader2 className="h-5 w-5 animate-spin text-blue-500 mr-3" />
-          <div>
-            <p className="font-medium">Searching for medications...</p>
-            <p className="text-sm mt-1">This may take a moment. We're searching our enhanced database.</p>
-          </div>
+
+      {isSearching ? (
+        <div className="py-8 text-center">
+          <Loader2 className="mx-auto h-8 w-8 animate-spin text-safet-500" />
+          <p className="mt-2 text-gray-600">Searching medications...</p>
         </div>
-      )}
-      
-      {/* Show history section */}
-      {history.length > 0 && !isSearching && !searchError && (
-        <div className="mt-4">
-          <p className="text-sm text-gray-500 mb-2">Recent searches:</p>
-          <div className="flex flex-wrap gap-2">
-            {history.map((item, index) => (
-              <Badge 
-                key={index}
-                className="bg-gray-100 text-gray-700 hover:bg-gray-200 cursor-pointer"
-                onClick={() => handleSelectMedication(item)}
-              >
-                {item}
-              </Badge>
+      ) : searchResults.length > 0 ? (
+        <div>
+          <h3 className="text-sm font-medium mb-2">Search Results:</h3>
+          <div className="grid gap-2">
+            {searchResults.map((result, index) => (
+              <Card key={index} className="hover:bg-gray-50 cursor-pointer transition-colors">
+                <CardContent className="p-3 flex justify-between items-center">
+                  <div className="flex items-center">
+                    <Pill className="mr-2 h-5 w-5 text-safet-500" />
+                    <span>{result}</span>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => selectMedication(result)}
+                      className="text-safet-600"
+                    >
+                      <Info className="mr-1 h-4 w-4" />
+                      Details
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => window.open(`https://www.drugs.com/search.php?searchterm=${encodeURIComponent(result)}`, '_blank')}
+                    >
+                      <ExternalLink className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
             ))}
           </div>
         </div>
-      )}
-      
-      {/* Show common medications section */}
-      {!query && !searchError && !isSearching && (
-        <div className="mt-6">
-          <h3 className="text-sm font-medium text-gray-700 mb-3">Common Medications by Category</h3>
-          {Object.entries(popularMedicationCategories).map(([categoryName, medications], catIndex) => (
-            <div key={catIndex} className="mb-6">
-              <h3 className="text-sm font-medium text-gray-500 mb-2 flex items-center">
-                {categoryName === "Psychiatric Medications" ? (
-                  <Database className="h-4 w-4 text-safet-500 mr-2" />
-                ) : categoryName === "Vitamins & Supplements" ? (
-                  <Database className="h-4 w-4 text-green-500 mr-2" />
-                ) : (
-                  <PillIcon className="h-4 w-4 text-safet-500 mr-2" />
-                )}
-                {categoryName}:
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {medications.map((drug, index) => (
-                  <Card 
-                    key={index} 
-                    className="p-3 hover:bg-gray-50 cursor-pointer transition-colors border-gray-200"
-                    onClick={() => handleSelectMedication(drug)}
-                  >
-                    <div className="flex items-center">
-                      {categoryName === "Psychiatric Medications" ? (
-                        <Database className="h-4 w-4 text-safet-500 mr-2" />
-                      ) : categoryName === "Vitamins & Supplements" ? (
-                        <Database className="h-4 w-4 text-green-500 mr-2" />
-                      ) : (
-                        <PillIcon className="h-4 w-4 text-safet-500 mr-2" />
-                      )}
-                      <span className="text-gray-700">{drug}</span>
-                      <ArrowRight className="h-3 w-3 text-gray-400 ml-auto" />
-                    </div>
-                  </Card>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
+      ) : searchTerm && !isSearching ? (
+        <Card>
+          <CardContent className="p-4 text-center">
+            <p className="text-gray-500 mb-3">No medications found matching "{searchTerm}"</p>
+            <Button
+              onClick={handleExternalSearch}
+              variant="outline"
+              className="mx-auto"
+            >
+              <ExternalLink className="mr-2 h-4 w-4" />
+              Search on Drugs.com
+            </Button>
+          </CardContent>
+        </Card>
+      ) : null}
     </div>
   );
 };

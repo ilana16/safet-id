@@ -5,12 +5,17 @@ import { MedicationInfo } from './medicationData.d';
 
 const EDGE_FUNCTION_URL = "https://rlirtjxgwstjzraovntf.supabase.co/functions/v1/drugs-api";
 
+interface DrugSearchResult {
+  id: string;
+  name: string;
+}
+
 /**
  * Searches for medications using the Drugs.com API
  * @param query Search term
  * @returns Promise with array of medication names and IDs
  */
-export const searchDrugsCom = async (query: string): Promise<Array<{id: string, name: string}>> => {
+export const searchDrugsCom = async (query: string): Promise<DrugSearchResult[]> => {
   if (query.length < 2) {
     return [];
   }
@@ -52,7 +57,7 @@ export const searchDrugsCom = async (query: string): Promise<Array<{id: string, 
  * @param query Search term
  * @returns Array of medication names and IDs
  */
-const fallbackSearch = (query: string): Array<{id: string, name: string}> => {
+const fallbackSearch = (query: string): DrugSearchResult[] => {
   // Same list as before for fallback
   const commonMedications = [
     'Acetaminophen', 'Adderall', 'Albuterol', 'Alprazolam', 'Amoxicillin', 
@@ -115,6 +120,9 @@ export const getDrugsComUrl = (drugName: string): string => {
   return `https://www.drugs.com/${formattedDrug}.html`;
 };
 
+// Local in-memory cache for medication info
+const medicationInfoCache = new Map<string, MedicationInfo>();
+
 /**
  * Get detailed information about a medication from the API
  * @param drugId The ID of the medication
@@ -122,16 +130,24 @@ export const getDrugsComUrl = (drugName: string): string => {
  */
 export const getDrugDetails = async (drugId: string): Promise<MedicationInfo | null> => {
   try {
-    // Try to fetch from cached results first
+    // Check in-memory cache first
+    if (medicationInfoCache.has(drugId)) {
+      console.log('Retrieved drug details from in-memory cache');
+      return medicationInfoCache.get(drugId) || null;
+    }
+    
+    // Try to fetch from the medications table where we store drug info
     const { data: cached, error } = await supabase
-      .from('cached_drugs')
+      .from('medications')
       .select('*')
-      .eq('id', drugId)
+      .eq('name', drugId.replace(/-/g, ' '))
       .single();
     
     if (cached && !error) {
-      console.log('Retrieved drug details from cache', cached);
-      return cached.data as MedicationInfo;
+      console.log('Retrieved drug details from database', cached);
+      const medicationInfo = cached as MedicationInfo;
+      medicationInfoCache.set(drugId, medicationInfo);
+      return medicationInfo;
     }
     
     // Fetch drug details from API
@@ -194,14 +210,37 @@ export const getDrugDetails = async (drugId: string): Promise<MedicationInfo | n
       }
     };
     
-    // Cache the results
-    await supabase
-      .from('cached_drugs')
-      .upsert({
-        id: drugId,
-        name: medicationInfo.name,
-        data: medicationInfo
-      });
+    // Cache the results in memory
+    medicationInfoCache.set(drugId, medicationInfo);
+    
+    // Try to store in database when possible
+    try {
+      await supabase
+        .from('medications')
+        .upsert({
+          name: medicationInfo.name,
+          generic_name: medicationInfo.genericName,
+          description: medicationInfo.description,
+          drug_class: medicationInfo.drugClass,
+          used_for: medicationInfo.usedFor,
+          side_effects: medicationInfo.sideEffects,
+          dosage: medicationInfo.dosage,
+          warnings: medicationInfo.warnings,
+          interactions: medicationInfo.interactions,
+          prescription_only: medicationInfo.prescriptionOnly,
+          forms: medicationInfo.forms,
+          pregnancy: medicationInfo.pregnancy,
+          breastfeeding: medicationInfo.breastfeeding,
+          source: medicationInfo.source,
+          food_interactions: medicationInfo.foodInteractions,
+          condition_interactions: medicationInfo.conditionInteractions,
+          therapeutic_duplications: medicationInfo.therapeuticDuplications,
+          interaction_classifications: medicationInfo.interactionClassifications
+        });
+    } catch (dbError) {
+      console.error('Error caching drug details:', dbError);
+      // Non-blocking error - continue even if caching fails
+    }
     
     return medicationInfo;
   } catch (error) {
