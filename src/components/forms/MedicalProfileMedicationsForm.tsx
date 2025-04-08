@@ -34,6 +34,9 @@ interface Medication {
   brandName: string;
   reason: string;
   doseTimes: DoseTime[];
+  frequency: string;
+  customFrequency: string;
+  customDays: string;
 }
 
 const defaultMedication: Medication = {
@@ -49,8 +52,31 @@ const defaultMedication: Medication = {
   type: 'prescription',
   brandName: '',
   reason: '',
-  doseTimes: [{ id: `time_${Date.now()}`, time: '' }]
+  doseTimes: [{ id: `time_${Date.now()}`, time: '' }],
+  frequency: 'Once daily',
+  customFrequency: '',
+  customDays: ''
 };
+
+const frequencyOptions = [
+  'Once daily',
+  'Twice daily',
+  'Three times daily',
+  'Four times daily',
+  'Every morning',
+  'Every evening',
+  'Every night at bedtime',
+  'Every 4 hours',
+  'Every 6 hours',
+  'Every 8 hours',
+  'Every 12 hours',
+  'Once a week',
+  'Twice a week',
+  'Once a month',
+  'Every X days',
+  'As needed',
+  'Other'
+];
 
 const MedicalProfileMedicationsForm = () => {
   const [medications, setMedications] = useState<Medication[]>([]);
@@ -451,6 +477,52 @@ const MedicalProfileMedicationsForm = () => {
                       placeholder="Specify unit"
                       value={med.customForm}
                       onChange={(e) => updateMedication(med.id, 'customForm', e.target.value)}
+                    />
+                  )}
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor={`med-frequency-${med.id}`}>Frequency</Label>
+                  <Select
+                    value={med.frequency}
+                    onValueChange={(value) => {
+                      updateMedication(med.id, 'frequency', value);
+                      if (value !== 'Other' && value !== 'Every X days') {
+                        updateMedication(med.id, 'customFrequency', '');
+                        updateMedication(med.id, 'customDays', '');
+                      }
+                    }}
+                  >
+                    <SelectTrigger id={`med-frequency-${med.id}`}>
+                      <SelectValue placeholder="Select frequency" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {frequencyOptions.map((option) => (
+                        <SelectItem key={option} value={option}>{option}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  
+                  {med.frequency === 'Every X days' && (
+                    <div className="mt-2">
+                      <Label htmlFor={`med-days-${med.id}`}>Number of days</Label>
+                      <Input
+                        id={`med-days-${med.id}`}
+                        type="number"
+                        min="1"
+                        placeholder="Enter number of days"
+                        value={med.customDays || ''}
+                        onChange={(e) => updateMedication(med.id, 'customDays', e.target.value)}
+                      />
+                    </div>
+                  )}
+                  
+                  {med.frequency === 'Other' && (
+                    <Input
+                      className="mt-2"
+                      placeholder="Specify custom frequency"
+                      value={med.customFrequency || ''}
+                      onChange={(e) => updateMedication(med.id, 'customFrequency', e.target.value)}
                     />
                   )}
                 </div>

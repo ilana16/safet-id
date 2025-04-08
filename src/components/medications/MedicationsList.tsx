@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -62,6 +61,7 @@ const frequencyOptions = [
   'Once a week',
   'Twice a week',
   'Once a month',
+  'Every X days',
   'As needed',
   'Other'
 ];
@@ -146,6 +146,16 @@ const MedicationsList: React.FC<MedicationsListProps> = ({
     setExpandedDetailsId(expandedDetailsId === id ? null : id);
   };
 
+  const formatFrequency = (medication: Medication) => {
+    if (medication.frequency === 'Every X days' && medication.customDays) {
+      return `Every ${medication.customDays} day${medication.customDays === '1' ? '' : 's'}`;
+    }
+    if (medication.frequency === 'Other' && medication.customFrequency) {
+      return medication.customFrequency;
+    }
+    return medication.frequency;
+  };
+
   return (
     <div className="space-y-4">
       {medications.length === 0 ? (
@@ -175,7 +185,7 @@ const MedicationsList: React.FC<MedicationsListProps> = ({
                     {med.frequency && (
                       <span className="flex items-center gap-1 mr-4">
                         <Clock className="h-3.5 w-3.5" />
-                        {med.frequency === 'Other' && med.customFrequency ? med.customFrequency : med.frequency}
+                        {formatFrequency(med)}
                       </span>
                     )}
                   </div>
@@ -337,7 +347,6 @@ const MedicationsList: React.FC<MedicationsListProps> = ({
         ))
       )}
       
-      {/* Edit Medication Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent>
           <DialogHeader>
@@ -368,8 +377,9 @@ const MedicationsList: React.FC<MedicationsListProps> = ({
                   value={editingMedication.frequency}
                   onValueChange={(value) => {
                     handleChange('frequency', value);
-                    if (value !== 'Other') {
+                    if (value !== 'Other' && value !== 'Every X days') {
                       handleChange('customFrequency', '');
+                      handleChange('customDays', '');
                     }
                   }}
                 >
@@ -382,6 +392,21 @@ const MedicationsList: React.FC<MedicationsListProps> = ({
                     ))}
                   </SelectContent>
                 </Select>
+                
+                {editingMedication.frequency === 'Every X days' && (
+                  <div className="mt-2">
+                    <Label htmlFor="customDays">Number of days</Label>
+                    <Input
+                      id="customDays"
+                      type="number"
+                      min="1"
+                      placeholder="Enter number of days"
+                      value={editingMedication.customDays || ''}
+                      onChange={(e) => handleChange('customDays', e.target.value)}
+                    />
+                  </div>
+                )}
+                
                 {editingMedication.frequency === 'Other' && (
                   <Input
                     className="mt-2"
@@ -431,7 +456,6 @@ const MedicationsList: React.FC<MedicationsListProps> = ({
         </DialogContent>
       </Dialog>
       
-      {/* Discontinue Medication Dialog */}
       <AlertDialog open={isDiscontinueDialogOpen} onOpenChange={setIsDiscontinueDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -459,7 +483,6 @@ const MedicationsList: React.FC<MedicationsListProps> = ({
         </AlertDialogContent>
       </AlertDialog>
       
-      {/* Delete Medication Dialog */}
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>

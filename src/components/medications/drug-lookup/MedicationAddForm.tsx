@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -33,6 +34,7 @@ const frequencyOptions = [
   'Once a week',
   'Twice a week',
   'Once a month',
+  'Every X days',
   'As needed',
   'Other'
 ];
@@ -65,6 +67,7 @@ const MedicationAddForm: React.FC<MedicationAddFormProps> = ({
       dosage: newMedication.dosage || '',
       frequency: newMedication.frequency || 'Once daily',
       customFrequency: newMedication.customFrequency,
+      customDays: newMedication.customDays,
       reason: newMedication.reason || '',
       startDate: newMedication.startDate || new Date().toISOString().split('T')[0],
       notes: newMedication.notes || '',
@@ -103,8 +106,9 @@ const MedicationAddForm: React.FC<MedicationAddFormProps> = ({
               value={newMedication.frequency}
               onValueChange={(value) => {
                 handleChange('frequency', value);
-                if (value !== 'Other') {
+                if (value !== 'Other' && value !== 'Every X days') {
                   handleChange('customFrequency', '');
+                  handleChange('customDays', '');
                 }
               }}
             >
@@ -117,6 +121,20 @@ const MedicationAddForm: React.FC<MedicationAddFormProps> = ({
                 ))}
               </SelectContent>
             </Select>
+            
+            {newMedication.frequency === 'Every X days' && (
+              <div className="mt-2">
+                <Label htmlFor="customDays">Number of days</Label>
+                <Input
+                  id="customDays"
+                  type="number"
+                  min="1"
+                  placeholder="Enter number of days"
+                  value={newMedication.customDays || ''}
+                  onChange={(e) => handleChange('customDays', e.target.value)}
+                />
+              </div>
+            )}
             
             {newMedication.frequency === 'Other' && (
               <Input

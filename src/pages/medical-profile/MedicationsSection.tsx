@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -22,6 +23,7 @@ export interface Medication {
   dosage: string;
   frequency: string;
   customFrequency?: string;
+  customDays?: string;
   reason: string;
   startDate: string;
   endDate?: string;
