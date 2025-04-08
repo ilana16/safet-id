@@ -1,6 +1,6 @@
 import React from 'react';
 import { Card } from '@/components/ui/card';
-import { MedicationInfo as MedicationInfoType } from '@/utils/medicationData';
+import { MedicationInfo } from '@/utils/medicationData.d';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { ExternalLink, AlertTriangle, Info, Pill, Clock, ShieldCheck, AlertOctagon } from 'lucide-react';
@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/table";
 
 interface MedicationInfoProps {
-  medication: MedicationInfoType;
+  medication: MedicationInfo;
 }
 
 const MedicationInfo: React.FC<MedicationInfoProps> = ({ medication }) => {

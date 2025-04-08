@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { getDrugsComInfo, getDrugsComUrl, fetchDrugsComLiveInfo } from '@/utils/drugsComApi';
 import { Button } from '@/components/ui/button';
@@ -7,8 +6,6 @@ import { MedicationInfo as MedicationInfoType } from '@/utils/medicationData';
 import { toast } from 'sonner';
 import { v4 as uuidv4 } from 'uuid';
 import { Medication } from '@/pages/medical-profile/MedicationsSection';
-
-// Import our components
 import MedicationSearch from './drug-lookup/MedicationSearch';
 import MedicationInfoDisplay from './drug-lookup/MedicationInfoDisplay';
 import MedicationAddForm from './drug-lookup/MedicationAddForm';
@@ -57,7 +54,6 @@ const DrugInfoLookup: React.FC<DrugInfoLookupProps> = ({ onAddMedication }) => {
 
   const fetchComprehensiveMedicationData = async (medication: string): Promise<MedicationInfoType | null> => {
     try {
-      // Use the live drugs.com API for the comprehensive database as well
       return await fetchDrugsComLiveInfo(medication);
     } catch (error) {
       console.error('Error fetching comprehensive medication data:', error);
@@ -85,10 +81,8 @@ const DrugInfoLookup: React.FC<DrugInfoLookupProps> = ({ onAddMedication }) => {
       let info: MedicationInfoType | null;
       
       if (activeDataSource === 'drugscom') {
-        // Use the getDrugsComInfo function which now uses our live API
         info = await getDrugsComInfo(medication);
       } else {
-        // Use comprehensive database source with live data
         info = await fetchComprehensiveMedicationData(medication);
       }
       
@@ -133,7 +127,6 @@ const DrugInfoLookup: React.FC<DrugInfoLookupProps> = ({ onAddMedication }) => {
 
   const openComprehensiveDatabasePage = () => {
     if (selectedMedication) {
-      // Use the same drugs.com URL since we're using drugs.com as our data source
       openDrugsComPage();
     }
   };
@@ -141,7 +134,6 @@ const DrugInfoLookup: React.FC<DrugInfoLookupProps> = ({ onAddMedication }) => {
   const handleDirectExternalSearch = (query: string) => {
     if (!query || query.trim() === '') return;
     
-    // Open the external site directly with the search query
     const searchUrl = `https://www.drugs.com/search.php?searchterm=${encodeURIComponent(query)}`;
     window.open(searchUrl, '_blank', 'noopener,noreferrer');
     toast.info(`Searching for "${query}" on Drugs.com`);

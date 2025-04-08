@@ -1,9 +1,10 @@
+
 /**
  * This utility provides methods to fetch medication information from medical databases
  * This uses real medication data from our database and external APIs including international sources
  */
 
-import { MedicationInfo, medicationDatabase } from './medicationData';
+import { MedicationInfo, medicationDatabase } from './medicationData.d';
 import { enrichMedicationInfo } from './drugsComApi.util';
 import { toast } from 'sonner';
 

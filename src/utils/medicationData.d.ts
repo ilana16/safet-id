@@ -34,6 +34,11 @@ export interface MedicationInfo {
     minor?: string[];
     unknown?: string[];
   };
+  interactionSeverity?: {
+    major?: string[];
+    moderate?: string[];
+    minor?: string[];
+  };
   overdose?: {
     symptoms: string[];
     treatment: string;

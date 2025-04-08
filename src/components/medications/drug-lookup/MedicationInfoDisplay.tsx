@@ -17,7 +17,7 @@ import {
   ShieldCheck,
   AlertOctagon
 } from 'lucide-react';
-import { MedicationInfo as MedicationInfoType } from '@/utils/medicationData';
+import { MedicationInfo } from '@/utils/medicationData.d';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { 
   Accordion,
@@ -27,7 +27,7 @@ import {
 } from '@/components/ui/accordion';
 
 interface MedicationInfoDisplayProps {
-  medicationInfo: MedicationInfoType | null;
+  medicationInfo: MedicationInfo | null;
   selectedMedication: string | null;
   isLoading: boolean;
   error: string | null;
