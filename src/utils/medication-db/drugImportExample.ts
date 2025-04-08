@@ -55,3 +55,21 @@ export const importSampleDrug = async (): Promise<void> => {
     console.error("Drug import failed");
   }
 };
+
+/**
+ * Import function that accepts a file path to a JSON file
+ * This can be called from CLI tools or other integrations
+ */
+export const importDrugFromFile = async (filePath: string): Promise<string | null> => {
+  try {
+    // Dynamic import to work in both browser and Node.js environments
+    const fs = await import('fs/promises');
+    const fileData = await fs.readFile(filePath, 'utf-8');
+    const drugData: DrugImportData = JSON.parse(fileData);
+    
+    return await importDrugWithRelationships(drugData);
+  } catch (error) {
+    console.error(`Failed to import drug from file: ${error instanceof Error ? error.message : String(error)}`);
+    return null;
+  }
+};
