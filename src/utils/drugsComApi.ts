@@ -1,10 +1,10 @@
-
 /**
  * This utility provides methods to fetch medication information from medical databases
  * This uses real medication data from our database and external APIs including international sources
  */
 
 import { MedicationInfo, medicationDatabase } from './medicationData';
+import { enrichMedicationInfo } from './drugsComApi.util';
 import { toast } from 'sonner';
 
 // URLs for the APIs
@@ -255,16 +255,16 @@ export const fetchDrugsComLiveInfo = async (medicationName: string): Promise<Med
     // Try our local database first for simulation
     const localInfo = getMedicationInfo(medicationName);
     if (localInfo) {
-      // Add a flag to indicate this is from "live" search
-      return {
+      // Add a flag to indicate this is from "live" search and enrich with additional data
+      return enrichMedicationInfo({
         ...localInfo,
         source: 'Drugs.com Live',
         drugsComUrl: getDrugsComUrl(medicationName)
-      };
+      });
     }
 
     // Create a fallback generic response if not in our database
-    return {
+    return enrichMedicationInfo({
       name: medicationName,
       description: `${medicationName} is a medication used to treat various conditions. Please refer to drugs.com for more detailed information.`,
       genericName: '',
@@ -286,7 +286,7 @@ export const fetchDrugsComLiveInfo = async (medicationName: string): Promise<Med
       pregnancy: 'Consult your healthcare provider',
       source: 'Drugs.com Live',
       drugsComUrl: getDrugsComUrl(medicationName)
-    };
+    });
     
   } catch (error) {
     console.error('Error fetching live drugs.com information:', error);

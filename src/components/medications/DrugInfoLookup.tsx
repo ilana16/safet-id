@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { getDrugsComInfo, getDrugsComUrl, fetchDrugsComLiveInfo } from '@/utils/drugsComApi';
 import { Button } from '@/components/ui/button';
@@ -31,6 +32,10 @@ const DrugInfoLookup: React.FC<DrugInfoLookupProps> = ({ onAddMedication }) => {
     frequency: 'Once daily',
     reason: '',
     startDate: new Date().toISOString().split('T')[0],
+    notes: '',
+    foodInteractions: [],
+    conditionInteractions: [],
+    therapeuticDuplications: [],
   });
   
   const saveHistory = (medication: string) => {
@@ -98,6 +103,12 @@ const DrugInfoLookup: React.FC<DrugInfoLookupProps> = ({ onAddMedication }) => {
           frequency: 'Once daily',
           reason: '',
           startDate: new Date().toISOString().split('T')[0],
+          notes: '',
+          foodInteractions: info.foodInteractions || [],
+          conditionInteractions: info.conditionInteractions || [],
+          therapeuticDuplications: info.therapeuticDuplications || [],
+          pregnancy: info.pregnancy || '',
+          breastfeeding: info.breastfeeding || '',
         }));
         toast.success(`Information loaded for ${info.name}`);
       } else {
@@ -154,6 +165,7 @@ const DrugInfoLookup: React.FC<DrugInfoLookupProps> = ({ onAddMedication }) => {
       frequency: 'Once daily',
       reason: '',
       startDate: new Date().toISOString().split('T')[0],
+      notes: '',
     });
   };
 

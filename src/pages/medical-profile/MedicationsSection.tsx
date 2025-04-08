@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -28,6 +29,17 @@ export interface Medication {
   notes?: string;
   discontinued?: boolean;
   discontinuedReason?: string;
+  foodInteractions?: string[];
+  conditionInteractions?: string[];
+  therapeuticDuplications?: string[];
+  interactionClassifications?: {
+    major?: string[];
+    moderate?: string[];
+    minor?: string[];
+    unknown?: string[];
+  };
+  pregnancy?: string;
+  breastfeeding?: string;
 }
 
 const MedicationsSection = () => {
