@@ -53,33 +53,49 @@ export const enhancedMedicationSearch = async (query: string): Promise<string[]>
     'Zantac', 'Zestoretic', 'Zithromax', 'Zocor', 'Zoloft'
   ]);
 
-  // Convert set to array for searching
-  const commonMedications = Array.from(commonMedicationsSet);
-  
   try {
-    // Filter based on query (case-insensitive)
+    // Early exit for short queries
     const lowercaseQuery = query.toLowerCase().trim();
-    
     if (lowercaseQuery.length < 2) {
       return [];
     }
     
-    // Use a faster approach - filter once and sort by relevance
+    // Faster algorithm - single-pass search with immediate results
     const startsWith = [];
     const includes = [];
+    const commonMedications = Array.from(commonMedicationsSet);
     
-    // Use a more efficient approach to searching
-    for (const med of commonMedications) {
+    // Direct matches first (exact or starts-with)
+    const exactMatch = commonMedications.find(
+      med => med.toLowerCase() === lowercaseQuery
+    );
+    
+    if (exactMatch) {
+      return [exactMatch]; // Return immediately on exact match
+    }
+    
+    // Limit search time by processing in batches if needed
+    const batchSize = 100;
+    const totalMeds = commonMedications.length;
+    
+    for (let i = 0; i < totalMeds; i++) {
+      const med = commonMedications[i];
       const lowerMed = med.toLowerCase();
+      
       if (lowerMed.startsWith(lowercaseQuery)) {
         startsWith.push(med);
       } else if (lowerMed.includes(lowercaseQuery)) {
         includes.push(med);
       }
       
-      // Early exit if we have enough results
-      if (startsWith.length + includes.length >= 20) {
-        break;
+      // Early exit conditions
+      if (startsWith.length >= 10) {
+        break; // We have enough results that start with the query
+      }
+      
+      // Process in batches to avoid blocking UI
+      if ((i + 1) % batchSize === 0 && startsWith.length > 0) {
+        break; // Exit after processing a batch if we have some results
       }
     }
     
@@ -88,6 +104,7 @@ export const enhancedMedicationSearch = async (query: string): Promise<string[]>
     
     // Return unique results limited to 15
     return results.slice(0, 15);
+    
   } catch (error) {
     console.error('Error in enhanced medication search:', error);
     toast.error('Error searching medication database');

@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 // Default timeout for API calls in milliseconds - reduced for faster response
-const API_TIMEOUT = 10000; // 10 seconds (reduced from 20)
+const API_TIMEOUT = 5000; // 5 seconds (reduced from 10)
 
 /**
  * Searches for medications using database first, with fallback to common medications list
@@ -45,21 +45,46 @@ export const searchDrugsCom = async (query: string): Promise<string[]> => {
       setTimeout(() => reject(new Error("Search operation timed out")), API_TIMEOUT);
     });
     
-    // Return whichever promise resolves/rejects first
-    return await Promise.race([searchPromise, timeoutPromise]);
-    
+    try {
+      // Return whichever promise resolves/rejects first
+      return await Promise.race([searchPromise, timeoutPromise]);
+    } catch (timeoutError) {
+      console.error('Search timed out, using direct method:', timeoutError);
+      
+      // If timeout occurred, try a more direct method with exact matching
+      const { enhancedMedicationSearch } = await import('./medication-db/enhancedMedicationSearch');
+      const directResults = await enhancedMedicationSearch(query);
+      
+      if (directResults.length > 0) {
+        return directResults;
+      }
+      
+      // If still no results, throw an error to trigger the fallback
+      throw new Error("Search operation timed out");
+    }
   } catch (error) {
     console.error('Error searching medications:', error);
-    toast.error('Error searching for medications');
     
     // Use fallback search in case of any error, but with a shorter timeout
     try {
       const { enhancedMedicationSearch } = await import('./medication-db/enhancedMedicationSearch');
-      const results = await enhancedMedicationSearch(query);
-      return results;
+      const fallbackTimeoutPromise = new Promise<string[]>((_, reject) => {
+        setTimeout(() => reject(new Error("Fallback search timed out")), 3000);
+      });
+      
+      // Use race with a shorter timeout for fallback search
+      return await Promise.race([enhancedMedicationSearch(query), fallbackTimeoutPromise]);
     } catch (fallbackError) {
       console.error('Fallback search failed:', fallbackError);
-      return [];
+      
+      // Last resort: try to match just the beginning of words
+      try {
+        const { enhancedMedicationSearch } = await import('./medication-db/enhancedMedicationSearch');
+        const emergencyResults = await enhancedMedicationSearch(query.substring(0, 3));
+        return emergencyResults.filter(med => med.toLowerCase().includes(query.toLowerCase())).slice(0, 5);
+      } catch (e) {
+        return [];
+      }
     }
   }
 };

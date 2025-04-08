@@ -5,7 +5,7 @@ import { Search, Loader2, X, Database, ExternalLink, PillIcon, ArrowRight, Alert
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { Pill } from 'lucide-react';
-import { performMedicationSearch } from '@/utils/medication-db/search'; 
+import { searchDrugsCom } from '@/utils/drugsComApi'; 
 import { toast } from 'sonner';
 import { useDebounce } from '@/hooks/useDebounce';
 import { supabase } from '@/integrations/supabase/client';
@@ -55,52 +55,11 @@ const MedicationSearch: React.FC<MedicationSearchProps> = ({
   }, []);
 
   useEffect(() => {
-    if (!autoSearchEnabled) return;
-    
-    if (searchTimeoutId) {
-      clearTimeout(searchTimeoutId);
-      setSearchTimeoutId(null);
+    if (!autoSearchEnabled || debouncedSearchTerm.length < 2) {
+      return;
     }
     
-    const performSearch = async () => {
-      if (debouncedSearchTerm.length >= 2) {
-        setIsSearching(true);
-        setSearchError(null);
-        
-        try {
-          console.log('Searching medications for:', debouncedSearchTerm);
-          
-          const timeoutId = window.setTimeout(() => {
-            console.log('Search operation timed out');
-            setIsSearching(false);
-            setSearchError('Search request timed out. Please try again.');
-            toast.error('Search request timed out. Please try again.');
-          }, 20000); // 20 second timeout
-          
-          setSearchTimeoutId(timeoutId);
-          
-          const results = await performMedicationSearch(debouncedSearchTerm);
-          
-          clearTimeout(timeoutId);
-          setSearchTimeoutId(null);
-          
-          setSearchResults(results);
-        } catch (error) {
-          console.error('Error searching medications:', error);
-          setSearchError(error instanceof Error ? error.message : 'Error searching for medications');
-          toast.error(error instanceof Error && error.message.includes('timed out') 
-            ? 'Search request timed out. Please try again.' 
-            : 'Error searching for medications');
-          setSearchResults([]);
-        } finally {
-          setIsSearching(false);
-        }
-      } else {
-        setSearchResults([]);
-      }
-    };
-
-    performSearch();
+    performSearch(debouncedSearchTerm, true);
   }, [debouncedSearchTerm, autoSearchEnabled]);
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -124,9 +83,8 @@ const MedicationSearch: React.FC<MedicationSearchProps> = ({
     }
   };
 
-  const handleSearch = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (query.length < 2) return;
+  const performSearch = async (searchTerm: string, isAuto = false) => {
+    if (searchTerm.length < 2) return;
     
     if (searchTimeoutId) {
       clearTimeout(searchTimeoutId);
@@ -136,17 +94,19 @@ const MedicationSearch: React.FC<MedicationSearchProps> = ({
     setIsSearching(true);
     setSearchError(null);
     
+    const timeoutDuration = isAuto ? 8000 : 15000;
+    
     try {
       const timeoutId = window.setTimeout(() => {
         setIsSearching(false);
-        setSearchError('Search request timed out. Please try again.');
-        toast.error('Search request timed out. Please try again.');
-      }, 20000); // 20 second timeout
+        setSearchError('Search request timed out. Please try again with a simpler query.');
+        toast.error('Search timed out. Please try again.');
+      }, timeoutDuration);
       
       setSearchTimeoutId(timeoutId);
       
-      console.log('Manual search for:', query);
-      const results = await performMedicationSearch(query);
+      console.log(`${isAuto ? 'Auto' : 'Manual'} search for:`, searchTerm);
+      const results = await searchDrugsCom(searchTerm);
       
       clearTimeout(timeoutId);
       setSearchTimeoutId(null);
@@ -154,19 +114,29 @@ const MedicationSearch: React.FC<MedicationSearchProps> = ({
       setSearchResults(results);
       
       if (results.length === 0) {
-        toast.info(`No results found for "${query}"`);
-      } else if (results.length === 1 && results[0].toLowerCase() === query.toLowerCase()) {
+        toast.info(`No results found for "${searchTerm}"`);
+      } else if (!isAuto && results.length === 1 && results[0].toLowerCase() === searchTerm.toLowerCase()) {
         handleSelectMedication(results[0]);
       }
     } catch (error) {
       console.error('Error searching medications:', error);
-      setSearchError(error instanceof Error ? error.message : 'Error searching for medications');
-      toast.error(error instanceof Error && error.message.includes('timed out') 
-        ? 'Search request timed out. Please try again.' 
-        : 'Error searching for medications');
+      
+      const errorMessage = error instanceof Error 
+        ? (error.message.includes('timed out') 
+            ? 'Search request timed out. Please try with a shorter medication name.' 
+            : error.message)
+        : 'Error searching for medications';
+      
+      setSearchError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setIsSearching(false);
     }
+  };
+
+  const handleSearch = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await performSearch(query);
   };
 
   const handleCancelSearch = () => {
@@ -212,7 +182,7 @@ const MedicationSearch: React.FC<MedicationSearchProps> = ({
       <div className="mb-3 p-3 bg-amber-50 rounded-md border border-amber-200 text-amber-800 text-sm flex items-center">
         <Database className="h-4 w-4 text-amber-500 mr-2 flex-shrink-0" />
         <span>
-          Using medication database with fallback data when medications are not found
+          Searching our enhanced medication database for faster results
         </span>
       </div>
       
@@ -338,7 +308,7 @@ const MedicationSearch: React.FC<MedicationSearchProps> = ({
                   variant="default"
                   size="sm"
                   className="bg-safet-500 hover:bg-safet-600"
-                  onClick={() => handleSearch(new Event('submit') as any)}
+                  onClick={() => performSearch(query)}
                 >
                   Try Again
                 </Button>
@@ -353,7 +323,7 @@ const MedicationSearch: React.FC<MedicationSearchProps> = ({
           <Loader2 className="h-5 w-5 animate-spin text-blue-500 mr-3" />
           <div>
             <p className="font-medium">Searching for medications...</p>
-            <p className="text-sm mt-1">This may take a moment. We're searching our database and fallback data.</p>
+            <p className="text-sm mt-1">This may take a moment. We're searching our enhanced database.</p>
           </div>
         </div>
       )}
