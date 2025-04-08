@@ -23,6 +23,36 @@ interface DrugResult {
   classification: string | null;
 }
 
+// Add type definition for the database medication record
+interface MedicationRecord {
+  id: string;
+  name: string;
+  generic_name?: string | null;
+  description?: string | null;
+  drug_class?: string | null;
+  prescription_only?: boolean | null;
+  used_for?: string[] | null;
+  warnings?: string[] | null;
+  side_effects?: any | null;
+  interactions?: string[] | null;
+  dosage?: any | null;
+  forms?: string[] | null;
+  pregnancy?: string | null;
+  breastfeeding?: string | null;
+  half_life?: string | null;
+  search_count?: number | null;
+  searched_at?: string;
+  searched_by?: string | null;
+  source?: string | null;
+  interaction_classifications?: any | null;
+  interaction_severity?: any | null;
+  food_interactions?: string[] | null;
+  condition_interactions?: string[] | null;
+  therapeutic_duplications?: string[] | null;
+  imprints?: Array<{imprint_code: string | null, image_url: string | null, description: string | null}> | null;
+  international_names?: Array<{country: string, name: string}> | null;
+}
+
 /**
  * Gets medication information from the database or fallback data
  * 
@@ -78,44 +108,47 @@ export const getMedicationFromDb = async (
           console.warn('Could not update search count, but continuing:', updateError);
         }
         
+        // Cast the database record to ensure TypeScript recognizes our properties
+        const dbMed = dbMeds[0] as MedicationRecord;
+        
         // Convert database medication to MedicationInfo format with proper type handling
         const medicationInfo: MedicationInfo = {
-          name: dbMeds[0].name,
-          genericName: dbMeds[0].generic_name,
-          description: dbMeds[0].description,
-          drugClass: dbMeds[0].drug_class,
-          prescriptionOnly: dbMeds[0].prescription_only,
-          usedFor: dbMeds[0].used_for || [],
-          warnings: dbMeds[0].warnings || [],
-          sideEffects: dbMeds[0].side_effects && typeof dbMeds[0].side_effects === 'object' 
-            ? dbMeds[0].side_effects as any 
+          name: dbMed.name,
+          genericName: dbMed.generic_name,
+          description: dbMed.description,
+          drugClass: dbMed.drug_class,
+          prescriptionOnly: dbMed.prescription_only,
+          usedFor: dbMed.used_for || [],
+          warnings: dbMed.warnings || [],
+          sideEffects: dbMed.side_effects && typeof dbMed.side_effects === 'object' 
+            ? dbMed.side_effects as any 
             : { common: [], serious: [] },
-          interactions: dbMeds[0].interactions || [],
-          dosage: dbMeds[0].dosage && typeof dbMeds[0].dosage === 'object'
-            ? dbMeds[0].dosage as any
+          interactions: dbMed.interactions || [],
+          dosage: dbMed.dosage && typeof dbMed.dosage === 'object'
+            ? dbMed.dosage as any
             : { adult: '', child: '' },
-          forms: dbMeds[0].forms || [],
-          interactionClassifications: dbMeds[0].interaction_classifications && 
-            typeof dbMeds[0].interaction_classifications === 'object'
-            ? dbMeds[0].interaction_classifications as any
+          forms: dbMed.forms || [],
+          interactionClassifications: dbMed.interaction_classifications && 
+            typeof dbMed.interaction_classifications === 'object'
+            ? dbMed.interaction_classifications as any
             : { major: [], moderate: [], minor: [] },
-          interactionSeverity: dbMeds[0].interaction_severity && 
-            typeof dbMeds[0].interaction_severity === 'object'
-            ? dbMeds[0].interaction_severity as any
+          interactionSeverity: dbMed.interaction_severity && 
+            typeof dbMed.interaction_severity === 'object'
+            ? dbMed.interaction_severity as any
             : { major: [], moderate: [], minor: [] },
-          foodInteractions: dbMeds[0].food_interactions || [],
-          conditionInteractions: dbMeds[0].condition_interactions || [],
-          therapeuticDuplications: dbMeds[0].therapeutic_duplications || [],
-          pregnancy: dbMeds[0].pregnancy,
-          breastfeeding: dbMeds[0].breastfeeding,
-          halfLife: dbMeds[0] && 'half_life' in dbMeds[0] ? String(dbMeds[0].half_life || '') : '',
-          drugsComUrl: getDrugsComUrl(dbMeds[0].name),
-          source: dbMeds[0].source,
+          foodInteractions: dbMed.food_interactions || [],
+          conditionInteractions: dbMed.condition_interactions || [],
+          therapeuticDuplications: dbMed.therapeutic_duplications || [],
+          pregnancy: dbMed.pregnancy,
+          breastfeeding: dbMed.breastfeeding,
+          halfLife: dbMed.half_life ? String(dbMed.half_life) : '',
+          drugsComUrl: getDrugsComUrl(dbMed.name),
+          source: dbMed.source,
           fromDatabase: true,
           databaseSearchCount: newCount,
-          // Handle imprints and internationalNames with null/undefined checks
-          imprints: Array.isArray(dbMeds[0].imprints) ? dbMeds[0].imprints : [],
-          internationalNames: Array.isArray(dbMeds[0].international_names) ? dbMeds[0].international_names : []
+          // Safely access the new properties with type checking
+          imprints: Array.isArray(dbMed.imprints) ? dbMed.imprints : [],
+          internationalNames: Array.isArray(dbMed.international_names) ? dbMed.international_names : []
         };
         
         return medicationInfo;

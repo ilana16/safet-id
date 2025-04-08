@@ -1,6 +1,17 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { MedicationInfo } from '../medicationData.d';
+
+// Define the database medication record type
+interface MedicationRecord {
+  id: string;
+  name: string;
+  generic_name?: string | null;
+  description?: string | null;
+  search_count?: number | null;
+  imprints?: Array<{imprint_code: string | null, image_url: string | null, description: string | null}> | null;
+  international_names?: Array<{country: string, name: string}> | null;
+  // ... other properties that might be needed
+}
 
 /**
  * Saves medication information to the database
@@ -29,7 +40,7 @@ export const saveMedicationToDb = async (
     
     if (existingMeds && existingMeds.length > 0) {
       // Medication exists, update the search count and timestamp
-      const med = existingMeds[0];
+      const med = existingMeds[0] as MedicationRecord;
       const newCount = (med.search_count || 0) + 1;
       
       const { error } = await supabase
