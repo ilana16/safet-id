@@ -210,8 +210,8 @@ export const fetchMedicationInfo = async (
     }
     case 'drugscom':
     default: {
-      const { fetchLiveDrugsComInfo } = await import('./drugsComApi');
-      return fetchLiveDrugsComInfo(drugName);
+      const { getDrugsComInfo } = await import('./drugsComApi');
+      return getDrugsComInfo(drugName);
     }
   }
 };
