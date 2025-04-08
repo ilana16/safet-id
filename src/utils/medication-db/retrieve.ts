@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { MedicationInfo } from '../medicationData.d';
 import { saveMedicationToDb } from './save';
@@ -67,22 +66,18 @@ export const getMedicationFromDb = async (
         prescriptionOnly: dbMeds[0].prescription_only,
         usedFor: dbMeds[0].used_for || [],
         warnings: dbMeds[0].warnings || [],
-        // Properly handle side effects object
         sideEffects: dbMeds[0].side_effects && typeof dbMeds[0].side_effects === 'object' 
           ? dbMeds[0].side_effects as any 
           : { common: [], serious: [] },
         interactions: dbMeds[0].interactions || [],
-        // Properly handle dosage object
         dosage: dbMeds[0].dosage && typeof dbMeds[0].dosage === 'object'
           ? dbMeds[0].dosage as any
           : { adult: '', child: '' },
         forms: dbMeds[0].forms || [],
-        // Properly handle interaction classifications object
         interactionClassifications: dbMeds[0].interaction_classifications && 
           typeof dbMeds[0].interaction_classifications === 'object'
           ? dbMeds[0].interaction_classifications as any
           : { major: [], moderate: [], minor: [] },
-        // Properly handle interaction severity object
         interactionSeverity: dbMeds[0].interaction_severity && 
           typeof dbMeds[0].interaction_severity === 'object'
           ? dbMeds[0].interaction_severity as any
@@ -92,7 +87,6 @@ export const getMedicationFromDb = async (
         therapeuticDuplications: dbMeds[0].therapeutic_duplications || [],
         pregnancy: dbMeds[0].pregnancy,
         breastfeeding: dbMeds[0].breastfeeding,
-        // Safely handle half_life property with type assertion
         halfLife: (dbMeds[0] as any).half_life || '',
         drugsComUrl: getDrugsComUrl(dbMeds[0].name),
         source: dbMeds[0].source,
@@ -124,11 +118,19 @@ export const getMedicationFromDb = async (
         // Remove the signal property as it's not supported in FunctionInvokeOptions
       });
       
+      // Log that we're making the API call
+      console.log(`Calling drugs-scraper function for: ${medicationName}`);
+      
       // Race the API call against the timeout
       const { data, error } = await Promise.race([
         apiCallPromise,
         timeoutPromise
       ]);
+
+      // Log the API response for debugging
+      console.log('API response received:', data ? 'success' : 'failure');
+      if (error) console.error('API error:', error);
+      if (data) console.log('API data keys:', Object.keys(data));
 
       if (error) {
         console.error('Error calling drugs-scraper function:', error);
@@ -136,7 +138,7 @@ export const getMedicationFromDb = async (
           throw new Error('API request timed out');
         }
         toast.error('Error calling medication scraper');
-        return null;
+        return await fallbackMedicationInfo(medicationName, userId);
       }
 
       if (data && data.name) {
@@ -171,8 +173,9 @@ export const getMedicationFromDb = async (
         
         return savedMedInfo || externalMedInfo;
       } else {
+        console.warn('No data returned from API for:', medicationName);
         toast.error(`No information found for ${medicationName}`);
-        return null;
+        return await fallbackMedicationInfo(medicationName, userId);
       }
     } catch (error) {
       console.error('Error getting medication from API:', error);
@@ -184,12 +187,13 @@ export const getMedicationFromDb = async (
       toast.error(isTimeout
         ? 'Search request timed out. Please try again.'
         : 'Error retrieving medication information');
-      return null;
+        
+      return await fallbackMedicationInfo(medicationName, userId);
     }
   } catch (error) {
     console.error('Error getting medication from database or API:', error);
     toast.error('Error retrieving medication information');
-    return null;
+    return await fallbackMedicationInfo(medicationName, userId);
   } finally {
     // Clean up abort controller if needed
     if (abortController) {
@@ -201,3 +205,37 @@ export const getMedicationFromDb = async (
     }
   }
 };
+
+/**
+ * Provides fallback medication information when API calls fail
+ * 
+ * @param medicationName Name of the medication
+ * @param userId User ID of the person searching (optional)
+ * @returns Promise resolving to simulated medication info
+ */
+async function fallbackMedicationInfo(medicationName: string, userId?: string | null): Promise<MedicationInfo | null> {
+  console.log('Using fallback medication info for:', medicationName);
+  
+  // Import the fetchMedicationInfo function from modrugsApi
+  const { fetchMedicationInfo } = await import('../modrugsApi');
+  
+  try {
+    // Get simulated medication data
+    const mockMedInfo = await fetchMedicationInfo(medicationName);
+    
+    if (mockMedInfo) {
+      // Mark that this is fallback data
+      mockMedInfo.source = 'Fallback Data (API unavailable)';
+      
+      // Try to save to the database
+      const savedMedInfo = await saveMedicationToDb(mockMedInfo, userId || undefined);
+      
+      return savedMedInfo || mockMedInfo;
+    }
+    
+    return null;
+  } catch (e) {
+    console.error('Error in fallback medication info:', e);
+    return null;
+  }
+}

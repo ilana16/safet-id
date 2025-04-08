@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -10,6 +9,7 @@ import { performMedicationSearch } from '@/utils/medication-db/search';
 import { toast } from 'sonner';
 import { useDebounce } from '@/hooks/useDebounce';
 import { supabase } from '@/integrations/supabase/client';
+import { Switch } from '@/components/ui/switch';
 
 interface MedicationSearchProps {
   onSelectMedication: (medication: string) => void;
@@ -28,7 +28,6 @@ const MedicationSearch: React.FC<MedicationSearchProps> = ({
   const [searchError, setSearchError] = useState<string | null>(null);
   const [searchTimeoutId, setSearchTimeoutId] = useState<number | null>(null);
   const [autoSearchEnabled, setAutoSearchEnabled] = useState(false);
-  // We use the debounce hook with the autoSearchEnabled flag
   const debouncedSearchTerm = useDebounce(query, 300, autoSearchEnabled);
 
   useEffect(() => {
@@ -56,7 +55,6 @@ const MedicationSearch: React.FC<MedicationSearchProps> = ({
   }, []);
 
   useEffect(() => {
-    // Only perform search on debounced term change if autosearch is enabled
     if (!autoSearchEnabled) return;
     
     if (searchTimeoutId) {
@@ -110,7 +108,6 @@ const MedicationSearch: React.FC<MedicationSearchProps> = ({
     setQuery(value);
     setSearchError(null);
     
-    // Clear results when query changes if autosearch is disabled
     if (!autoSearchEnabled && searchResults.length > 0) {
       setSearchResults([]);
     }
@@ -148,6 +145,7 @@ const MedicationSearch: React.FC<MedicationSearchProps> = ({
       
       setSearchTimeoutId(timeoutId);
       
+      console.log('Manual search for:', query);
       const results = await performMedicationSearch(query);
       
       clearTimeout(timeoutId);
@@ -155,7 +153,9 @@ const MedicationSearch: React.FC<MedicationSearchProps> = ({
       
       setSearchResults(results);
       
-      if (results.length === 1 && results[0].toLowerCase() === query.toLowerCase()) {
+      if (results.length === 0) {
+        toast.info(`No results found for "${query}"`);
+      } else if (results.length === 1 && results[0].toLowerCase() === query.toLowerCase()) {
         handleSelectMedication(results[0]);
       }
     } catch (error) {
@@ -196,6 +196,11 @@ const MedicationSearch: React.FC<MedicationSearchProps> = ({
     }
   };
 
+  const handleToggleAutoSearch = () => {
+    setAutoSearchEnabled(!autoSearchEnabled);
+    toast.info(`Auto-search ${!autoSearchEnabled ? 'enabled' : 'disabled'}`);
+  };
+
   const popularMedicationCategories = {
     "Common Medications": ['lisinopril', 'metformin', 'atorvastatin', 'amoxicillin'],
     "Psychiatric Medications": ['fluoxetine', 'escitalopram', 'risperidone', 'lithium'],
@@ -209,6 +214,17 @@ const MedicationSearch: React.FC<MedicationSearchProps> = ({
         <span>
           Using real-time Drugs.com data via our Supabase Edge Function scraper
         </span>
+      </div>
+      
+      <div className="flex justify-end mb-2">
+        <div className="flex items-center space-x-2">
+          <span className="text-sm text-gray-500">Auto-search</span>
+          <Switch 
+            checked={autoSearchEnabled} 
+            onCheckedChange={handleToggleAutoSearch}
+            aria-label="Toggle auto-search"
+          />
+        </div>
       </div>
       
       <form onSubmit={handleSearch} className="flex gap-2">

@@ -68,15 +68,21 @@ export const performMedicationSearch = async (query: string): Promise<string[]> 
       if (error.message?.includes('abort') || error.message?.includes('time')) {
         throw new Error('Search request timed out');
       }
-      return [];
+      
+      // If API call fails, use the fallback search from modrugsApi
+      console.log('Edge function failed, using fallback search');
+      return await fallbackSearch(query);
     }
     
-    if (data && data.results) {
+    if (data && data.results && data.results.length > 0) {
       console.log('Found results from scraper:', data.results.length);
       return data.results;
     }
     
-    return [];
+    // If no results from the API, use fallback
+    console.log('No results from API, using fallback search');
+    return await fallbackSearch(query);
+    
   } catch (error) {
     console.error('Error performing medication search:', error);
     const isTimeout = error instanceof Error && 
@@ -87,7 +93,9 @@ export const performMedicationSearch = async (query: string): Promise<string[]> 
     toast.error(isTimeout
       ? 'Search request timed out. Please try again.'
       : 'Error searching for medications');
-    return [];
+    
+    // Use fallback search in case of any error
+    return await fallbackSearch(query);
   } finally {
     // Clean up abort controller if needed
     if (abortController) {
@@ -98,4 +106,41 @@ export const performMedicationSearch = async (query: string): Promise<string[]> 
       }
     }
   }
+};
+
+/**
+ * Fallback search function that returns common medications matching the query
+ * Used when the API search fails or times out
+ * 
+ * @param query Search query string
+ * @returns Array of medication names matching the query
+ */
+const fallbackSearch = async (query: string): Promise<string[]> => {
+  console.log('Using fallback search for:', query);
+  
+  // List of common medications
+  const commonMedications = [
+    'Acetaminophen', 'Adderall', 'Albuterol', 'Alprazolam', 'Amoxicillin', 
+    'Atorvastatin', 'Azithromycin', 'Benzonatate', 'Bupropion', 'Buspirone',
+    'Cefdinir', 'Cephalexin', 'Ciprofloxacin', 'Citalopram', 'Clindamycin', 
+    'Clonazepam', 'Cyclobenzaprine', 'Diazepam', 'Doxycycline', 'Duloxetine',
+    'Escitalopram', 'Fluoxetine', 'Gabapentin', 'Hydrochlorothiazide', 'Hydroxyzine',
+    'Ibuprofen', 'Levothyroxine', 'Lisinopril', 'Loperamide', 'Loratadine',
+    'Lorazepam', 'Losartan', 'Metformin', 'Metoprolol', 'Metronidazole',
+    'Naproxen', 'Omeprazole', 'Ondansetron', 'Oxycodone', 'Pantoprazole',
+    'Prednisone', 'Propranolol', 'Sertraline', 'Simvastatin', 'Trazodone',
+    'Vitamin D', 'Warfarin', 'Zoloft', 'Zolpidem', 'Abilify', 'Lipitor',
+    'Nexium', 'Prozac', 'Xanax', 'Zantac', 'Advil', 'Tylenol', 'Motrin',
+    'Allegra', 'Claritin', 'Zyrtec', 'Ambien', 'Viagra', 'Cialis', 
+    'Humira', 'Eliquis', 'Synthroid', 'Crestor', 'Vyvanse', 'Lantus'
+  ];
+  
+  // Filter based on query (case-insensitive)
+  const lowercaseQuery = query.toLowerCase();
+  const results = commonMedications.filter(med => 
+    med.toLowerCase().includes(lowercaseQuery)
+  );
+  
+  // Sort alphabetically and limit to 10 results
+  return results.sort((a, b) => a.localeCompare(b)).slice(0, 10);
 };
