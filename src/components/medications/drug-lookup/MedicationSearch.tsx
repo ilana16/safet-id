@@ -6,7 +6,7 @@ import { Search, Loader2, X, Database, ExternalLink, PillIcon, ArrowRight, Alert
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { Pill } from 'lucide-react';
-import { performMedicationSearch, getMedicationFromDb } from '@/utils/medication-db'; 
+import { performMedicationSearch } from '@/utils/medication-db/search'; 
 import { toast } from 'sonner';
 import { useDebounce } from '@/hooks/useDebounce';
 import { supabase } from '@/integrations/supabase/client';
@@ -26,6 +26,7 @@ const MedicationSearch: React.FC<MedicationSearchProps> = ({
   const [history, setHistory] = useState<string[]>([]);
   const [userId, setUserId] = useState<string | null>(null);
   const [searchError, setSearchError] = useState<string | null>(null);
+  const [searchTimeoutId, setSearchTimeoutId] = useState<number | null>(null);
   const debouncedSearchTerm = useDebounce(query, 300);
 
   useEffect(() => {
@@ -44,10 +45,21 @@ const MedicationSearch: React.FC<MedicationSearchProps> = ({
         console.error('Error parsing medication search history:', e);
       }
     }
+    
+    // Clean up any timeout when component unmounts
+    return () => {
+      if (searchTimeoutId) {
+        clearTimeout(searchTimeoutId);
+      }
+    };
   }, []);
 
   useEffect(() => {
-    let searchTimeout: number | undefined;
+    // Clear previous timeout if exists
+    if (searchTimeoutId) {
+      clearTimeout(searchTimeoutId);
+      setSearchTimeoutId(null);
+    }
     
     const performSearch = async () => {
       if (debouncedSearchTerm.length >= 2) {
@@ -56,23 +68,22 @@ const MedicationSearch: React.FC<MedicationSearchProps> = ({
         
         try {
           console.log('Searching medications for:', debouncedSearchTerm);
-          // Set a timeout to handle cases where the search takes too long
-          const timeoutPromise = new Promise<string[]>((_, reject) => {
-            searchTimeout = window.setTimeout(() => {
-              reject(new Error('Search request timed out'));
-            }, 15000); // 15 second timeout
-          });
           
-          // Race between the actual search and the timeout
-          const results = await Promise.race([
-            performMedicationSearch(debouncedSearchTerm),
-            timeoutPromise
-          ]);
+          // Set a new timeout to handle cases where the search takes too long
+          const timeoutId = window.setTimeout(() => {
+            console.log('Search operation timed out');
+            setIsSearching(false);
+            setSearchError('Search request timed out. Please try again.');
+            toast.error('Search request timed out. Please try again.');
+          }, 20000); // 20 second timeout
           
-          // Clear the timeout if the search completes successfully
-          if (searchTimeout) {
-            clearTimeout(searchTimeout);
-          }
+          setSearchTimeoutId(timeoutId);
+          
+          const results = await performMedicationSearch(debouncedSearchTerm);
+          
+          // Clear the timeout as search completed successfully
+          clearTimeout(timeoutId);
+          setSearchTimeoutId(null);
           
           setSearchResults(results);
         } catch (error) {
@@ -91,12 +102,6 @@ const MedicationSearch: React.FC<MedicationSearchProps> = ({
     };
 
     performSearch();
-    
-    return () => {
-      if (searchTimeout) {
-        clearTimeout(searchTimeout);
-      }
-    };
   }, [debouncedSearchTerm]);
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -109,17 +114,43 @@ const MedicationSearch: React.FC<MedicationSearchProps> = ({
     setQuery('');
     setSearchResults([]);
     setSearchError(null);
+    
+    // Clear any active timeout
+    if (searchTimeoutId) {
+      clearTimeout(searchTimeoutId);
+      setSearchTimeoutId(null);
+    }
   };
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     if (query.length < 2) return;
     
+    // Clear previous timeout if exists
+    if (searchTimeoutId) {
+      clearTimeout(searchTimeoutId);
+      setSearchTimeoutId(null);
+    }
+    
     setIsSearching(true);
     setSearchError(null);
     
     try {
+      // Set a timeout for the search operation
+      const timeoutId = window.setTimeout(() => {
+        setIsSearching(false);
+        setSearchError('Search request timed out. Please try again.');
+        toast.error('Search request timed out. Please try again.');
+      }, 20000); // 20 second timeout
+      
+      setSearchTimeoutId(timeoutId);
+      
       const results = await performMedicationSearch(query);
+      
+      // Clear timeout as search completed
+      clearTimeout(timeoutId);
+      setSearchTimeoutId(null);
+      
       setSearchResults(results);
       
       if (results.length === 1 && results[0].toLowerCase() === query.toLowerCase()) {
@@ -136,12 +167,18 @@ const MedicationSearch: React.FC<MedicationSearchProps> = ({
     }
   };
 
+  const handleCancelSearch = () => {
+    setIsSearching(false);
+    if (searchTimeoutId) {
+      clearTimeout(searchTimeoutId);
+      setSearchTimeoutId(null);
+    }
+  };
+
   const handleSelectMedication = (medication: string) => {
     const updatedHistory = [medication, ...history.filter(item => item !== medication)].slice(0, 5);
     setHistory(updatedHistory);
     localStorage.setItem('medicationSearchHistory', JSON.stringify(updatedHistory));
-    
-    getMedicationFromDb(medication, userId);
     
     onSelectMedication(medication);
     setQuery(medication);
@@ -181,10 +218,11 @@ const MedicationSearch: React.FC<MedicationSearchProps> = ({
             onChange={handleSearchChange}
             className="pl-10 w-full pr-10"
             autoComplete="off"
+            disabled={isSearching}
           />
           <Search className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
           
-          {query && (
+          {query && !isSearching && (
             <button 
               type="button"
               onClick={handleClearSearch}
@@ -194,7 +232,7 @@ const MedicationSearch: React.FC<MedicationSearchProps> = ({
             </button>
           )}
           
-          {searchResults.length > 0 && query.length >= 2 && (
+          {searchResults.length > 0 && query.length >= 2 && !isSearching && (
             <div className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-auto">
               <ul className="py-1">
                 {searchResults.map((result, index) => {
@@ -225,24 +263,33 @@ const MedicationSearch: React.FC<MedicationSearchProps> = ({
             </div>
           )}
         </div>
-        <Button 
-          type="submit" 
-          disabled={isSearching || query.length < 2}
-          className="bg-safet-500 hover:bg-safet-600"
-        >
-          {isSearching ? 
-            <Loader2 className="h-4 w-4 animate-spin" /> : 
+        
+        {isSearching ? (
+          <Button 
+            type="button" 
+            variant="destructive"
+            onClick={handleCancelSearch}
+          >
+            <X className="h-4 w-4" />
+            <span className="ml-2">Cancel</span>
+          </Button>
+        ) : (
+          <Button 
+            type="submit" 
+            disabled={query.length < 2}
+            className="bg-safet-500 hover:bg-safet-600"
+          >
             <Search className="h-4 w-4" />
-          }
-          <span className="ml-2">{isSearching ? 'Searching...' : 'Search'}</span>
-        </Button>
+            <span className="ml-2">Search</span>
+          </Button>
+        )}
         
         {onExternalSearch && (
           <Button 
             type="button" 
             variant="outline"
             onClick={handleExternalSearch}
-            disabled={query.length < 2}
+            disabled={query.length < 2 || isSearching}
             className="text-safet-500 border-safet-200"
           >
             <ExternalLink className="h-4 w-4 mr-1" />
@@ -259,19 +306,43 @@ const MedicationSearch: React.FC<MedicationSearchProps> = ({
           <div>
             <p className="font-medium">Search error</p>
             <p>{searchError}</p>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="mt-2 text-red-600 border-red-300 hover:bg-red-50"
-              onClick={() => setSearchError(null)}
-            >
-              Dismiss
-            </Button>
+            <div className="mt-2 flex gap-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="text-red-600 border-red-300 hover:bg-red-50"
+                onClick={() => setSearchError(null)}
+              >
+                Dismiss
+              </Button>
+              
+              {searchError.includes('timed out') && (
+                <Button
+                  variant="default"
+                  size="sm"
+                  className="bg-safet-500 hover:bg-safet-600"
+                  onClick={() => handleSearch(new Event('submit') as any)}
+                >
+                  Try Again
+                </Button>
+              )}
+            </div>
           </div>
         </div>
       )}
       
-      {history.length > 0 && (
+      {/* Loading indicator */}
+      {isSearching && (
+        <div className="mt-4 p-3 bg-blue-50 border border-blue-100 rounded-md text-blue-700 flex items-center">
+          <Loader2 className="h-5 w-5 animate-spin text-blue-500 mr-3" />
+          <div>
+            <p className="font-medium">Searching for medications...</p>
+            <p className="text-sm mt-1">This may take a moment. We're searching our database and Drugs.com.</p>
+          </div>
+        </div>
+      )}
+      
+      {history.length > 0 && !isSearching && !searchError && (
         <div className="mt-4">
           <p className="text-sm text-gray-500 mb-2">Recent searches:</p>
           <div className="flex flex-wrap gap-2">
@@ -288,7 +359,7 @@ const MedicationSearch: React.FC<MedicationSearchProps> = ({
         </div>
       )}
       
-      {!query && !searchError && (
+      {!query && !searchError && !isSearching && (
         <div className="mt-6">
           <h3 className="text-sm font-medium text-gray-700 mb-3">Common Medications by Category</h3>
           {Object.entries(popularMedicationCategories).map(([categoryName, medications], catIndex) => (
@@ -333,4 +404,3 @@ const MedicationSearch: React.FC<MedicationSearchProps> = ({
 };
 
 export default MedicationSearch;
-

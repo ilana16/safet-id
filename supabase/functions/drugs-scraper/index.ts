@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { cheerio } from "https://esm.sh/cheerio@1.0.0-rc.12";
 
@@ -73,6 +72,18 @@ async function handleSearch(query: string): Promise<Response> {
     console.log(`Fetching search results from: ${searchUrl}`);
     
     const response = await fetchWithTimeout(searchUrl);
+    
+    if (!response.ok) {
+      console.error(`Search request failed with status: ${response.status}`);
+      return new Response(JSON.stringify({ 
+        error: `Search request failed with status: ${response.status}`,
+        results: [] 
+      }), {
+        status: response.status,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    
     const html = await response.text();
     
     const $ = cheerio.load(html);

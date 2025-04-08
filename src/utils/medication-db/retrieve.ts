@@ -23,6 +23,8 @@ export const getMedicationFromDb = async (
 ): Promise<MedicationInfo | null> => {
   if (!medicationName) return null;
 
+  let abortController: AbortController | undefined;
+
   try {
     const normalizedName = medicationName.toLowerCase().trim();
     
@@ -105,26 +107,34 @@ export const getMedicationFromDb = async (
     console.log('Medication not found in database, fetching from Supabase Edge Function');
     
     try {
+      // Create abort controller for the fetch
+      abortController = new AbortController();
+      
       // Create a promise that rejects after timeout
       const timeoutPromise = new Promise<never>((_, reject) => {
-        setTimeout(() => reject(new Error('API request timed out')), API_TIMEOUT);
+        setTimeout(() => {
+          if (abortController) abortController.abort();
+          reject(new Error('API request timed out'));
+        }, API_TIMEOUT);
       });
       
       // Actual API call
       const apiCallPromise = supabase.functions.invoke('drugs-scraper', {
         body: { drugName: medicationName },
+        signal: abortController.signal,
       });
       
       // Race the API call against the timeout
       const { data, error } = await Promise.race([
         apiCallPromise,
-        timeoutPromise.then(() => {
-          throw new Error('API request timed out');
-        })
+        timeoutPromise
       ]);
 
       if (error) {
         console.error('Error calling drugs-scraper function:', error);
+        if (error.message?.includes('abort') || error.message?.includes('time')) {
+          throw new Error('API request timed out');
+        }
         toast.error('Error calling medication scraper');
         return null;
       }
@@ -166,7 +176,12 @@ export const getMedicationFromDb = async (
       }
     } catch (error) {
       console.error('Error getting medication from API:', error);
-      toast.error(error instanceof Error && error.message.includes('timed out')
+      const isTimeout = error instanceof Error && 
+        (error.message.includes('timed out') || 
+         error.message.includes('abort') ||
+         error.name === 'AbortError');
+         
+      toast.error(isTimeout
         ? 'Search request timed out. Please try again.'
         : 'Error retrieving medication information');
       return null;
@@ -175,5 +190,14 @@ export const getMedicationFromDb = async (
     console.error('Error getting medication from database or API:', error);
     toast.error('Error retrieving medication information');
     return null;
+  } finally {
+    // Clean up abort controller if needed
+    if (abortController) {
+      try {
+        abortController.abort();
+      } catch (e) {
+        // Ignore errors from aborting after completion
+      }
+    }
   }
 };
