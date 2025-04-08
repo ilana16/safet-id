@@ -5,6 +5,5 @@ export { saveMedicationToDb } from './save';
 export { getMedicationFromDb } from './retrieve';
 export { performMedicationSearch } from './search';
 
-// Import other necessary functions
-import { getDrugsComUrl } from '../drugsComApi';
-export { getDrugsComUrl };
+// Export utilities for working with Drugs.com
+export { getDrugsComUrl } from '../drugsComApi';

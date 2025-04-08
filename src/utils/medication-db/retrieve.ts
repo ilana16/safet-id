@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { MedicationInfo } from '../medicationData.d';
 import { saveMedicationToDb } from './save';
 import { toast } from 'sonner';
+import { getDrugsComUrl } from '../drugsComApi';
 
 /**
  * Gets medication information from the database or external API
@@ -86,8 +87,9 @@ export const getMedicationFromDb = async (
         therapeuticDuplications: dbMeds[0].therapeutic_duplications || [],
         pregnancy: dbMeds[0].pregnancy,
         breastfeeding: dbMeds[0].breastfeeding,
-        // Use type assertion to handle half_life property
-        halfLife: (dbMeds[0] as any).half_life !== undefined ? (dbMeds[0] as any).half_life : '',
+        // Safely handle half_life property with type assertion
+        halfLife: (dbMeds[0] as any).half_life || '',
+        drugsComUrl: getDrugsComUrl(dbMeds[0].name),
         source: dbMeds[0].source,
         fromDatabase: true,
         databaseSearchCount: newCount
@@ -133,7 +135,7 @@ export const getMedicationFromDb = async (
         pregnancy: data.pregnancy || '',
         breastfeeding: data.breastfeeding || '',
         halfLife: data.halfLife || '',
-        drugsComUrl: data.drugsComUrl || '',
+        drugsComUrl: data.drugsComUrl || getDrugsComUrl(data.name || medicationName),
         source: data.source || 'Drugs.com Scraper'
       };
       

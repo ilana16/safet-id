@@ -9,7 +9,7 @@ import MedicationSearch from './drug-lookup/MedicationSearch';
 import MedicationInfoDisplay from './drug-lookup/MedicationInfoDisplay';
 import MedicationAddForm from './drug-lookup/MedicationAddForm';
 import { supabase } from '@/integrations/supabase/client';
-import { getMedicationFromDb } from '@/utils/medication-db';
+import { getMedicationFromDb, getDrugsComUrl } from '@/utils/medication-db';
 
 interface DrugInfoLookupProps {
   onAddMedication?: (medication: Medication) => void;
@@ -116,7 +116,11 @@ const DrugInfoLookup: React.FC<DrugInfoLookupProps> = ({ onAddMedication }) => {
 
   const openDrugsComPage = () => {
     if (selectedMedication) {
-      window.open(`https://www.drugs.com/search.php?searchterm=${encodeURIComponent(selectedMedication)}`, '_blank', 'noopener,noreferrer');
+      if (medicationInfo?.drugsComUrl) {
+        window.open(medicationInfo.drugsComUrl, '_blank', 'noopener,noreferrer');
+      } else {
+        window.open(getDrugsComUrl(selectedMedication), '_blank', 'noopener,noreferrer');
+      }
     }
   };
 
