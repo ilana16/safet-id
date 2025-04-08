@@ -4,8 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { PlusCircle, Pill, Clock, Search, ExternalLink, RotateCcw, Trash2 } from 'lucide-react';
-import { toast } from 'sonner';
+import { PlusCircle, Pill, Clock, Search, ExternalLink, RotateCcw, Trash2, FileText } from 'lucide-react';
+import { toast } from '@/lib/toast';
 import { Medication, MedicationTableItem } from '@/types/medication';
 import { getDrugsComUrl } from '@/utils/drugsComApi';
 
@@ -17,6 +17,8 @@ const MedicationsSection = () => {
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [isSearching, setIsSearching] = useState<boolean>(false);
   const [searchResults, setSearchResults] = useState<string[]>([]);
+  const [selectedDrugs, setSelectedDrugs] = useState<string[]>([]);
+  const [interactionReport, setInteractionReport] = useState<string>('');
 
   // Load medications from local storage on component mount
   useEffect(() => {
@@ -24,7 +26,7 @@ const MedicationsSection = () => {
   }, []);
 
   // Function to load medications from local storage
-  const loadSavedMedications = async () => {
+  const loadSavedMedications = () => {
     try {
       // Load current medications
       const currentData = localStorage.getItem('my_medications');
@@ -82,7 +84,7 @@ const MedicationsSection = () => {
   };
 
   // Function to add medication to a specific list
-  const addMedication = async (name: string, listType: 'current' | 'research') => {
+  const addMedication = (name: string, listType: 'current' | 'research') => {
     try {
       const storageName = listType === 'current' ? 'my_medications' : 'researching_medications';
       const url = getDrugsComUrl(name);
@@ -113,7 +115,7 @@ const MedicationsSection = () => {
       localStorage.setItem(storageName, JSON.stringify(currentList));
       
       toast.success(`Added ${name} to ${listType === 'current' ? 'current' : 'research'} medications`);
-      await loadSavedMedications();
+      loadSavedMedications();
       setSearchResults([]);
       setSearchTerm('');
     } catch (err) {
@@ -123,7 +125,7 @@ const MedicationsSection = () => {
   };
 
   // Function to discontinue medication
-  const discontinueMedication = async (name: string, url: string) => {
+  const discontinueMedication = (name: string, url: string) => {
     try {
       // First add to discontinued list
       const newMedication: MedicationTableItem = { 
@@ -161,7 +163,7 @@ const MedicationsSection = () => {
       }
       
       toast.success(`Moved ${name} to discontinued medications`);
-      await loadSavedMedications();
+      loadSavedMedications();
     } catch (err) {
       console.error('Error discontinuing medication:', err);
       toast.error('Failed to discontinue medication');
@@ -169,7 +171,7 @@ const MedicationsSection = () => {
   };
 
   // Function to restore medication
-  const restoreMedication = async (name: string, url: string) => {
+  const restoreMedication = (name: string, url: string) => {
     try {
       // First add back to current medications
       const newMedication: MedicationTableItem = { 
@@ -207,7 +209,7 @@ const MedicationsSection = () => {
       }
       
       toast.success(`Restored ${name} to current medications`);
-      await loadSavedMedications();
+      loadSavedMedications();
     } catch (err) {
       console.error('Error restoring medication:', err);
       toast.error('Failed to restore medication');
@@ -215,7 +217,7 @@ const MedicationsSection = () => {
   };
 
   // Function to permanently delete medication
-  const permanentlyDelete = async (name: string) => {
+  const permanentlyDelete = (name: string) => {
     try {
       let discontinuedList: MedicationTableItem[] = [];
       const discontinuedData = localStorage.getItem('discontinued_medications');
@@ -226,10 +228,89 @@ const MedicationsSection = () => {
       }
       
       toast.success(`Permanently deleted ${name}`);
-      await loadSavedMedications();
+      loadSavedMedications();
     } catch (err) {
       console.error('Error deleting medication:', err);
       toast.error('Failed to delete medication');
+    }
+  };
+
+  // Function to toggle selection of a drug for interaction check
+  const toggleDrugSelection = (name: string) => {
+    setSelectedDrugs(prev => {
+      if (prev.includes(name)) {
+        return prev.filter(drug => drug !== name);
+      } else {
+        return [...prev, name];
+      }
+    });
+  };
+
+  // Function to check for interactions
+  const checkInteractions = () => {
+    if (selectedDrugs.length < 2) {
+      toast.error('Please select at least 2 medications to check for interactions');
+      return;
+    }
+
+    // This is a placeholder for an actual API call - in a real app you'd want to call a backend service
+    const report = `
+      <div class="text-center mb-4">
+        <h2 class="text-2xl font-bold">Medication Interaction Report</h2>
+        <p class="text-gray-500">Generated on ${new Date().toLocaleDateString()}</p>
+      </div>
+      <div class="mb-4">
+        <h3 class="font-medium">Selected Medications:</h3>
+        <ul class="list-disc pl-5">
+          ${selectedDrugs.map(drug => `<li>${drug}</li>`).join('')}
+        </ul>
+      </div>
+      <div>
+        <h3 class="font-medium mb-2">Potential Interactions:</h3>
+        <p>This is a simulated interaction report. In a real application, this would contain actual drug interaction data from a medical database or API.</p>
+        <p class="mt-2 font-medium text-amber-600">Always consult with a healthcare professional about potential medication interactions.</p>
+      </div>
+    `;
+
+    setInteractionReport(report);
+  };
+
+  // Function to export interaction report as PDF
+  const exportReportAsPDF = () => {
+    if (!interactionReport) {
+      toast.error('Generate an interaction report first');
+      return;
+    }
+
+    // In a real app, you might use a library like jsPDF here
+    // For now, we'll use the browser's print functionality
+    const printWindow = window.open('', '', 'height=600,width=800');
+    if (printWindow) {
+      printWindow.document.write(`
+        <html>
+          <head>
+            <title>Medication Interaction Report</title>
+            <style>
+              body { font-family: Arial, sans-serif; padding: 20px; }
+              .report-container { max-width: 800px; margin: 0 auto; }
+            </style>
+          </head>
+          <body>
+            <div class="report-container">
+              ${interactionReport}
+            </div>
+          </body>
+        </html>
+      `);
+      printWindow.document.close();
+      
+      // Give the browser time to process the document
+      setTimeout(() => {
+        printWindow.print();
+        printWindow.close();
+      }, 250);
+    } else {
+      toast.error('Unable to open print window. Please check your browser settings.');
     }
   };
 
@@ -257,7 +338,20 @@ const MedicationsSection = () => {
 
         <TabsContent value="current">
           <div className="space-y-4">
-            <h3 className="text-lg font-medium">Current Medications</h3>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-medium">Current Medications</h3>
+              
+              <div className="flex gap-2">
+                <Button 
+                  variant="outline"
+                  size="sm"
+                  disabled={selectedDrugs.length < 2}
+                  onClick={checkInteractions}
+                >
+                  Check Interactions
+                </Button>
+              </div>
+            </div>
             
             {currentMedications.length > 0 ? (
               <div className="grid grid-cols-1 gap-4">
@@ -267,6 +361,13 @@ const MedicationsSection = () => {
                       <div className="flex justify-between items-center">
                         <div>
                           <div className="flex items-center gap-2">
+                            <input 
+                              type="checkbox" 
+                              id={`select-${med.name}`}
+                              checked={selectedDrugs.includes(med.name)}
+                              onChange={() => toggleDrugSelection(med.name)}
+                              className="h-4 w-4 rounded border-gray-300 text-safet-500 focus:ring-safet-500"
+                            />
                             <Pill className="h-5 w-5 text-safet-500" />
                             <h3 className="font-medium">{med.name}</h3>
                           </div>
@@ -302,6 +403,26 @@ const MedicationsSection = () => {
                   <p className="text-gray-500">No current medications. Add medications from the "Add Medication" tab.</p>
                 </CardContent>
               </Card>
+            )}
+
+            {interactionReport && (
+              <div className="mt-6">
+                <Card>
+                  <CardContent className="p-6">
+                    <div className="flex justify-between items-center mb-4">
+                      <h3 className="text-lg font-medium">Interaction Report</h3>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={exportReportAsPDF}
+                      >
+                        <FileText className="h-4 w-4 mr-2" /> Export PDF
+                      </Button>
+                    </div>
+                    <div className="border p-4 rounded-md bg-gray-50" dangerouslySetInnerHTML={{ __html: interactionReport }} />
+                  </CardContent>
+                </Card>
+              </div>
             )}
           </div>
         </TabsContent>

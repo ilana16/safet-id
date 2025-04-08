@@ -1,54 +1,95 @@
 
-import { toast } from 'sonner';
-import { performMedicationSearch } from './medication-db/search';
-import { enhancedMedicationSearch } from './medication-db/enhancedMedicationSearch';
+import { toast } from '@/lib/toast';
 
 /**
- * Basic search function for Drugs.com
- * This is a wrapper around the performMedicationSearch function
- * 
- * @param query Search query for medications
- * @returns Array of medication names
+ * Searches for medications on Drugs.com via a simulated API
+ * @param query Search term
+ * @returns Promise with array of medication names
  */
-export async function searchDrugsCom(query: string): Promise<string[]> {
+export const searchDrugsCom = async (query: string): Promise<string[]> => {
+  if (query.length < 2) {
+    return [];
+  }
+  
   try {
-    if (!query || query.trim().length < 2) {
-      console.log('searchDrugsCom: Query too short, returning empty array');
-      return [];
-    }
+    // Simulate API search with common medications
+    const commonMedications = [
+      'Acetaminophen', 'Adderall', 'Albuterol', 'Alprazolam', 'Amoxicillin', 
+      'Atorvastatin', 'Azithromycin', 'Benzonatate', 'Bupropion', 'Buspirone',
+      'Cefdinir', 'Cephalexin', 'Ciprofloxacin', 'Citalopram', 'Clindamycin',
+      'Cyclobenzaprine', 'Cymbalta', 'Doxycycline', 'Dupixent', 'Eliquis',
+      'Entresto', 'Entyvio', 'Farxiga', 'Fentanyl', 'Gabapentin',
+      'Humira', 'Hydrochlorothiazide', 'Hydroxychloroquine', 'Ibuprofen', 'Imbruvica',
+      'Januvia', 'Jardiance', 'Kevzara', 'Keytruda', 'Levemir',
+      'Levothyroxine', 'Lexapro', 'Lisinopril', 'Lofexidine', 'Loratadine',
+      'Losartan', 'Lyrica', 'Metformin', 'Methotrexate', 'Metoprolol',
+      'Naloxone', 'Naltrexone', 'Namzaric', 'Naproxen', 'Narcan',
+      'Omeprazole', 'Onpattro', 'Opdivo', 'Ozempic', 'Pantoprazole',
+      'Prednisone', 'Proair', 'Prozac', 'Qvar', 'Remicade',
+      'Rybelsus', 'Saxenda', 'Seroquel', 'Sertraline', 'Simvastatin',
+      'Skyrizi', 'Spiriva', 'Stelara', 'Stiolto', 'Suboxone',
+      'Symbicort', 'Synthroid', 'Tamiflu', 'Tecfidera', 'Toujeo',
+      'Tramadol', 'Trelegy', 'Trintellix', 'Trulicity', 'Tylenol',
+      'Uceris', 'Ulesfia', 'Uloric', 'Ultane', 'Ultram',
+      'Valacyclovir', 'Valium', 'Vascepa', 'Venlafaxine', 'Ventolin',
+      'Viagra', 'Viibryd', 'Vimpat', 'Vistaril', 'Vraylar',
+      'Vyvanse', 'Wellbutrin', 'Wixela', 'Xanax', 'Xarelto',
+      'Xeljanz', 'Xolair', 'Xyrem', 'Yervoy', 'Yupelri',
+      'Zanaflex', 'Zantac', 'Zarxio', 'Zelnorm', 'Zepatier',
+      'Zithromax', 'Zofran', 'Zohydro', 'Zoloft', 'Zomig'
+    ];
     
-    const normalizedQuery = query.trim().toLowerCase();
-    console.log(`searchDrugsCom: Searching for "${normalizedQuery}"`);
+    // Search for matches
+    const results = commonMedications.filter(med => 
+      med.toLowerCase().includes(query.toLowerCase())
+    );
     
-    // Use the existing performMedicationSearch function
-    const results = await performMedicationSearch(normalizedQuery);
-    console.log(`searchDrugsCom: Found ${results.length} results:`, results);
-    
-    if (results.length === 0) {
-      console.log('searchDrugsCom: No results found, using enhanced local search');
-      // Use the enhanced medication search as backup
-      return await enhancedMedicationSearch(normalizedQuery);
-    }
-    
-    return results;
+    // Sort results by relevance (exact match first, then startsWith, then includes)
+    return results.sort((a, b) => {
+      const aLower = a.toLowerCase();
+      const bLower = b.toLowerCase();
+      const qLower = query.toLowerCase();
+      
+      if (aLower === qLower && bLower !== qLower) return -1;
+      if (aLower !== qLower && bLower === qLower) return 1;
+      
+      if (aLower.startsWith(qLower) && !bLower.startsWith(qLower)) return -1;
+      if (!aLower.startsWith(qLower) && bLower.startsWith(qLower)) return 1;
+      
+      return a.localeCompare(b);
+    });
     
   } catch (error) {
-    console.error('Error searching for medications:', error);
+    console.error('Error searching medications:', error);
     toast.error('Error searching for medications');
-    
-    // Fallback to enhancedLocalSearch in case of error
-    console.log('searchDrugsCom: Error occurred, using backup search');
-    return await enhancedMedicationSearch(query.trim().toLowerCase());
+    return [];
   }
-}
+};
 
 /**
- * Gets the Drugs.com URL for a medication
- * @param medicationName - The name of the medication
- * @returns The URL for the medication on Drugs.com
+ * Generate a Drugs.com URL for a medication
+ * @param drugName The name of the medication
+ * @returns URL to the drugs.com page
  */
-export const getDrugsComUrl = (medicationName: string): string => {
-  if (!medicationName) return '';
-  const formattedName = medicationName.toLowerCase().replace(/[^a-z0-9]/g, '-');
-  return `https://www.drugs.com/${formattedName}.html`;
+export const getDrugsComUrl = (drugName: string): string => {
+  // Format drug name for URL
+  const formattedDrug = drugName.trim().toLowerCase().replace(/\s+/g, '-');
+  return `https://www.drugs.com/${formattedDrug}.html`;
+};
+
+/**
+ * Get detailed information about a medication (simulated)
+ * @param drugName The name of the medication
+ * @returns Promise with drug information
+ */
+export const getDrugDetails = async (drugName: string) => {
+  // This is a simulation - in a real app, this would fetch from an API
+  return {
+    name: drugName,
+    description: `${drugName} is a simulated medication description. In a real application, this would contain detailed information fetched from a medical API or database.`,
+    sideEffects: "Common side effects may include headache, nausea, dizziness. This is simulated data.",
+    dosage: "Take as directed by your healthcare provider. This is simulated data.",
+    interactions: "May interact with other medications. Consult with your doctor. This is simulated data.",
+    pregnancy: "Consult with your healthcare provider before using during pregnancy. This is simulated data."
+  };
 };

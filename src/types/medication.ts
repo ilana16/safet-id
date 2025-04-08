@@ -26,3 +26,19 @@ export interface MedicationTableItem {
   url: string;
   added_at: string;
 }
+
+export interface DrugSearchResult {
+  id: string;
+  name: string;
+  description?: string;
+}
+
+export interface DrugDetails {
+  id: string;
+  name: string;
+  description?: string;
+  sideEffects?: string;
+  dosage?: string;
+  interactions?: string;
+  pregnancy?: string;
+}

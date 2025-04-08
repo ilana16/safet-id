@@ -1,258 +1,200 @@
-import React from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
+import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { FileText } from 'lucide-react';
-import { MedicationInfo } from '@/utils/medicationData.d';
+import { Label } from '@/components/ui/label';
+import { 
+  PlusCircle, 
+  Search, 
+  Pill,
+  AlertCircle 
+} from 'lucide-react';
+import { searchDrugsCom } from '@/utils/drugsComApi';
 import { Medication } from '@/types/medication';
-import { Checkbox } from '@/components/ui/checkbox';
+import { toast } from '@/lib/toast';
 
 interface MedicationAddFormProps {
-  medicationInfo: MedicationInfo;
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
   onAddMedication: (medication: Medication) => void;
-  newMedication: Partial<Medication>;
-  setNewMedication: React.Dispatch<React.SetStateAction<Partial<Medication>>>;
+  onCancel: () => void;
 }
 
-const frequencyOptions = [
-  'Once daily',
-  'Twice daily',
-  'Three times daily',
-  'Four times daily',
-  'Every morning',
-  'Every evening',
-  'Every night at bedtime',
-  'Every 4 hours',
-  'Every 6 hours',
-  'Every 8 hours',
-  'Every 12 hours',
-  'Once a week',
-  'Twice a week',
-  'X days a week',
-  'Once a month',
-  'Every X days',
-  'As needed',
-  'Other'
-];
-
-const daysOfWeek = [
-  { id: 'monday', label: 'Monday' },
-  { id: 'tuesday', label: 'Tuesday' },
-  { id: 'wednesday', label: 'Wednesday' },
-  { id: 'thursday', label: 'Thursday' },
-  { id: 'friday', label: 'Friday' },
-  { id: 'saturday', label: 'Saturday' },
-  { id: 'sunday', label: 'Sunday' }
-];
-
-const MedicationAddForm: React.FC<MedicationAddFormProps> = ({
-  medicationInfo,
-  open,
-  onOpenChange,
-  onAddMedication,
-  newMedication,
-  setNewMedication
-}) => {
-  const handleChange = (field: keyof Medication, value: string) => {
-    setNewMedication(prev => ({
-      ...prev,
-      [field]: value
-    }));
-  };
+const MedicationAddForm: React.FC<MedicationAddFormProps> = ({ onAddMedication, onCancel }) => {
+  const [drugName, setDrugName] = useState('');
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchResults, setSearchResults] = useState<string[]>([]);
+  const [notes, setNotes] = useState('');
+  const [reason, setReason] = useState('');
+  const [dosage, setDosage] = useState('');
+  const [frequency, setFrequency] = useState('');
+  const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
   
-  const handleFormSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!newMedication.name) {
+  const handleSearch = async () => {
+    if (drugName.trim().length < 2) {
+      toast.error('Please enter at least 2 characters to search');
       return;
     }
     
-    const medication: Medication = {
-      id: newMedication.id || `med_${Date.now()}`,
-      name: newMedication.name || medicationInfo.name,
-      dosage: newMedication.dosage || '',
-      frequency: newMedication.frequency || 'Once daily',
-      customFrequency: newMedication.customFrequency,
-      customDays: newMedication.customDays,
-      selectedDaysOfWeek: newMedication.selectedDaysOfWeek || [],
-      reason: newMedication.reason || '',
-      startDate: newMedication.startDate || new Date().toISOString().split('T')[0],
-      notes: newMedication.notes || '',
-      foodInteractions: newMedication.foodInteractions || [],
-      conditionInteractions: newMedication.conditionInteractions || [],
-      therapeuticDuplications: newMedication.therapeuticDuplications || [],
-      interactionClassifications: {
-        ...(medicationInfo.interactionClassifications ? 
-          Object.fromEntries(
-            Object.entries(medicationInfo.interactionClassifications).map(
-              ([key, value]) => [key, Array.isArray(value) ? value.join(', ') : value]
-            )
-          ) : {}
-        )
-      },
-      pregnancy: medicationInfo.pregnancy,
-      breastfeeding: medicationInfo.breastfeeding,
+    setIsSearching(true);
+    
+    try {
+      const results = await searchDrugsCom(drugName);
+      setSearchResults(results);
+    } catch (error) {
+      console.error('Error searching medications:', error);
+      toast.error('Failed to search medications');
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  const handleAddMedication = (selectedName: string) => {
+    // Generate URL for the selected drug
+    const url = `https://www.drugs.com/search.php?searchterm=${encodeURIComponent(selectedName)}`;
+    
+    // Create the medication object
+    const newMedication: Medication = {
+      id: `med_${Date.now()}`,
+      name: selectedName,
+      dosage: dosage,
+      frequency: frequency,
+      reason: reason,
+      notes: notes,
+      startDate: startDate,
+      url: url,
+      added_at: new Date().toISOString(),
+      foodInteractions: [],
+      conditionInteractions: [],
+      therapeuticDuplications: []
     };
     
-    onAddMedication(medication);
+    // Call the parent handler
+    onAddMedication(newMedication);
+    
+    // Reset form
+    setDrugName('');
+    setSearchResults([]);
+    setNotes('');
+    setReason('');
+    setDosage('');
+    setFrequency('');
   };
-  
-  const handleDayOfWeekToggle = (day: string) => {
-    setNewMedication(prev => {
-      const selectedDays = prev.selectedDaysOfWeek || [];
-      if (selectedDays.includes(day)) {
-        return {
-          ...prev,
-          selectedDaysOfWeek: selectedDays.filter(d => d !== day)
-        };
-      } else {
-        return {
-          ...prev,
-          selectedDaysOfWeek: [...selectedDays, day]
-        };
-      }
-    });
-  };
-  
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
-        <DialogHeader>
-          <DialogTitle>Add {medicationInfo.name} to Your Medications</DialogTitle>
-        </DialogHeader>
+    <Card className="w-full">
+      <CardContent className="p-6">
+        <h2 className="text-xl font-bold mb-4">Add New Medication</h2>
         
-        <form onSubmit={handleFormSubmit} className="space-y-4 py-4">
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="drug-name">Medication Name</Label>
+            <div className="flex gap-2">
+              <Input 
+                id="drug-name"
+                value={drugName}
+                onChange={(e) => setDrugName(e.target.value)}
+                placeholder="Enter medication name"
+                className="flex-1"
+              />
+              <Button 
+                onClick={handleSearch} 
+                disabled={isSearching}
+              >
+                {isSearching ? 'Searching...' : <Search className="h-4 w-4" />}
+              </Button>
+            </div>
+          </div>
+          
+          {searchResults.length > 0 && (
+            <div className="border rounded-md p-2 max-h-60 overflow-y-auto">
+              <h3 className="font-medium mb-2">Search Results</h3>
+              <div className="space-y-1">
+                {searchResults.map((result, idx) => (
+                  <div 
+                    key={idx}
+                    className="flex items-center justify-between p-2 hover:bg-gray-100 rounded-md cursor-pointer"
+                    onClick={() => {
+                      setDrugName(result);
+                      setSearchResults([]);
+                    }}
+                  >
+                    <div className="flex items-center">
+                      <Pill className="h-4 w-4 mr-2 text-gray-500" />
+                      <span>{result}</span>
+                    </div>
+                    <PlusCircle className="h-4 w-4 text-green-500" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          
           <div className="space-y-2">
             <Label htmlFor="dosage">Dosage</Label>
-            <Input
+            <Input 
               id="dosage"
-              placeholder="e.g., 500mg"
-              value={newMedication.dosage}
-              onChange={(e) => handleChange('dosage', e.target.value)}
+              value={dosage}
+              onChange={(e) => setDosage(e.target.value)}
+              placeholder="e.g., 10mg"
             />
           </div>
           
           <div className="space-y-2">
             <Label htmlFor="frequency">Frequency</Label>
-            <Select
-              value={newMedication.frequency}
-              onValueChange={(value) => {
-                handleChange('frequency', value);
-                if (value !== 'Other' && value !== 'Every X days' && value !== 'X days a week') {
-                  handleChange('customFrequency', '');
-                  handleChange('customDays', '');
-                  setNewMedication(prev => ({
-                    ...prev,
-                    selectedDaysOfWeek: []
-                  }));
-                }
-              }}
-            >
-              <SelectTrigger id="frequency">
-                <SelectValue placeholder="Select frequency" />
-              </SelectTrigger>
-              <SelectContent>
-                {frequencyOptions.map((option) => (
-                  <SelectItem key={option} value={option}>{option}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            
-            {newMedication.frequency === 'Every X days' && (
-              <div className="mt-2">
-                <Label htmlFor="customDays">Number of days</Label>
-                <Input
-                  id="customDays"
-                  type="number"
-                  min="1"
-                  placeholder="Enter number of days"
-                  value={newMedication.customDays || ''}
-                  onChange={(e) => handleChange('customDays', e.target.value)}
-                />
-              </div>
-            )}
-            
-            {newMedication.frequency === 'X days a week' && (
-              <div className="mt-2 space-y-2">
-                <Label>Select days of the week</Label>
-                <div className="grid grid-cols-2 gap-2">
-                  {daysOfWeek.map((day) => (
-                    <div key={day.id} className="flex items-center space-x-2">
-                      <Checkbox 
-                        id={day.id} 
-                        checked={(newMedication.selectedDaysOfWeek || []).includes(day.id)}
-                        onCheckedChange={() => handleDayOfWeekToggle(day.id)}
-                      />
-                      <Label htmlFor={day.id} className="text-sm font-normal cursor-pointer">
-                        {day.label}
-                      </Label>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-            
-            {newMedication.frequency === 'Other' && (
-              <Input
-                className="mt-2"
-                placeholder="Specify custom frequency"
-                value={newMedication.customFrequency || ''}
-                onChange={(e) => handleChange('customFrequency', e.target.value)}
-              />
-            )}
+            <Input 
+              id="frequency"
+              value={frequency}
+              onChange={(e) => setFrequency(e.target.value)}
+              placeholder="e.g., Once daily with meals"
+            />
           </div>
           
           <div className="space-y-2">
             <Label htmlFor="reason">Reason for Taking</Label>
-            <Textarea
+            <Input 
               id="reason"
-              placeholder="e.g., To control blood pressure"
-              value={newMedication.reason}
-              onChange={(e) => handleChange('reason', e.target.value)}
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              placeholder="e.g., High Blood Pressure"
             />
           </div>
           
           <div className="space-y-2">
-            <Label htmlFor="startDate">Start Date</Label>
-            <Input
-              id="startDate"
+            <Label htmlFor="start-date">Start Date</Label>
+            <Input 
+              id="start-date"
               type="date"
-              value={newMedication.startDate}
-              onChange={(e) => handleChange('startDate', e.target.value)}
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
             />
           </div>
           
           <div className="space-y-2">
-            <Label htmlFor="notes" className="flex items-center">
-              <FileText className="h-4 w-4 mr-2" />
-              Notes
-            </Label>
-            <Textarea
+            <Label htmlFor="notes">Additional Notes</Label>
+            <Textarea 
               id="notes"
-              placeholder="Add any additional notes about this medication"
-              value={newMedication.notes || ''}
-              onChange={(e) => handleChange('notes', e.target.value)}
-              rows={4}
-              className="resize-none"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Any additional information about this medication"
+              rows={3}
             />
           </div>
           
-          <div className="flex justify-end gap-3 pt-4">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+          <div className="flex justify-end space-x-2 pt-2">
+            <Button variant="outline" onClick={onCancel}>
               Cancel
             </Button>
-            <Button type="submit">
-              Add to My Medications
+            <Button 
+              disabled={!drugName} 
+              onClick={() => handleAddMedication(drugName)}
+            >
+              Add Medication
             </Button>
           </div>
-        </form>
-      </DialogContent>
-    </Dialog>
+        </div>
+      </CardContent>
+    </Card>
   );
 };
 
