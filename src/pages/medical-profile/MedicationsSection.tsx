@@ -67,7 +67,15 @@ const MedicationsSection = () => {
         'Acetaminophen', 'Adderall', 'Albuterol', 'Alprazolam', 'Amoxicillin', 
         'Atorvastatin', 'Azithromycin', 'Benzonatate', 'Bupropion', 'Buspirone',
         'Cefdinir', 'Cephalexin', 'Ciprofloxacin', 'Citalopram', 'Clindamycin',
-        'Ibuprofen', 'Metformin', 'Lisinopril', 'Metoprolol', 'Amlodipine'
+        'Ibuprofen', 'Metformin', 'Lisinopril', 'Metoprolol', 'Amlodipine',
+        'Cyclobenzaprine', 'Diazepam', 'Doxycycline', 'Duloxetine', 'Escitalopram',
+        'Fluoxetine', 'Gabapentin', 'Hydrochlorothiazide', 'Hydroxyzine', 'Levothyroxine',
+        'Loratadine', 'Losartan', 'Meloxicam', 'Metronidazole', 'Naproxen',
+        'Omeprazole', 'Ondansetron', 'Oxycodone', 'Pantoprazole', 'Prednisone',
+        'Propranolol', 'Sertraline', 'Simvastatin', 'Tramadol', 'Trazodone',
+        'Venlafaxine', 'Warfarin', 'Zoloft', 'Zolpidem', 'Lipitor', 
+        'Nexium', 'Prozac', 'Xanax', 'Zantac', 'Advil',
+        'Tylenol', 'Motrin', 'Allegra', 'Claritin', 'Zyrtec'
       ];
       
       const filteredResults = commonMedications.filter(
