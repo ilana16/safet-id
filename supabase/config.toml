@@ -4,23 +4,27 @@ project_id = "rlirtjxgwstjzraovntf"
 [api]
 enabled = true
 port = 54321
-schemas = ["public", "storage"]
-
-[auth]
-enabled = true
-port = 54321
+schemas = ["public", "storage", "graphql_public"]
 
 [db]
 port = 54322
 
-[storage]
-enabled = true
+[studio]
 port = 54323
+
+[inbucket]
+port = 54324
+
+[auth]
+enabled = true
+port = 54325
 
 [realtime]
 enabled = true
-port = 54324
 
-[edge_functions]
-[edge_functions.drugs-scraper]
+[storage]
+enabled = true
+
+[functions]
+[functions.drug-lookup]
 verify_jwt = false

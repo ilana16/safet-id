@@ -105,13 +105,10 @@ export const getMedicationFromDb = async (
       console.error('Error checking medications table:', medTableError);
     }
     
-    // Next, check the new drugs table
+    // Next, check the new drugs table using RPC to avoid type issues
     try {
       const { data: drugData, error: drugError } = await supabase
-        .from('drugs')
-        .select('*')
-        .ilike('name', normalizedName)
-        .limit(1);
+        .rpc('get_drug_by_name', { drug_name: normalizedName });
       
       if (drugError) {
         console.error('Error getting medication from drugs table:', drugError);
@@ -124,7 +121,7 @@ export const getMedicationFromDb = async (
           genericName: drugData[0].generic || '',
           description: drugData[0].consumer_info || '',
           drugClass: drugData[0].drug_class || '',
-          prescriptionOnly: drugData[0].otc ? false : true,
+          prescriptionOnly: typeof drugData[0].otc === 'boolean' ? !drugData[0].otc : true,
           usedFor: [],
           warnings: [],
           sideEffects: { 

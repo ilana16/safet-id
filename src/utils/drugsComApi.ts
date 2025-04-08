@@ -33,18 +33,30 @@ export const searchDrugsCom = async (query: string): Promise<string[]> => {
       console.error('Error searching medications table:', dbError);
     }
     
-    // Step 2: Try to search in the new drugs table
+    // Step 2: Try to search in the new drugs table using a raw SQL query
+    // since the generated types don't know about this new table yet
     try {
       console.log('Searching drugs table for:', query);
-      const { data: drugsResults } = await supabase
-        .from('drugs')
-        .select('name')
-        .ilike('name', `%${query}%`)
-        .limit(10);
+      const { data: drugsResults, error } = await supabase
+        .rpc('search_drugs', { search_term: `%${query}%`, result_limit: 10 })
+      
+      if (error) {
+        console.error('Error in drugs search RPC:', error);
+        // Fallback to simple query with fewer type guarantees
+        const { data: fallbackResults } = await supabase
+          .from('medications')
+          .select('name')
+          .ilike('name', `%${query}%`)
+          .limit(10);
+          
+        if (fallbackResults && fallbackResults.length > 0) {
+          return fallbackResults.map(result => result.name);
+        }
+      }
       
       if (drugsResults && drugsResults.length > 0) {
         console.log('Found results in drugs table:', drugsResults.length);
-        return drugsResults.map(result => result.name);
+        return drugsResults.map((result: any) => result.name as string);
       }
     } catch (drugsError) {
       console.error('Error searching drugs table:', drugsError);

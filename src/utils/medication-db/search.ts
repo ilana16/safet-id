@@ -34,17 +34,21 @@ export const performMedicationSearch = async (query: string): Promise<string[]> 
       console.error('Error searching medications table:', dbError);
     }
 
-    // Step 2: Try to search in the new drugs table
+    // Step 2: Try to search in the new drugs table using a raw query
     try {
-      const { data: drugsResults } = await supabase
-        .from('drugs')
-        .select('name')
-        .ilike('name', `%${query}%`)
-        .limit(10);
+      console.log('Searching drugs table for:', query);
+      const { data: drugsResults, error } = await supabase
+        .rpc('search_drugs', { search_term: `%${query}%`, result_limit: 10 });
+      
+      if (error) {
+        console.error('Error in drugs search RPC:', error);
+        // Fallback to direct medication search
+        return await enhancedMedicationSearch(query);
+      }
       
       if (drugsResults && drugsResults.length > 0) {
         console.log('Found results in drugs table:', drugsResults.length);
-        return drugsResults.map(result => result.name);
+        return drugsResults.map((result: any) => result.name as string);
       }
     } catch (drugsError) {
       console.error('Error searching drugs table:', drugsError);

@@ -9,6 +9,38 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      drug_interactions: {
+        Row: {
+          created_at: string | null
+          drug_id: string | null
+          id: string
+          interaction: string
+          level: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          drug_id?: string | null
+          id?: string
+          interaction: string
+          level?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          drug_id?: string | null
+          id?: string
+          interaction?: string
+          level?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "drug_interactions_drug_id_fkey"
+            columns: ["drug_id"]
+            isOneToOne: false
+            referencedRelation: "drugs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       drugs: {
         Row: {
           breastfeeding: string | null
