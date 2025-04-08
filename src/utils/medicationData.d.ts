@@ -4,12 +4,23 @@
 export interface SideEffects {
   common?: string[];
   serious?: string[];
+  rare?: string[]; // Added rare side effects property
 }
 
 export interface InteractionClassifications {
   major?: string[];
   moderate?: string[];
   minor?: string[];
+  unknown?: string[]; // Added unknown interactions classification
+}
+
+export interface DosageInfo {
+  adult?: string;
+  child?: string;
+  elderly?: string;
+  frequency?: string;
+  renal?: string;
+  hepatic?: string;
 }
 
 export interface MedicationInfo {
@@ -26,11 +37,37 @@ export interface MedicationInfo {
   conditionInteractions?: string[];
   therapeuticDuplications?: string[];
   interactionClassifications?: InteractionClassifications;
-  source?: string;
+  interactions?: string[]; // Added drug interactions
+  interactionSeverity?: { // Added interaction severity classification
+    major?: string[];
+    moderate?: string[];
+    minor?: string[];
+  };
+  dosage?: DosageInfo; // Added dosage information
   forms?: string[];
   pregnancy?: string;
   breastfeeding?: string;
+  halfLife?: string; // Added half-life information
   drugsComUrl?: string;
+  source?: string;
+  
+  // Database-related properties
+  fromDatabase?: boolean; // Indicates if the data came from the database
+  databaseSearchCount?: number; // Number of times this medication was searched
+  
+  // Additional identification properties
+  imprints?: Array<{
+    imprint_code?: string;
+    image_url?: string;
+    description?: string;
+  }>;
+  internationalNames?: Array<{
+    country: string;
+    name: string;
+  }>;
+  
+  // Any other fields needed for the API or database operations
+  [key: string]: any; // Allow for additional properties for flexibility
 }
 
 export interface MedicationFormData {

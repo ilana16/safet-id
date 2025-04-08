@@ -1,3 +1,4 @@
+
 import { toast } from 'sonner';
 
 /**
@@ -77,3 +78,14 @@ export async function searchDrugsCom(query: string): Promise<string[]> {
     return [];
   }
 }
+
+/**
+ * Gets the Drugs.com URL for a medication
+ * @param medicationName - The name of the medication
+ * @returns The URL for the medication on Drugs.com
+ */
+export const getDrugsComUrl = (medicationName: string): string => {
+  if (!medicationName) return '';
+  const formattedName = medicationName.toLowerCase().replace(/[^a-z0-9]/g, '-');
+  return `https://www.drugs.com/${formattedName}.html`;
+};
