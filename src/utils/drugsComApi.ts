@@ -1,4 +1,3 @@
-
 import { toast } from 'sonner';
 import { performMedicationSearch } from './medication-db';
 
@@ -37,7 +36,7 @@ export async function searchDrugsCom(query: string): Promise<string[]> {
     
     // Fallback to enhancedLocalSearch in case of error
     console.log('searchDrugsCom: Error occurred, using backup search');
-    return await enhancedLocalSearch(normalizedQuery);
+    return await enhancedLocalSearch(query.trim().toLowerCase());
   }
 }
 
