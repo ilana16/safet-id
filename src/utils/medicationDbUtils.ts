@@ -2,6 +2,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { MedicationInfo } from './medicationData.d';
 import { toast } from 'sonner';
+import { Json } from '@/integrations/supabase/types';
 
 /**
  * Save medication information to the database
@@ -140,6 +141,58 @@ export const getMedicationFromDb = async (medicationName: string): Promise<Medic
     
     console.log(`Found medication in database: ${data.name}`);
     
+    // Helper function to safely handle nested objects
+    const safeGetNestedObject = <T>(obj: any, defaultValue: T): T => {
+      if (typeof obj === 'object' && obj !== null && !Array.isArray(obj)) {
+        return obj as T;
+      }
+      return defaultValue;
+    };
+
+    // Helper function to safely get array values
+    const safeGetArray = (value: any): string[] => {
+      if (Array.isArray(value)) {
+        return value as string[];
+      }
+      return [];
+    };
+
+    // Safely get side effects
+    const sideEffectsObj = safeGetNestedObject(data.side_effects, {});
+    const sideEffects = {
+      common: safeGetArray(sideEffectsObj.common || []),
+      serious: safeGetArray(sideEffectsObj.serious || []),
+      rare: safeGetArray(sideEffectsObj.rare || [])
+    };
+
+    // Safely get dosage
+    const dosageObj = safeGetNestedObject(data.dosage, {});
+    const dosage = {
+      adult: dosageObj.adult as string || '',
+      child: dosageObj.child as string || '',
+      elderly: dosageObj.elderly as string || '',
+      frequency: dosageObj.frequency as string || '',
+      renal: dosageObj.renal as string || '',
+      hepatic: dosageObj.hepatic as string || ''
+    };
+
+    // Safely get interaction classifications
+    const interactionClassificationsObj = safeGetNestedObject(data.interaction_classifications, {});
+    const interactionClassifications = {
+      major: safeGetArray(interactionClassificationsObj.major || []),
+      moderate: safeGetArray(interactionClassificationsObj.moderate || []),
+      minor: safeGetArray(interactionClassificationsObj.minor || []),
+      unknown: safeGetArray(interactionClassificationsObj.unknown || [])
+    };
+
+    // Safely get interaction severity
+    const interactionSeverityObj = safeGetNestedObject(data.interaction_severity, {});
+    const interactionSeverity = {
+      major: safeGetArray(interactionSeverityObj.major || []),
+      moderate: safeGetArray(interactionSeverityObj.moderate || []),
+      minor: safeGetArray(interactionSeverityObj.minor || [])
+    };
+    
     // Convert database structure back to MedicationInfo with proper type handling
     const medicationInfo: MedicationInfo = {
       name: data.name,
@@ -147,51 +200,19 @@ export const getMedicationFromDb = async (medicationName: string): Promise<Medic
       description: data.description || '',
       drugClass: data.drug_class || '',
       prescriptionOnly: data.prescription_only || false,
-      usedFor: Array.isArray(data.used_for) ? data.used_for : [],
-      warnings: Array.isArray(data.warnings) ? data.warnings : [],
-      // Ensure side_effects has the correct structure
-      sideEffects: typeof data.side_effects === 'object' && data.side_effects !== null
-        ? {
-            common: Array.isArray(data.side_effects.common) ? data.side_effects.common : [],
-            serious: Array.isArray(data.side_effects.serious) ? data.side_effects.serious : [],
-            rare: Array.isArray(data.side_effects.rare) ? data.side_effects.rare : []
-          }
-        : { common: [], serious: [], rare: [] },
-      interactions: Array.isArray(data.interactions) ? data.interactions : [],
-      // Ensure dosage has the correct structure
-      dosage: typeof data.dosage === 'object' && data.dosage !== null
-        ? {
-            adult: data.dosage.adult || '',
-            child: data.dosage.child || '',
-            elderly: data.dosage.elderly || '',
-            frequency: data.dosage.frequency || '',
-            renal: data.dosage.renal || '',
-            hepatic: data.dosage.hepatic || ''
-          }
-        : { adult: '', child: '', elderly: '', frequency: '', renal: '', hepatic: '' },
-      forms: Array.isArray(data.forms) ? data.forms : [],
+      usedFor: safeGetArray(data.used_for),
+      warnings: safeGetArray(data.warnings),
+      sideEffects: sideEffects,
+      interactions: safeGetArray(data.interactions),
+      dosage: dosage,
+      forms: safeGetArray(data.forms),
       pregnancy: data.pregnancy || '',
       breastfeeding: data.breastfeeding || '',
-      foodInteractions: Array.isArray(data.food_interactions) ? data.food_interactions : [],
-      conditionInteractions: Array.isArray(data.condition_interactions) ? data.condition_interactions : [],
-      therapeuticDuplications: Array.isArray(data.therapeutic_duplications) ? data.therapeutic_duplications : [],
-      // Ensure interaction_classifications has the correct structure
-      interactionClassifications: typeof data.interaction_classifications === 'object' && data.interaction_classifications !== null
-        ? {
-            major: Array.isArray(data.interaction_classifications.major) ? data.interaction_classifications.major : [],
-            moderate: Array.isArray(data.interaction_classifications.moderate) ? data.interaction_classifications.moderate : [],
-            minor: Array.isArray(data.interaction_classifications.minor) ? data.interaction_classifications.minor : [],
-            unknown: Array.isArray(data.interaction_classifications.unknown) ? data.interaction_classifications.unknown : []
-          }
-        : { major: [], moderate: [], minor: [], unknown: [] },
-      // Ensure interaction_severity has the correct structure
-      interactionSeverity: typeof data.interaction_severity === 'object' && data.interaction_severity !== null
-        ? {
-            major: Array.isArray(data.interaction_severity.major) ? data.interaction_severity.major : [],
-            moderate: Array.isArray(data.interaction_severity.moderate) ? data.interaction_severity.moderate : [],
-            minor: Array.isArray(data.interaction_severity.minor) ? data.interaction_severity.minor : []
-          }
-        : { major: [], moderate: [], minor: [] },
+      foodInteractions: safeGetArray(data.food_interactions),
+      conditionInteractions: safeGetArray(data.condition_interactions),
+      therapeuticDuplications: safeGetArray(data.therapeutic_duplications),
+      interactionClassifications: interactionClassifications,
+      interactionSeverity: interactionSeverity,
       source: data.source || 'Database',
       drugsComUrl: getDrugsComUrl(data.name),
       fromDatabase: true,
