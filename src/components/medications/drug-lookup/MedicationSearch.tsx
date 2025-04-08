@@ -1,8 +1,7 @@
-
 import React, { useState, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Search, Loader2, X, Globe, Brain, Database } from 'lucide-react';
+import { Search, Loader2, X, Globe, Brain, Database, ExternalLink } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { Pill, PillIcon, ArrowRight } from 'lucide-react';
@@ -13,6 +12,7 @@ import { useDebounce } from '@/hooks/useDebounce';
 interface MedicationSearchProps {
   onSelectMedication: (medication: string) => void;
   activeDataSource?: 'drugscom' | 'comprehensive';
+  onExternalSearch?: (query: string) => void;
 }
 
 interface SearchResultItem {
@@ -22,7 +22,8 @@ interface SearchResultItem {
 
 const MedicationSearch: React.FC<MedicationSearchProps> = ({ 
   onSelectMedication,
-  activeDataSource = 'drugscom'
+  activeDataSource = 'drugscom',
+  onExternalSearch
 }) => {
   const [query, setQuery] = useState('');
   const [searchResults, setSearchResults] = useState<string[]>([]);
@@ -46,8 +47,6 @@ const MedicationSearch: React.FC<MedicationSearchProps> = ({
       if (debouncedSearchTerm.length >= 2) {
         setIsSearching(true);
         try {
-          // Always use searchDrugsCom - in a real implementation this would be switched based on activeDataSource
-          // but our mock implementation already simulates searching both databases
           const results = await searchDrugsCom(debouncedSearchTerm);
           setSearchResults(results);
         } catch (error) {
@@ -81,8 +80,6 @@ const MedicationSearch: React.FC<MedicationSearchProps> = ({
     setIsSearching(true);
     
     try {
-      // Always use searchDrugsCom - in a real implementation this would be switched based on activeDataSource
-      // but our mock implementation already simulates searching both databases
       const results = await searchDrugsCom(query);
       setSearchResults(results);
       
@@ -107,7 +104,14 @@ const MedicationSearch: React.FC<MedicationSearchProps> = ({
     setSearchResults([]);
   };
 
-  // Updated popular medications list based on database type
+  const handleExternalSearch = () => {
+    if (onExternalSearch && query.length >= 2) {
+      onExternalSearch(query);
+    } else if (query.length < 2) {
+      toast.error('Please enter at least 2 characters to search');
+    }
+  };
+
   const getPopularMedications = () => {
     if (activeDataSource === 'comprehensive') {
       return {
@@ -199,6 +203,20 @@ const MedicationSearch: React.FC<MedicationSearchProps> = ({
           {isSearching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
           <span className="ml-2">Search</span>
         </Button>
+        
+        {onExternalSearch && (
+          <Button 
+            type="button" 
+            variant="outline"
+            onClick={handleExternalSearch}
+            disabled={query.length < 2}
+            className="text-safet-500 border-safet-200"
+          >
+            <ExternalLink className="h-4 w-4 mr-1" />
+            <span className="hidden sm:inline">Search on {activeDataSource === 'drugscom' ? 'Drugs.com' : 'External Site'}</span>
+            <span className="sm:hidden">External</span>
+          </Button>
+        )}
       </form>
       
       {history.length > 0 && (

@@ -138,10 +138,26 @@ const DrugInfoLookup: React.FC<DrugInfoLookupProps> = ({ onAddMedication }) => {
   const openComprehensiveDatabasePage = () => {
     if (selectedMedication) {
       // This would open the comprehensive database page in a new tab
-      // For now we'll simulate this with a toast notification
+      const encodedMedName = encodeURIComponent(selectedMedication);
+      // For demonstration purposes, we'll use a generic URL
+      window.open(`https://comprehensive-meds-database.com/drug/${encodedMedName}`, '_blank', 'noopener,noreferrer');
       toast.info(`Opening comprehensive database page for ${selectedMedication}`);
-      // In a real implementation, this would open a URL like:
-      // window.open(`https://comprehensive-meds-database.com/drug/${encodeURIComponent(selectedMedication)}`, '_blank', 'noopener,noreferrer');
+    }
+  };
+
+  const handleDirectExternalSearch = (query: string) => {
+    if (!query || query.trim() === '') return;
+    
+    // Open the external site directly with the search query
+    if (activeDataSource === 'drugscom') {
+      const searchUrl = `https://www.drugs.com/search.php?searchterm=${encodeURIComponent(query)}`;
+      window.open(searchUrl, '_blank', 'noopener,noreferrer');
+      toast.info(`Searching for "${query}" on Drugs.com`);
+    } else {
+      // For demonstration purposes with the comprehensive database
+      const searchUrl = `https://comprehensive-meds-database.com/search?q=${encodeURIComponent(query)}`;
+      window.open(searchUrl, '_blank', 'noopener,noreferrer');
+      toast.info(`Searching for "${query}" on comprehensive database`);
     }
   };
 
@@ -225,6 +241,7 @@ const DrugInfoLookup: React.FC<DrugInfoLookupProps> = ({ onAddMedication }) => {
               <MedicationSearch 
                 onSelectMedication={selectMedication}
                 activeDataSource={activeDataSource}
+                onExternalSearch={handleDirectExternalSearch}
               />
             </>
           ) : null}

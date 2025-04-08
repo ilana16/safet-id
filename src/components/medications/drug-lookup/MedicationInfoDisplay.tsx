@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -81,7 +80,7 @@ const MedicationInfoDisplay: React.FC<MedicationInfoDisplayProps> = ({
                 className="text-gray-500 hover:text-safet-600"
               >
                 <ExternalLink className="h-4 w-4 mr-1" />
-                View in {dataSource}
+                View on {dataSource === "Drugs.com" ? "Drugs.com" : "External Site"}
               </Button>
             )}
             <Button onClick={onResetSearch} variant="ghost" size="sm" className="text-gray-500">
