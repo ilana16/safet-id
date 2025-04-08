@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -46,7 +45,6 @@ const MedicationSearch: React.FC<MedicationSearchProps> = ({
       }
     }
     
-    // Clean up any timeout when component unmounts
     return () => {
       if (searchTimeoutId) {
         clearTimeout(searchTimeoutId);
@@ -55,7 +53,6 @@ const MedicationSearch: React.FC<MedicationSearchProps> = ({
   }, []);
 
   useEffect(() => {
-    // Clear previous timeout if exists
     if (searchTimeoutId) {
       clearTimeout(searchTimeoutId);
       setSearchTimeoutId(null);
@@ -69,7 +66,6 @@ const MedicationSearch: React.FC<MedicationSearchProps> = ({
         try {
           console.log('Searching medications for:', debouncedSearchTerm);
           
-          // Set a new timeout to handle cases where the search takes too long
           const timeoutId = window.setTimeout(() => {
             console.log('Search operation timed out');
             setIsSearching(false);
@@ -81,7 +77,6 @@ const MedicationSearch: React.FC<MedicationSearchProps> = ({
           
           const results = await performMedicationSearch(debouncedSearchTerm);
           
-          // Clear the timeout as search completed successfully
           clearTimeout(timeoutId);
           setSearchTimeoutId(null);
           
@@ -115,7 +110,6 @@ const MedicationSearch: React.FC<MedicationSearchProps> = ({
     setSearchResults([]);
     setSearchError(null);
     
-    // Clear any active timeout
     if (searchTimeoutId) {
       clearTimeout(searchTimeoutId);
       setSearchTimeoutId(null);
@@ -126,7 +120,6 @@ const MedicationSearch: React.FC<MedicationSearchProps> = ({
     e.preventDefault();
     if (query.length < 2) return;
     
-    // Clear previous timeout if exists
     if (searchTimeoutId) {
       clearTimeout(searchTimeoutId);
       setSearchTimeoutId(null);
@@ -136,7 +129,6 @@ const MedicationSearch: React.FC<MedicationSearchProps> = ({
     setSearchError(null);
     
     try {
-      // Set a timeout for the search operation
       const timeoutId = window.setTimeout(() => {
         setIsSearching(false);
         setSearchError('Search request timed out. Please try again.');
@@ -147,7 +139,6 @@ const MedicationSearch: React.FC<MedicationSearchProps> = ({
       
       const results = await performMedicationSearch(query);
       
-      // Clear timeout as search completed
       clearTimeout(timeoutId);
       setSearchTimeoutId(null);
       
@@ -299,7 +290,6 @@ const MedicationSearch: React.FC<MedicationSearchProps> = ({
         )}
       </form>
 
-      {/* Display search error if one occurs */}
       {searchError && (
         <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-md text-red-700 text-sm flex items-center">
           <AlertTriangle className="h-4 w-4 text-red-500 mr-2 flex-shrink-0" />
@@ -331,7 +321,6 @@ const MedicationSearch: React.FC<MedicationSearchProps> = ({
         </div>
       )}
       
-      {/* Loading indicator */}
       {isSearching && (
         <div className="mt-4 p-3 bg-blue-50 border border-blue-100 rounded-md text-blue-700 flex items-center">
           <Loader2 className="h-5 w-5 animate-spin text-blue-500 mr-3" />
