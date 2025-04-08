@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { MedicationInfo } from '../medicationData.d';
 import { saveMedicationToDb } from './save';
@@ -87,7 +88,7 @@ export const getMedicationFromDb = async (
         therapeuticDuplications: dbMeds[0].therapeutic_duplications || [],
         pregnancy: dbMeds[0].pregnancy,
         breastfeeding: dbMeds[0].breastfeeding,
-        halfLife: (dbMeds[0] as any).half_life || '',
+        halfLife: dbMeds[0].half_life || '',
         drugsComUrl: getDrugsComUrl(dbMeds[0].name),
         source: dbMeds[0].source,
         fromDatabase: true,
@@ -97,99 +98,10 @@ export const getMedicationFromDb = async (
       return medicationInfo;
     }
     
-    // If not found in the database, try to get from external API
-    console.log('Medication not found in database, fetching from Supabase Edge Function');
+    // If not found in the database, use fallback immediately
+    console.log('Medication not found in database, using fallback data immediately');
+    return await fallbackMedicationInfo(medicationName, userId);
     
-    try {
-      // Create abort controller for the fetch
-      abortController = new AbortController();
-      
-      // Create a promise that rejects after timeout
-      const timeoutPromise = new Promise<never>((_, reject) => {
-        setTimeout(() => {
-          if (abortController) abortController.abort();
-          reject(new Error('API request timed out'));
-        }, API_TIMEOUT);
-      });
-      
-      // Actual API call
-      const apiCallPromise = supabase.functions.invoke('drugs-scraper', {
-        body: { drugName: medicationName },
-        // Remove the signal property as it's not supported in FunctionInvokeOptions
-      });
-      
-      // Log that we're making the API call
-      console.log(`Calling drugs-scraper function for: ${medicationName}`);
-      
-      // Race the API call against the timeout
-      const { data, error } = await Promise.race([
-        apiCallPromise,
-        timeoutPromise
-      ]);
-
-      // Log the API response for debugging
-      console.log('API response received:', data ? 'success' : 'failure');
-      if (error) console.error('API error:', error);
-      if (data) console.log('API data keys:', Object.keys(data));
-
-      if (error) {
-        console.error('Error calling drugs-scraper function:', error);
-        if (error.message?.includes('abort') || error.message?.includes('time')) {
-          throw new Error('API request timed out');
-        }
-        toast.error('Error calling medication scraper');
-        return await fallbackMedicationInfo(medicationName, userId);
-      }
-
-      if (data && data.name) {
-        console.log('Drug information retrieved successfully:', data.name);
-        
-        const externalMedInfo: MedicationInfo = {
-          name: data.name || medicationName,
-          genericName: data.genericName,
-          description: data.description,
-          drugClass: data.drugClass,
-          prescriptionOnly: data.prescriptionOnly,
-          usedFor: data.usedFor || [],
-          warnings: data.warnings || [],
-          sideEffects: data.sideEffects || { common: [], serious: [] },
-          interactions: data.interactions || [],
-          dosage: data.dosage || { adult: '', child: '' },
-          forms: data.forms || [],
-          interactionClassifications: data.interactionClassifications || { major: [], moderate: [], minor: [] },
-          interactionSeverity: data.interactionSeverity || { major: [], moderate: [], minor: [] },
-          foodInteractions: data.foodInteractions || [],
-          conditionInteractions: data.conditionInteractions || [],
-          therapeuticDuplications: data.therapeuticDuplications || [],
-          pregnancy: data.pregnancy || '',
-          breastfeeding: data.breastfeeding || '',
-          halfLife: data.halfLife || '',
-          drugsComUrl: data.drugsComUrl || getDrugsComUrl(data.name || medicationName),
-          source: data.source || 'Drugs.com Scraper'
-        };
-        
-        // Save the medication to the database
-        const savedMedInfo = await saveMedicationToDb(externalMedInfo, userId || undefined);
-        
-        return savedMedInfo || externalMedInfo;
-      } else {
-        console.warn('No data returned from API for:', medicationName);
-        toast.error(`No information found for ${medicationName}`);
-        return await fallbackMedicationInfo(medicationName, userId);
-      }
-    } catch (error) {
-      console.error('Error getting medication from API:', error);
-      const isTimeout = error instanceof Error && 
-        (error.message.includes('timed out') || 
-         error.message.includes('abort') ||
-         error.name === 'AbortError');
-         
-      toast.error(isTimeout
-        ? 'Search request timed out. Please try again.'
-        : 'Error retrieving medication information');
-        
-      return await fallbackMedicationInfo(medicationName, userId);
-    }
   } catch (error) {
     console.error('Error getting medication from database or API:', error);
     toast.error('Error retrieving medication information');
@@ -233,9 +145,75 @@ async function fallbackMedicationInfo(medicationName: string, userId?: string | 
       return savedMedInfo || mockMedInfo;
     }
     
-    return null;
+    // If even mockMedInfo fails, create a very basic fallback
+    const basicFallback: MedicationInfo = {
+      name: medicationName,
+      genericName: medicationName,
+      description: `Information about ${medicationName} could not be retrieved. Please consult with a healthcare professional for accurate information.`,
+      drugClass: "Information not available",
+      prescriptionOnly: false,
+      usedFor: ["Information not available"],
+      warnings: ["Always consult with a healthcare professional before taking any medication"],
+      sideEffects: {
+        common: ["Information not available"],
+        serious: ["Information not available"]
+      },
+      interactions: ["Information not available"],
+      dosage: {
+        adult: "Consult healthcare provider",
+        child: "Consult healthcare provider"
+      },
+      forms: ["Information not available"],
+      interactionClassifications: {
+        major: [],
+        moderate: [],
+        minor: []
+      },
+      interactionSeverity: {
+        major: [],
+        moderate: [],
+        minor: []
+      },
+      foodInteractions: [],
+      conditionInteractions: [],
+      therapeuticDuplications: [],
+      pregnancy: "Consult healthcare provider",
+      breastfeeding: "Consult healthcare provider",
+      halfLife: "Information not available",
+      drugsComUrl: getDrugsComUrl(medicationName),
+      source: "Basic Fallback Data"
+    };
+    
+    // Try to save this basic fallback to the database
+    const savedBasicInfo = await saveMedicationToDb(basicFallback, userId || undefined);
+    return savedBasicInfo || basicFallback;
+    
   } catch (e) {
     console.error('Error in fallback medication info:', e);
-    return null;
+    
+    // Ultimate fallback if everything else fails
+    return {
+      name: medicationName,
+      genericName: '',
+      description: `Unable to retrieve information for ${medicationName}.`,
+      drugClass: '',
+      prescriptionOnly: false,
+      usedFor: [],
+      warnings: [],
+      sideEffects: { common: [], serious: [] },
+      interactions: [],
+      dosage: { adult: '', child: '' },
+      forms: [],
+      interactionClassifications: { major: [], moderate: [], minor: [] },
+      interactionSeverity: { major: [], moderate: [], minor: [] },
+      foodInteractions: [],
+      conditionInteractions: [],
+      therapeuticDuplications: [],
+      pregnancy: '',
+      breastfeeding: '',
+      halfLife: '',
+      drugsComUrl: getDrugsComUrl(medicationName),
+      source: "Emergency Fallback"
+    };
   }
 }

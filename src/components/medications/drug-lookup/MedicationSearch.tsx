@@ -212,7 +212,7 @@ const MedicationSearch: React.FC<MedicationSearchProps> = ({
       <div className="mb-3 p-3 bg-amber-50 rounded-md border border-amber-200 text-amber-800 text-sm flex items-center">
         <Database className="h-4 w-4 text-amber-500 mr-2 flex-shrink-0" />
         <span>
-          Using real-time Drugs.com data via our Supabase Edge Function scraper
+          Using medication database with fallback data when medications are not found
         </span>
       </div>
       
@@ -353,7 +353,7 @@ const MedicationSearch: React.FC<MedicationSearchProps> = ({
           <Loader2 className="h-5 w-5 animate-spin text-blue-500 mr-3" />
           <div>
             <p className="font-medium">Searching for medications...</p>
-            <p className="text-sm mt-1">This may take a moment. We're searching our database and Drugs.com.</p>
+            <p className="text-sm mt-1">This may take a moment. We're searching our database and fallback data.</p>
           </div>
         </div>
       )}

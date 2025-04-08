@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { ExternalLink, Loader2, AlertTriangle } from 'lucide-react';
@@ -101,7 +100,7 @@ const DrugInfoLookup: React.FC<DrugInfoLookupProps> = ({ onAddMedication }) => {
     setSearchTimeoutId(timeoutId);
     
     try {
-      console.log(`Fetching information for medication: ${medication} from database or Python scraper`);
+      console.log(`Fetching information for medication: ${medication} from database or fallback data`);
       
       const medInfo = await getMedicationFromDb(medication, userId, 'drugscom');
       
@@ -210,7 +209,7 @@ const DrugInfoLookup: React.FC<DrugInfoLookupProps> = ({ onAddMedication }) => {
     <div className="space-y-6">
       <div className="bg-white border border-[#D1DEE8] rounded-md overflow-hidden">
         <div className="bg-safet-600 text-white px-5 py-3 font-medium flex items-center justify-between">
-          <span>Python-Based Drugs.com Database Search</span>
+          <span>Medication Information Lookup</span>
           <Button 
             variant="outline" 
             size="sm" 
@@ -227,8 +226,8 @@ const DrugInfoLookup: React.FC<DrugInfoLookupProps> = ({ onAddMedication }) => {
         <div className="p-5">
           {(!medicationInfo && !isLoading && !error) || (!searchAttempted) ? (
             <div className="mb-4 p-3 bg-amber-50 rounded-md border border-amber-200 text-amber-800 text-sm">
-              <p className="font-medium mb-1">Using Python-based Drugs.com Scraper</p>
-              This database uses the Python-based Drugs.com scraper to provide comprehensive medication information including:
+              <p className="font-medium mb-1">Using Medication Database</p>
+              This feature provides comprehensive medication information including:
               <ul className="list-disc pl-5 mt-2 space-y-1">
                 <li>Medication interactions (major, moderate, minor)</li>
                 <li>Medical condition interactions</li>
@@ -238,10 +237,8 @@ const DrugInfoLookup: React.FC<DrugInfoLookupProps> = ({ onAddMedication }) => {
                 <li>Pregnancy and breastfeeding information</li>
                 <li>Drug half-life data</li>
               </ul>
-              <div className="mt-2">
-                <a href="https://github.com/miteoshi/Drugs.com-scrapper" target="_blank" rel="noopener noreferrer" className="underline">
-                  View the Drugs.com scraper on GitHub
-                </a>
+              <div className="mt-2 text-amber-700">
+                <strong>Note:</strong> Due to restrictions from Drugs.com, we're using a database of common medications.
               </div>
             </div>
           ) : null}

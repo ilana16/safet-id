@@ -34,53 +34,11 @@ export const performMedicationSearch = async (query: string): Promise<string[]> 
       }
     } catch (dbError) {
       console.error('Error searching database:', dbError);
-      // Continue to API search even if database search fails
+      // Continue to fallback search even if database search fails
     }
     
-    // If not found in database, use the Edge Function to search
-    console.log('No results in database, using Edge Function to search');
-    
-    // Create abort controller for the fetch
-    abortController = new AbortController();
-    
-    // Create a promise that rejects after timeout
-    const timeoutPromise = new Promise<never>((_, reject) => {
-      setTimeout(() => {
-        if (abortController) abortController.abort();
-        reject(new Error('Search request timed out'));
-      }, API_TIMEOUT);
-    });
-    
-    // Actual API call
-    const apiCallPromise = supabase.functions.invoke('drugs-scraper', {
-      body: { drugName: query, action: 'search' },
-      // Remove the signal property as it's not supported in FunctionInvokeOptions
-    });
-    
-    // Race the API call against the timeout
-    const { data, error } = await Promise.race([
-      apiCallPromise,
-      timeoutPromise
-    ]);
-    
-    if (error) {
-      console.error('Error calling drugs-scraper search function:', error);
-      if (error.message?.includes('abort') || error.message?.includes('time')) {
-        throw new Error('Search request timed out');
-      }
-      
-      // If API call fails, use the fallback search from modrugsApi
-      console.log('Edge function failed, using fallback search');
-      return await fallbackSearch(query);
-    }
-    
-    if (data && data.results && data.results.length > 0) {
-      console.log('Found results from scraper:', data.results.length);
-      return data.results;
-    }
-    
-    // If no results from the API, use fallback
-    console.log('No results from API, using fallback search');
+    // Skip the API search and go straight to fallback search
+    console.log('Going straight to fallback search due to Drugs.com API limitations');
     return await fallbackSearch(query);
     
   } catch (error) {
@@ -118,7 +76,7 @@ export const performMedicationSearch = async (query: string): Promise<string[]> 
 const fallbackSearch = async (query: string): Promise<string[]> => {
   console.log('Using fallback search for:', query);
   
-  // List of common medications
+  // Expanded list of common medications for better search results
   const commonMedications = [
     'Acetaminophen', 'Adderall', 'Albuterol', 'Alprazolam', 'Amoxicillin', 
     'Atorvastatin', 'Azithromycin', 'Benzonatate', 'Bupropion', 'Buspirone',
@@ -132,15 +90,42 @@ const fallbackSearch = async (query: string): Promise<string[]> => {
     'Vitamin D', 'Warfarin', 'Zoloft', 'Zolpidem', 'Abilify', 'Lipitor',
     'Nexium', 'Prozac', 'Xanax', 'Zantac', 'Advil', 'Tylenol', 'Motrin',
     'Allegra', 'Claritin', 'Zyrtec', 'Ambien', 'Viagra', 'Cialis', 
-    'Humira', 'Eliquis', 'Synthroid', 'Crestor', 'Vyvanse', 'Lantus'
+    'Humira', 'Eliquis', 'Synthroid', 'Crestor', 'Vyvanse', 'Lantus',
+    'Amlodipine', 'Aspirin', 'Atenolol', 'Carvedilol', 'Diclofenac',
+    'Digoxin', 'Diltiazem', 'Diphenhydramine', 'Furosemide', 'Glipizide',
+    'Hydralazine', 'Hydrocodone', 'Insulin', 'Lamotrigine', 'Latanoprost',
+    'Levothroid', 'Lexapro', 'Meloxicam', 'Methotrexate', 'Methylprednisolone',
+    'Minoxidil', 'Montelukast', 'Morphine', 'Nabumetone', 'Nifedipine',
+    'Nitrofurantoin', 'Norvasc', 'Olmesartan', 'Oxycontin', 'Paroxetine',
+    'Penicillin', 'Phenytoin', 'Plavix', 'Quetiapine', 'Ramipril',
+    'Ranitidine', 'Risperdal', 'Rosuvastatin', 'Spiriva', 'Tamsulosin',
+    'Tramadol', 'Valacyclovir', 'Valium', 'Valsartan', 'Venlafaxine',
+    'Ventolin', 'Verapamil', 'Wellbutrin', 'Xarelto', 'Zestril',
+    'Amitriptyline', 'Aricept', 'Celebrex', 'Cozaar', 'Cymbalta',
+    'Effexor', 'Flomax', 'Fosamax', 'Glucophage', 'Januvia',
+    'Keppra', 'Lamictal', 'Lyrica', 'Methotrexate', 'Neurontin',
+    'Paxil', 'Premarin', 'Pristiq', 'Protonix', 'Remicade',
+    'Seroquel', 'Singulair', 'Topamax', 'Toprol', 'Zetia'
   ];
   
   // Filter based on query (case-insensitive)
   const lowercaseQuery = query.toLowerCase();
-  const results = commonMedications.filter(med => 
-    med.toLowerCase().includes(lowercaseQuery)
+  
+  // First try direct matching (starts with)
+  let results = commonMedications.filter(med => 
+    med.toLowerCase().startsWith(lowercaseQuery)
   );
   
+  // If not enough results, add medications that include the query string
+  if (results.length < 10) {
+    const additionalResults = commonMedications.filter(med => 
+      !med.toLowerCase().startsWith(lowercaseQuery) && 
+      med.toLowerCase().includes(lowercaseQuery)
+    );
+    
+    results = [...results, ...additionalResults];
+  }
+  
   // Sort alphabetically and limit to 10 results
-  return results.sort((a, b) => a.localeCompare(b)).slice(0, 10);
+  return results.slice(0, 10);
 };
