@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { getDrugsComInfo, getDrugsComUrl, fetchDrugsComLiveInfo } from '@/utils/drugsComApi';
 import { Button } from '@/components/ui/button';
@@ -18,7 +17,7 @@ interface DrugInfoLookupProps {
 
 const DrugInfoLookup: React.FC<DrugInfoLookupProps> = ({ onAddMedication }) => {
   const [selectedMedication, setSelectedMedication] = useState<string | null>(null);
-  const [medicationInfo, setMedicationInfo] = useState<MedicationInfoType | null>(null);
+  const [medicationInfo, setMedicationInfo] = useState<MedicationInfo | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
@@ -53,7 +52,7 @@ const DrugInfoLookup: React.FC<DrugInfoLookupProps> = ({ onAddMedication }) => {
     }
   };
 
-  const fetchComprehensiveMedicationData = async (medication: string): Promise<MedicationInfoType | null> => {
+  const fetchComprehensiveMedicationData = async (medication: string): Promise<MedicationInfo | null> => {
     try {
       return await fetchDrugsComLiveInfo(medication);
     } catch (error) {
@@ -79,7 +78,7 @@ const DrugInfoLookup: React.FC<DrugInfoLookupProps> = ({ onAddMedication }) => {
     try {
       console.log(`Fetching information for medication: ${medication} from source: ${activeDataSource}`);
       
-      let info: MedicationInfoType | null;
+      let info: MedicationInfo | null;
       
       if (activeDataSource === 'drugscom') {
         info = await getDrugsComInfo(medication);
