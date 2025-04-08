@@ -1,69 +1,107 @@
 
 import { toast } from '@/lib/toast';
+import { supabase } from '@/integrations/supabase/client';
+import { MedicationInfo } from './medicationData.d';
+
+const EDGE_FUNCTION_URL = "https://rlirtjxgwstjzraovntf.supabase.co/functions/v1/drugs-api";
 
 /**
- * Searches for medications on Drugs.com via a simulated API
+ * Searches for medications using the Drugs.com API
  * @param query Search term
- * @returns Promise with array of medication names
+ * @returns Promise with array of medication names and IDs
  */
-export const searchDrugsCom = async (query: string): Promise<string[]> => {
+export const searchDrugsCom = async (query: string): Promise<Array<{id: string, name: string}>> => {
   if (query.length < 2) {
     return [];
   }
   
   try {
-    // Simulate API search with common medications
-    const commonMedications = [
-      'Acetaminophen', 'Adderall', 'Albuterol', 'Alprazolam', 'Amoxicillin', 
-      'Atorvastatin', 'Azithromycin', 'Benzonatate', 'Bupropion', 'Buspirone',
-      'Cefdinir', 'Cephalexin', 'Ciprofloxacin', 'Citalopram', 'Clindamycin',
-      'Cyclobenzaprine', 'Cymbalta', 'Doxycycline', 'Dupixent', 'Eliquis',
-      'Entresto', 'Entyvio', 'Farxiga', 'Fentanyl', 'Gabapentin',
-      'Humira', 'Hydrochlorothiazide', 'Hydroxychloroquine', 'Ibuprofen', 'Imbruvica',
-      'Januvia', 'Jardiance', 'Kevzara', 'Keytruda', 'Levemir',
-      'Levothyroxine', 'Lexapro', 'Lisinopril', 'Lofexidine', 'Loratadine',
-      'Losartan', 'Lyrica', 'Metformin', 'Methotrexate', 'Metoprolol',
-      'Naloxone', 'Naltrexone', 'Namzaric', 'Naproxen', 'Narcan',
-      'Omeprazole', 'Onpattro', 'Opdivo', 'Ozempic', 'Pantoprazole',
-      'Prednisone', 'Proair', 'Prozac', 'Qvar', 'Remicade',
-      'Rybelsus', 'Saxenda', 'Seroquel', 'Sertraline', 'Simvastatin',
-      'Skyrizi', 'Spiriva', 'Stelara', 'Stiolto', 'Suboxone',
-      'Symbicort', 'Synthroid', 'Tamiflu', 'Tecfidera', 'Toujeo',
-      'Tramadol', 'Trelegy', 'Trintellix', 'Trulicity', 'Tylenol',
-      'Uceris', 'Ulesfia', 'Uloric', 'Ultane', 'Ultram',
-      'Valacyclovir', 'Valium', 'Vascepa', 'Venlafaxine', 'Ventolin',
-      'Viagra', 'Viibryd', 'Vimpat', 'Vistaril', 'Vraylar',
-      'Vyvanse', 'Wellbutrin', 'Wixela', 'Xanax', 'Xarelto',
-      'Xeljanz', 'Xolair', 'Xyrem', 'Yervoy', 'Yupelri',
-      'Zanaflex', 'Zantac', 'Zarxio', 'Zelnorm', 'Zepatier',
-      'Zithromax', 'Zofran', 'Zohydro', 'Zoloft', 'Zomig'
-    ];
+    // First try to use the Drugs.com API via Edge Function
+    const response = await fetch(`${EDGE_FUNCTION_URL}/search?q=${encodeURIComponent(query)}`);
     
-    // Search for matches
-    const results = commonMedications.filter(med => 
-      med.toLowerCase().includes(query.toLowerCase())
-    );
+    if (!response.ok) {
+      throw new Error(`API Error: ${response.status}`);
+    }
     
-    // Sort results by relevance (exact match first, then startsWith, then includes)
-    return results.sort((a, b) => {
-      const aLower = a.toLowerCase();
-      const bLower = b.toLowerCase();
-      const qLower = query.toLowerCase();
-      
-      if (aLower === qLower && bLower !== qLower) return -1;
-      if (aLower !== qLower && bLower === qLower) return 1;
-      
-      if (aLower.startsWith(qLower) && !bLower.startsWith(qLower)) return -1;
-      if (!aLower.startsWith(qLower) && bLower.startsWith(qLower)) return 1;
-      
-      return a.localeCompare(b);
-    });
+    const data = await response.json();
+    
+    if (data.error) {
+      throw new Error(data.error);
+    }
+    
+    if (data.results && Array.isArray(data.results)) {
+      return data.results.map((drug: any) => ({
+        id: drug.id || drug.name.toLowerCase().replace(/\s+/g, '-'),
+        name: drug.name
+      }));
+    }
+    
+    // Fallback to simulated results if API response format is unexpected
+    return fallbackSearch(query);
     
   } catch (error) {
-    console.error('Error searching medications:', error);
-    toast.error('Error searching for medications');
-    return [];
+    console.error('Error searching medications via API:', error);
+    
+    // Fallback to simulated data if API fails
+    return fallbackSearch(query);
   }
+};
+
+/**
+ * Fallback search function that simulates API results
+ * @param query Search term
+ * @returns Array of medication names and IDs
+ */
+const fallbackSearch = (query: string): Array<{id: string, name: string}> => {
+  // Same list as before for fallback
+  const commonMedications = [
+    'Acetaminophen', 'Adderall', 'Albuterol', 'Alprazolam', 'Amoxicillin', 
+    'Atorvastatin', 'Azithromycin', 'Benzonatate', 'Bupropion', 'Buspirone',
+    'Cefdinir', 'Cephalexin', 'Ciprofloxacin', 'Citalopram', 'Clindamycin',
+    'Cyclobenzaprine', 'Cymbalta', 'Doxycycline', 'Dupixent', 'Eliquis',
+    'Entresto', 'Entyvio', 'Farxiga', 'Fentanyl', 'Gabapentin',
+    'Humira', 'Hydrochlorothiazide', 'Hydroxychloroquine', 'Ibuprofen', 'Imbruvica',
+    'Januvia', 'Jardiance', 'Kevzara', 'Keytruda', 'Levemir',
+    'Levothyroxine', 'Lexapro', 'Lisinopril', 'Lofexidine', 'Loratadine',
+    'Losartan', 'Lyrica', 'Metformin', 'Methotrexate', 'Metoprolol',
+    'Naloxone', 'Naltrexone', 'Namzaric', 'Naproxen', 'Narcan',
+    'Omeprazole', 'Onpattro', 'Opdivo', 'Ozempic', 'Pantoprazole',
+    'Prednisone', 'Proair', 'Prozac', 'Qvar', 'Remicade',
+    'Rybelsus', 'Saxenda', 'Seroquel', 'Sertraline', 'Simvastatin',
+    'Skyrizi', 'Spiriva', 'Stelara', 'Stiolto', 'Suboxone',
+    'Symbicort', 'Synthroid', 'Tamiflu', 'Tecfidera', 'Toujeo',
+    'Tramadol', 'Trelegy', 'Trintellix', 'Trulicity', 'Tylenol',
+    'Uceris', 'Ulesfia', 'Uloric', 'Ultane', 'Ultram',
+    'Valacyclovir', 'Valium', 'Vascepa', 'Venlafaxine', 'Ventolin',
+    'Viagra', 'Viibryd', 'Vimpat', 'Vistaril', 'Vraylar',
+    'Vyvanse', 'Wellbutrin', 'Wixela', 'Xanax', 'Xarelto',
+    'Xeljanz', 'Xolair', 'Xyrem', 'Yervoy', 'Yupelri',
+    'Zanaflex', 'Zantac', 'Zarxio', 'Zelnorm', 'Zepatier',
+    'Zithromax', 'Zofran', 'Zohydro', 'Zoloft', 'Zomig'
+  ];
+  
+  // Filter and return medications that match the query
+  const results = commonMedications
+    .filter(med => med.toLowerCase().includes(query.toLowerCase()))
+    .map(name => ({
+      id: name.toLowerCase().replace(/\s+/g, '-'),
+      name
+    }));
+  
+  // Sort results by relevance
+  return results.sort((a, b) => {
+    const aLower = a.name.toLowerCase();
+    const bLower = b.name.toLowerCase();
+    const qLower = query.toLowerCase();
+    
+    if (aLower === qLower && bLower !== qLower) return -1;
+    if (aLower !== qLower && bLower === qLower) return 1;
+    
+    if (aLower.startsWith(qLower) && !bLower.startsWith(qLower)) return -1;
+    if (!aLower.startsWith(qLower) && bLower.startsWith(qLower)) return 1;
+    
+    return a.name.localeCompare(b.name);
+  });
 };
 
 /**
@@ -78,18 +116,192 @@ export const getDrugsComUrl = (drugName: string): string => {
 };
 
 /**
- * Get detailed information about a medication (simulated)
- * @param drugName The name of the medication
+ * Get detailed information about a medication from the API
+ * @param drugId The ID of the medication
  * @returns Promise with drug information
  */
-export const getDrugDetails = async (drugName: string) => {
-  // This is a simulation - in a real app, this would fetch from an API
+export const getDrugDetails = async (drugId: string): Promise<MedicationInfo | null> => {
+  try {
+    // Try to fetch from cached results first
+    const { data: cached, error } = await supabase
+      .from('cached_drugs')
+      .select('*')
+      .eq('id', drugId)
+      .single();
+    
+    if (cached && !error) {
+      console.log('Retrieved drug details from cache', cached);
+      return cached.data as MedicationInfo;
+    }
+    
+    // Fetch drug details from API
+    const response = await fetch(`${EDGE_FUNCTION_URL}/details?id=${encodeURIComponent(drugId)}`);
+    
+    if (!response.ok) {
+      throw new Error(`API Error: ${response.status}`);
+    }
+    
+    const detailsData = await response.json();
+    
+    if (detailsData.error) {
+      throw new Error(detailsData.error);
+    }
+    
+    // Fetch side effects from API
+    const sideEffectsResponse = await fetch(`${EDGE_FUNCTION_URL}/side-effects?id=${encodeURIComponent(drugId)}`);
+    const sideEffectsData = sideEffectsResponse.ok ? await sideEffectsResponse.json() : { sideEffects: [] };
+    
+    // Fetch dosage from API
+    const dosageResponse = await fetch(`${EDGE_FUNCTION_URL}/dosage?id=${encodeURIComponent(drugId)}`);
+    const dosageData = dosageResponse.ok ? await dosageResponse.json() : { dosage: "Information not available" };
+    
+    // Compile the medication info
+    const medicationInfo: MedicationInfo = {
+      name: detailsData.name || drugId,
+      genericName: detailsData.generic_name || "",
+      description: detailsData.description || "No description available",
+      drugClass: detailsData.drug_class || "Unknown",
+      usedFor: detailsData.indications || [],
+      sideEffects: {
+        common: sideEffectsData.common || [],
+        serious: sideEffectsData.serious || [],
+        rare: sideEffectsData.rare || []
+      },
+      dosage: {
+        adult: dosageData.adult || "Consult your doctor",
+        child: dosageData.child || "Consult your doctor",
+        elderly: dosageData.elderly || "Consult your doctor",
+        frequency: dosageData.frequency || "",
+        renal: dosageData.renal || "",
+        hepatic: dosageData.hepatic || ""
+      },
+      warnings: detailsData.warnings || [],
+      interactions: detailsData.interactions || [],
+      prescriptionOnly: detailsData.prescription_only || false,
+      forms: detailsData.forms || [],
+      pregnancy: detailsData.pregnancy || "Consult your doctor before using during pregnancy",
+      breastfeeding: detailsData.breastfeeding || "Consult your doctor before using while breastfeeding",
+      source: "Drugs.com API",
+      halfLife: detailsData.half_life || "Information not available",
+      foodInteractions: detailsData.food_interactions || [],
+      conditionInteractions: detailsData.condition_interactions || [],
+      therapeuticDuplications: detailsData.therapeutic_duplications || [],
+      interactionClassifications: {
+        major: detailsData.major_interactions || [],
+        moderate: detailsData.moderate_interactions || [],
+        minor: detailsData.minor_interactions || [],
+        unknown: []
+      }
+    };
+    
+    // Cache the results
+    await supabase
+      .from('cached_drugs')
+      .upsert({
+        id: drugId,
+        name: medicationInfo.name,
+        data: medicationInfo
+      });
+    
+    return medicationInfo;
+  } catch (error) {
+    console.error('Error fetching drug details:', error);
+    toast.error('Error retrieving medication details');
+    
+    // Return simulated data as fallback
+    return fallbackDrugDetails(drugId);
+  }
+};
+
+/**
+ * Get drug interactions between multiple medications
+ * @param drugIds Array of drug IDs to check for interactions
+ * @returns Promise with interaction information
+ */
+export const checkDrugInteractions = async (drugIds: string[]): Promise<any> => {
+  if (drugIds.length < 2) {
+    return { interactions: [], summary: "At least two medications are required to check interactions" };
+  }
+  
+  try {
+    const response = await fetch(`${EDGE_FUNCTION_URL}/interactions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ drug_ids: drugIds })
+    });
+    
+    if (!response.ok) {
+      throw new Error(`API Error: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    
+    if (data.error) {
+      throw new Error(data.error);
+    }
+    
+    return data;
+  } catch (error) {
+    console.error('Error checking drug interactions:', error);
+    toast.error('Error checking medication interactions');
+    
+    // Return simulated interaction data as fallback
+    return {
+      interactions: [
+        {
+          severity: "simulated",
+          description: "This is simulated interaction data. In a real application, this would contain actual drug interaction information from Drugs.com API.",
+          drugs: drugIds
+        }
+      ],
+      summary: "Interaction data could not be retrieved from the API. This is simulated data."
+    };
+  }
+};
+
+/**
+ * Fallback function to provide simulated drug details if the API fails
+ */
+const fallbackDrugDetails = (drugId: string): MedicationInfo => {
+  const drugName = drugId.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+  
   return {
     name: drugName,
-    description: `${drugName} is a simulated medication description. In a real application, this would contain detailed information fetched from a medical API or database.`,
-    sideEffects: "Common side effects may include headache, nausea, dizziness. This is simulated data.",
-    dosage: "Take as directed by your healthcare provider. This is simulated data.",
-    interactions: "May interact with other medications. Consult with your doctor. This is simulated data.",
-    pregnancy: "Consult with your healthcare provider before using during pregnancy. This is simulated data."
+    genericName: `Generic ${drugName}`.toLowerCase(),
+    description: `${drugName} is a simulated medication description. In a real application, this would contain detailed information fetched from the Drugs.com API.`,
+    drugClass: "Simulated Class",
+    usedFor: ["Simulated indication"],
+    sideEffects: {
+      common: ["Headache", "Nausea", "Dizziness"],
+      serious: ["Allergic reaction", "Difficulty breathing"],
+      rare: ["Rare condition"]
+    },
+    dosage: {
+      adult: "Take as directed by your healthcare provider. This is simulated data.",
+      child: "Not recommended for children. This is simulated data.",
+      elderly: "Use with caution in elderly patients. This is simulated data.",
+      frequency: "Once daily",
+      renal: "Adjust dose in renal impairment",
+      hepatic: "Adjust dose in hepatic impairment"
+    },
+    warnings: ["This is a simulated warning. Consult with your doctor."],
+    interactions: ["This medication may interact with other drugs. Consult with your doctor."],
+    prescriptionOnly: true,
+    forms: ["Tablet", "Capsule"],
+    pregnancy: "Consult with your healthcare provider before using during pregnancy. This is simulated data.",
+    breastfeeding: "Consult with your healthcare provider before using while breastfeeding. This is simulated data.",
+    source: "Simulated Drugs.com API response",
+    halfLife: "Approximately 12 hours",
+    foodInteractions: ["Avoid grapefruit juice", "Take with food"],
+    conditionInteractions: ["Use with caution in liver disease", "May worsen heart conditions"],
+    therapeuticDuplications: ["Do not take with similar medications"],
+    interactionClassifications: {
+      major: ["Avoid combining with MAOIs"],
+      moderate: ["Possible interaction with NSAIDs"],
+      minor: ["Minor interaction with caffeine"],
+      unknown: []
+    }
   };
 };

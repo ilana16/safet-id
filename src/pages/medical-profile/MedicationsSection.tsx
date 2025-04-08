@@ -1,13 +1,13 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { PlusCircle, Pill, Clock, Search, ExternalLink, RotateCcw, Trash2, FileText } from 'lucide-react';
+import { PlusCircle, Pill, Clock, Search, ExternalLink, RotateCcw, Trash2, FileText, Loader2 } from 'lucide-react';
 import { toast } from '@/lib/toast';
 import { Medication, MedicationTableItem } from '@/types/medication';
 import { getDrugsComUrl } from '@/utils/drugsComApi';
+import { performMedicationSearch } from '@/utils/modrugsApi';
 
 const MedicationsSection = () => {
   const [activeTab, setActiveTab] = useState<string>('current');
@@ -19,40 +19,34 @@ const MedicationsSection = () => {
   const [searchResults, setSearchResults] = useState<string[]>([]);
   const [selectedDrugs, setSelectedDrugs] = useState<string[]>([]);
   const [interactionReport, setInteractionReport] = useState<string>('');
+  const [isGeneratingReport, setIsGeneratingReport] = useState<boolean>(false);
 
-  // Load medications from local storage on component mount
   useEffect(() => {
     loadSavedMedications();
   }, []);
 
-  // Function to load medications from local storage
   const loadSavedMedications = () => {
     try {
-      // Load current medications
       const currentData = localStorage.getItem('my_medications');
       if (currentData) {
         setCurrentMedications(JSON.parse(currentData));
       }
       
-      // Load researching medications
       const researchData = localStorage.getItem('researching_medications');
       if (researchData) {
         setResearchMedications(JSON.parse(researchData));
       }
       
-      // Load discontinued medications
       const discontinuedData = localStorage.getItem('discontinued_medications');
       if (discontinuedData) {
         setDiscontinuedMedications(JSON.parse(discontinuedData));
       }
-      
     } catch (error) {
       console.error('Error loading medications:', error);
       toast.error('Failed to load medications');
     }
   };
 
-  // Function to search for medications
   const searchMedication = async () => {
     if (!searchTerm || searchTerm.length < 2) {
       setSearchResults([]);
@@ -62,27 +56,8 @@ const MedicationsSection = () => {
     setIsSearching(true);
     
     try {
-      // Simple search in static list
-      const commonMedications = [
-        'Acetaminophen', 'Adderall', 'Albuterol', 'Alprazolam', 'Amoxicillin', 
-        'Atorvastatin', 'Azithromycin', 'Benzonatate', 'Bupropion', 'Buspirone',
-        'Cefdinir', 'Cephalexin', 'Ciprofloxacin', 'Citalopram', 'Clindamycin',
-        'Ibuprofen', 'Metformin', 'Lisinopril', 'Metoprolol', 'Amlodipine',
-        'Cyclobenzaprine', 'Diazepam', 'Doxycycline', 'Duloxetine', 'Escitalopram',
-        'Fluoxetine', 'Gabapentin', 'Hydrochlorothiazide', 'Hydroxyzine', 'Levothyroxine',
-        'Loratadine', 'Losartan', 'Meloxicam', 'Metronidazole', 'Naproxen',
-        'Omeprazole', 'Ondansetron', 'Oxycodone', 'Pantoprazole', 'Prednisone',
-        'Propranolol', 'Sertraline', 'Simvastatin', 'Tramadol', 'Trazodone',
-        'Venlafaxine', 'Warfarin', 'Zoloft', 'Zolpidem', 'Lipitor', 
-        'Nexium', 'Prozac', 'Xanax', 'Zantac', 'Advil',
-        'Tylenol', 'Motrin', 'Allegra', 'Claritin', 'Zyrtec'
-      ];
-      
-      const filteredResults = commonMedications.filter(
-        med => med.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-      
-      setSearchResults(filteredResults);
+      const results = await performMedicationSearch(searchTerm);
+      setSearchResults(results);
     } catch (err) {
       console.error('Error searching medications:', err);
       toast.error('Error searching medications');
@@ -91,7 +66,6 @@ const MedicationsSection = () => {
     }
   };
 
-  // Function to add medication to a specific list
   const addMedication = (name: string, listType: 'current' | 'research') => {
     try {
       const storageName = listType === 'current' ? 'my_medications' : 'researching_medications';
@@ -102,24 +76,19 @@ const MedicationsSection = () => {
         added_at: new Date().toISOString()
       };
       
-      // Get current list from storage
       let currentList: MedicationTableItem[] = [];
       const storedData = localStorage.getItem(storageName);
       if (storedData) {
         currentList = JSON.parse(storedData);
       }
       
-      // Check if medication already exists
       const existingIndex = currentList.findIndex(med => med.name === name);
       if (existingIndex >= 0) {
-        // Update existing entry
         currentList[existingIndex] = newMedication;
       } else {
-        // Add new entry
         currentList.push(newMedication);
       }
       
-      // Save back to storage
       localStorage.setItem(storageName, JSON.stringify(currentList));
       
       toast.success(`Added ${name} to ${listType === 'current' ? 'current' : 'research'} medications`);
@@ -132,10 +101,8 @@ const MedicationsSection = () => {
     }
   };
 
-  // Function to discontinue medication
   const discontinueMedication = (name: string, url: string) => {
     try {
-      // First add to discontinued list
       const newMedication: MedicationTableItem = { 
         name, 
         url, 
@@ -148,20 +115,15 @@ const MedicationsSection = () => {
         discontinuedList = JSON.parse(storedData);
       }
       
-      // Check if medication already exists in discontinued list
       const existingIndex = discontinuedList.findIndex(med => med.name === name);
       if (existingIndex >= 0) {
-        // Update existing entry
         discontinuedList[existingIndex] = newMedication;
       } else {
-        // Add new entry
         discontinuedList.push(newMedication);
       }
       
-      // Save discontinued list
       localStorage.setItem('discontinued_medications', JSON.stringify(discontinuedList));
       
-      // Then remove from current medications
       let currentList: MedicationTableItem[] = [];
       const currentData = localStorage.getItem('my_medications');
       if (currentData) {
@@ -178,10 +140,8 @@ const MedicationsSection = () => {
     }
   };
 
-  // Function to restore medication
   const restoreMedication = (name: string, url: string) => {
     try {
-      // First add back to current medications
       const newMedication: MedicationTableItem = { 
         name, 
         url, 
@@ -194,20 +154,15 @@ const MedicationsSection = () => {
         currentList = JSON.parse(storedData);
       }
       
-      // Check if medication already exists
       const existingIndex = currentList.findIndex(med => med.name === name);
       if (existingIndex >= 0) {
-        // Update existing entry
         currentList[existingIndex] = newMedication;
       } else {
-        // Add new entry
         currentList.push(newMedication);
       }
       
-      // Save current list
       localStorage.setItem('my_medications', JSON.stringify(currentList));
       
-      // Then remove from discontinued list
       let discontinuedList: MedicationTableItem[] = [];
       const discontinuedData = localStorage.getItem('discontinued_medications');
       if (discontinuedData) {
@@ -224,7 +179,6 @@ const MedicationsSection = () => {
     }
   };
 
-  // Function to permanently delete medication
   const permanentlyDelete = (name: string) => {
     try {
       let discontinuedList: MedicationTableItem[] = [];
@@ -243,7 +197,6 @@ const MedicationsSection = () => {
     }
   };
 
-  // Function to toggle selection of a drug for interaction check
   const toggleDrugSelection = (name: string) => {
     setSelectedDrugs(prev => {
       if (prev.includes(name)) {
@@ -254,44 +207,94 @@ const MedicationsSection = () => {
     });
   };
 
-  // Function to check for interactions
-  const checkInteractions = () => {
+  const checkInteractions = async () => {
     if (selectedDrugs.length < 2) {
       toast.error('Please select at least 2 medications to check for interactions');
       return;
     }
 
-    // This is a placeholder for an actual API call - in a real app you'd want to call a backend service
-    const report = `
-      <div class="text-center mb-4">
-        <h2 class="text-2xl font-bold">Medication Interaction Report</h2>
-        <p class="text-gray-500">Generated on ${new Date().toLocaleDateString()}</p>
-      </div>
-      <div class="mb-4">
-        <h3 class="font-medium">Selected Medications:</h3>
-        <ul class="list-disc pl-5">
-          ${selectedDrugs.map(drug => `<li>${drug}</li>`).join('')}
-        </ul>
-      </div>
-      <div>
-        <h3 class="font-medium mb-2">Potential Interactions:</h3>
-        <p>This is a simulated interaction report. In a real application, this would contain actual drug interaction data from a medical database or API.</p>
-        <p class="mt-2 font-medium text-amber-600">Always consult with a healthcare professional about potential medication interactions.</p>
-      </div>
-    `;
+    setIsGeneratingReport(true);
 
-    setInteractionReport(report);
+    try {
+      const drugIds = selectedDrugs.map(drug => drug.toLowerCase().replace(/\s+/g, '-'));
+      
+      const { checkDrugInteractions } = await import('@/utils/drugsComApi');
+      
+      const interactionData = await checkDrugInteractions(drugIds);
+      
+      const report = `
+        <div class="text-center mb-4">
+          <h2 class="text-2xl font-bold">Medication Interaction Report</h2>
+          <p class="text-gray-500">Generated on ${new Date().toLocaleDateString()}</p>
+        </div>
+        <div class="mb-4">
+          <h3 class="font-medium">Selected Medications:</h3>
+          <ul class="list-disc pl-5">
+            ${selectedDrugs.map(drug => `<li>${drug}</li>`).join('')}
+          </ul>
+        </div>
+        <div>
+          <h3 class="font-medium mb-2">Potential Interactions:</h3>
+          ${interactionData.summary ? 
+            `<p class="mb-2">${interactionData.summary}</p>` : 
+            `<p>No summary available</p>`
+          }
+          
+          ${interactionData.interactions && interactionData.interactions.length > 0 ?
+            `<ul class="list-disc pl-5 mt-2">
+              ${interactionData.interactions.map((interaction: any) => `
+                <li class="mb-1">
+                  <span class="${interaction.severity === 'major' ? 'text-red-600 font-medium' : 
+                    interaction.severity === 'moderate' ? 'text-amber-600 font-medium' : 
+                    'text-gray-600'}">
+                    ${interaction.severity?.toUpperCase() || 'UNKNOWN'} SEVERITY:
+                  </span> 
+                  ${interaction.description || 'No description available'}
+                </li>
+              `).join('')}
+            </ul>` :
+            `<p class="mt-2 italic">No specific interactions found in database.</p>`
+          }
+          
+          <p class="mt-4 font-medium text-amber-600">Always consult with a healthcare professional about potential medication interactions.</p>
+        </div>
+      `;
+
+      setInteractionReport(report);
+    } catch (error) {
+      console.error('Error generating interaction report:', error);
+      toast.error('Error checking medication interactions');
+      
+      const fallbackReport = `
+        <div class="text-center mb-4">
+          <h2 class="text-2xl font-bold">Medication Interaction Report</h2>
+          <p class="text-gray-500">Generated on ${new Date().toLocaleDateString()}</p>
+        </div>
+        <div class="mb-4">
+          <h3 class="font-medium">Selected Medications:</h3>
+          <ul class="list-disc pl-5">
+            ${selectedDrugs.map(drug => `<li>${drug}</li>`).join('')}
+          </ul>
+        </div>
+        <div>
+          <h3 class="font-medium mb-2">Potential Interactions:</h3>
+          <p>This is a simulated interaction report. In a real application, this would contain actual drug interaction data from a medical database or API.</p>
+          <p class="mt-2 font-medium text-amber-600">Always consult with a healthcare professional about potential medication interactions.</p>
+        </div>
+      `;
+      
+      setInteractionReport(fallbackReport);
+    } finally {
+      setIsGeneratingReport(false);
+    }
   };
 
-  // Function to export interaction report as PDF
   const exportReportAsPDF = () => {
     if (!interactionReport) {
       toast.error('Generate an interaction report first');
       return;
     }
 
-    // In a real app, you might use a library like jsPDF here
-    // For now, we'll use the browser's print functionality
     const printWindow = window.open('', '', 'height=600,width=800');
     if (printWindow) {
       printWindow.document.write(`
@@ -312,7 +315,6 @@ const MedicationsSection = () => {
       `);
       printWindow.document.close();
       
-      // Give the browser time to process the document
       setTimeout(() => {
         printWindow.print();
         printWindow.close();
@@ -353,10 +355,17 @@ const MedicationsSection = () => {
                 <Button 
                   variant="outline"
                   size="sm"
-                  disabled={selectedDrugs.length < 2}
+                  disabled={selectedDrugs.length < 2 || isGeneratingReport}
                   onClick={checkInteractions}
                 >
-                  Check Interactions
+                  {isGeneratingReport ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Checking...
+                    </>
+                  ) : (
+                    <>Check Interactions</>
+                  )}
                 </Button>
               </div>
             </div>
@@ -564,7 +573,14 @@ const MedicationsSection = () => {
                 onClick={searchMedication} 
                 disabled={isSearching}
               >
-                {isSearching ? 'Searching...' : 'Search'}
+                {isSearching ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Searching...
+                  </>
+                ) : (
+                  'Search'
+                )}
               </Button>
             </div>
             

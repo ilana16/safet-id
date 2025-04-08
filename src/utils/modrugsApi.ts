@@ -1,9 +1,9 @@
-
 import { MedicationInfo } from './medicationData.d';
 import { toast } from 'sonner';
+import { searchDrugsCom, getDrugDetails, checkDrugInteractions } from './drugsComApi';
 
 /**
- * Performs a search in the Drugs.com scraper for medications matching the query
+ * Performs a search in the Drugs.com API for medications matching the query
  * 
  * @param query The search query
  * @returns Promise resolving to an array of medication names
@@ -12,33 +12,13 @@ export const performMedicationSearch = async (query: string): Promise<string[]> 
   if (!query || query.length < 2) return [];
   
   try {
-    // Simulate scraping drugs.com search page using Python scraper
-    console.log('Simulating Python scraper search for:', query);
+    console.log('Searching for medications:', query);
     
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 500));
+    // Use the drugsComApi for searching
+    const results = await searchDrugsCom(query);
     
-    // Simulate search results
-    const commonMeds = [
-      'acetaminophen', 'adderall', 'albuterol', 'alprazolam', 'amoxicillin', 
-      'atorvastatin', 'azithromycin', 'benzonatate', 'bupropion', 'buspirone',
-      'cefdinir', 'cephalexin', 'ciprofloxacin', 'citalopram', 'clindamycin', 
-      'clonazepam', 'cyclobenzaprine', 'diazepam', 'doxycycline', 'duloxetine',
-      'escitalopram', 'fluoxetine', 'gabapentin', 'hydrochlorothiazide', 'hydroxyzine',
-      'ibuprofen', 'levothyroxine', 'lisinopril', 'loperamide', 'loratadine',
-      'lorazepam', 'losartan', 'metformin', 'metoprolol', 'metronidazole',
-      'naproxen', 'omeprazole', 'ondansetron', 'oxycodone', 'pantoprazole',
-      'prednisone', 'propranolol', 'sertraline', 'simvastatin', 'trazodone',
-      'vitamin d', 'warfarin', 'zoloft', 'zolpidem'
-    ];
-    
-    // Filter based on query
-    const filteredResults = commonMeds.filter(med => 
-      med.toLowerCase().includes(query.toLowerCase())
-    );
-    
-    // Sort alphabetically
-    return filteredResults.sort((a, b) => a.localeCompare(b));
+    // Extract just the names for compatibility with existing code
+    return results.map(drug => drug.name);
     
   } catch (error) {
     console.error('Error performing medication search:', error);
@@ -48,8 +28,7 @@ export const performMedicationSearch = async (query: string): Promise<string[]> 
 };
 
 /**
- * Fetch medication information from Drugs.com using web scraping techniques
- * Based on the Python scraper for Drugs.com
+ * Fetch medication information from Drugs.com using the API
  * 
  * @param drugName Name of the drug to look up
  * @returns Promise resolving to MedicationInfo object or null if not found
@@ -60,143 +39,14 @@ export const fetchMedicationInfo = async (drugName: string): Promise<MedicationI
   }
 
   try {
-    console.log('Simulating Python Drugs.com scraper for:', drugName);
+    console.log('Fetching medication info for:', drugName);
     
-    // Simulate network delay for realistic scraping time
-    await new Promise(resolve => setTimeout(resolve, 800));
+    // Format the drug ID the same way the search would
+    const drugId = drugName.toLowerCase().replace(/\s+/g, '-');
     
-    // Generate simulated drug data based on the Python scraper structure
-    const sideEffects = {
-      common: generateRandomArray([
-        'Headache', 'Nausea', 'Dizziness', 'Drowsiness', 'Fatigue',
-        'Dry mouth', 'Insomnia', 'Anxiety', 'Upset stomach', 'Diarrhea',
-        'Constipation', 'Increased sweating', 'Loss of appetite', 'Muscle pain',
-        'Blurred vision', 'Itching', 'Skin rash', 'Irritability'
-      ], 3, 7),
-      serious: generateRandomArray([
-        'Allergic reaction', 'Difficulty breathing', 'Chest pain', 'Irregular heartbeat',
-        'Severe dizziness', 'Fainting', 'Seizure', 'Unusual bleeding or bruising',
-        'Severe stomach/abdominal pain', 'Persistent nausea/vomiting',
-        'Yellowing of eyes/skin', 'Dark urine', 'Mental/mood changes',
-        'Swelling of ankles/feet', 'Vision changes', 'Unusual tiredness'
-      ], 2, 5),
-      rare: generateRandomArray([
-        'Stevens-Johnson syndrome', 'Toxic epidermal necrolysis', 'Anaphylaxis',
-        'Agranulocytosis', 'Aplastic anemia', 'Rhabdomyolysis', 'QT prolongation',
-        'Serotonin syndrome', 'Pancreatitis', 'Angioedema', 'Myocarditis'
-      ], 1, 3)
-    };
-
-    // Generate drug class based on the drug name
-    const drugClass = getDrugClass(drugName);
-    
-    // Generate dosage information
-    const dosage = {
-      adult: `Adults: ${getRandomDosage()}`,
-      child: `Children: ${getRandomDosage(true)}`,
-      elderly: `Elderly: ${getRandomDosage(false, true)}`,
-      frequency: getRandomFrequency(),
-      renal: getRandomRenalDosage(),
-      hepatic: getRandomHepaticDosage()
-    };
-    
-    // Generate interaction classifications
-    const interactionClassifications = {
-      major: generateRandomArray([
-        'Monoamine oxidase inhibitors (MAOIs)', 'Warfarin', 'Phenelzine',
-        'Tranylcypromine', 'Isocarboxazid', 'CYP3A4 inhibitors', 'QT-prolonging agents',
-        `${drugName} with alcohol`, 'Linezolid', 'Methylene blue'
-      ], 1, 3),
-      moderate: generateRandomArray([
-        'NSAIDs', 'Aspirin', 'Antacids', 'Cimetidine', 'Beta blockers',
-        'Oral contraceptives', 'Phenytoin', 'Carbamazepine', 'Rifampin',
-        'Quinolone antibiotics', 'Proton pump inhibitors'
-      ], 2, 5),
-      minor: generateRandomArray([
-        'Caffeine', 'Multivitamins', 'Vitamin C', 'Vitamin D', 'Calcium supplements',
-        'Iron supplements', 'Magnesium supplements', 'Zinc supplements'
-      ], 1, 4),
-      unknown: []
-    };
-    
-    // Generate food interactions
-    const foodInteractions = generateRandomArray([
-      `Avoid grapefruit juice while taking ${drugName}`,
-      'Take on an empty stomach for better absorption',
-      'Take with food to minimize stomach upset',
-      'Avoid alcohol while taking this medication',
-      'May decrease effectiveness when taken with high-fat meals',
-      'Avoid excessive caffeine consumption',
-      'Avoid foods high in tyramine (aged cheese, cured meats)',
-      'Take 1 hour before or 2 hours after meals',
-      'Absorption may be decreased with dairy products'
-    ], 2, 4);
-    
-    // Generate condition interactions
-    const conditionInteractions = generateRandomArray([
-      'Liver disease: Use with caution, dose adjustment may be needed',
-      'Kidney disease: Lower doses may be required',
-      'Heart conditions: Monitor cardiac function regularly',
-      'History of seizures: May lower seizure threshold',
-      'Thyroid disorders: May affect thyroid function tests',
-      'Diabetes: May affect blood glucose levels',
-      'Glaucoma: May increase intraocular pressure',
-      'Bleeding disorders: May increase risk of bleeding',
-      'Depression: Monitor for worsening symptoms',
-      'Bipolar disorder: May trigger manic episodes',
-      'Parkinson\'s disease: May worsen symptoms'
-    ], 3, 6);
-    
-    // Generate therapeutic duplications
-    const therapeuticDuplications = generateRandomArray([
-      `Do not take with other medications in the same class as ${drugName}`,
-      'May cause additive effects with similar medications',
-      'Check with your doctor before taking with other medications with similar effects',
-      'Combining with medications in the same therapeutic category may increase side effects',
-      'Taking multiple medications with similar actions may lead to cumulative toxicity'
-    ], 1, 3);
-    
-    // Determine if prescription only based on drug name
-    const isPrescriptionOnly = /^(a|c|d|e|f|l|m|o|p|s|v|z)/i.test(drugName);
-    
-    // Create drug data
-    const drugData: MedicationInfo = {
-      name: drugName,
-      genericName: getGenericName(drugName),
-      description: `${drugName} is used to ${getRandomUses().join(', ')}. ${getRandomDescription(drugName)}`,
-      drugClass: drugClass,
-      prescriptionOnly: isPrescriptionOnly,
-      usedFor: getRandomUses(),
-      warnings: generateRandomArray([
-        'Do not use if allergic to this medication',
-        'Consult your doctor before use if you are pregnant or breastfeeding',
-        'May cause drowsiness; use caution when driving or operating machinery',
-        'Do not drink alcohol while taking this medication',
-        'Do not stop taking this medication suddenly without consulting your doctor',
-        'May increase risk of suicidal thoughts in children, adolescents, and young adults',
-        'May cause serious skin reactions; seek medical attention if rash develops',
-        'May affect liver function; periodic blood tests may be needed',
-        'May mask signs of infection; report new symptoms promptly'
-      ], 3, 5),
-      sideEffects: sideEffects,
-      interactions: [
-        `${drugName} may interact with other medications`,
-        'Tell your doctor about all medications you use, including vitamins and herbs',
-        `Ask a doctor or pharmacist before using ${drugName} with any other medications`
-      ],
-      dosage: dosage,
-      forms: getRandomForms(),
-      pregnancy: getRandomPregnancyCategory(),
-      breastfeeding: getRandomBreastfeedingAdvice(),
-      foodInteractions: foodInteractions,
-      conditionInteractions: conditionInteractions,
-      therapeuticDuplications: therapeuticDuplications,
-      interactionClassifications: interactionClassifications,
-      halfLife: getRandomHalfLife(),
-      source: 'Python Drugs.com Scraper (Simulated)'
-    };
-    
-    return drugData;
+    // Use the drugsComApi for getting details
+    const drugInfo = await getDrugDetails(drugId);
+    return drugInfo;
     
   } catch (error) {
     console.error('Error fetching medication information:', error);
