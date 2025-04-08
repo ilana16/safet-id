@@ -92,7 +92,7 @@ const DrugInfoLookup: React.FC<DrugInfoLookupProps> = ({ onAddMedication }) => {
       setIsLoading(false);
       setError('The search took too long to complete. Please try again.');
       toast.error('Search timed out. Please try again.');
-    }, 30000);
+    }, 15000);
     
     setSearchTimeoutId(timeoutId);
     
@@ -134,7 +134,7 @@ const DrugInfoLookup: React.FC<DrugInfoLookupProps> = ({ onAddMedication }) => {
     } catch (error) {
       console.error('Error fetching medication information:', error);
       setError(error instanceof Error && error.message.includes('timed out')
-        ? 'The search took too long to complete. Please try again.'
+        ? 'The search took too long to complete. Please try again with a different medication.'
         : 'Unable to load medication information. Please try another medication or try again later.');
       toast.error('Error loading medication information');
     } finally {

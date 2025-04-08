@@ -10,8 +10,8 @@ import { toast } from 'sonner';
 export const enhancedMedicationSearch = async (query: string): Promise<string[]> => {
   console.log('Using enhanced medication database search for:', query);
   
-  // Comprehensive list of common medications
-  const commonMedications = [
+  // Comprehensive list of common medications stored as a Set for faster lookups
+  const commonMedicationsSet = new Set([
     'Acetaminophen', 'Adderall', 'Albuterol', 'Alprazolam', 'Amoxicillin', 
     'Atorvastatin', 'Azithromycin', 'Benzonatate', 'Bupropion', 'Buspirone',
     'Cefdinir', 'Cephalexin', 'Ciprofloxacin', 'Citalopram', 'Clindamycin', 
@@ -40,7 +40,6 @@ export const enhancedMedicationSearch = async (query: string): Promise<string[]>
     'Keppra', 'Lamictal', 'Lyrica', 'Neurontin', 'Paxil',
     'Premarin', 'Pristiq', 'Protonix', 'Remicade', 'Seroquel',
     'Singulair', 'Topamax', 'Toprol', 'Zetia',
-    // Over 250 common medications to provide better search results
     'Actos', 'Ativan', 'Augmentin', 'Bactrim', 'Benadryl',
     'Boniva', 'Bumex', 'Cardizem', 'Celexa', 'Coreg',
     'Coumadin', 'Crestor', 'Depakote', 'Diovan', 'Enbrel',
@@ -52,7 +51,10 @@ export const enhancedMedicationSearch = async (query: string): Promise<string[]>
     'Tamiflu', 'Tums', 'Ultram', 'Valtrex', 'Viagra',
     'Vytorin', 'Wellbutrin', 'Xalatan', 'Xanax', 'Yasmin',
     'Zantac', 'Zestoretic', 'Zithromax', 'Zocor', 'Zoloft'
-  ];
+  ]);
+
+  // Convert set to array for searching
+  const commonMedications = Array.from(commonMedicationsSet);
   
   try {
     // Filter based on query (case-insensitive)
@@ -62,23 +64,30 @@ export const enhancedMedicationSearch = async (query: string): Promise<string[]>
       return [];
     }
     
-    // First try direct matching (starts with)
-    let results = commonMedications.filter(med => 
-      med.toLowerCase().startsWith(lowercaseQuery)
-    );
+    // Use a faster approach - filter once and sort by relevance
+    const startsWith = [];
+    const includes = [];
     
-    // If not enough results, add medications that include the query string
-    if (results.length < 15) {
-      const additionalResults = commonMedications.filter(med => 
-        !med.toLowerCase().startsWith(lowercaseQuery) && 
-        med.toLowerCase().includes(lowercaseQuery)
-      );
+    // Use a more efficient approach to searching
+    for (const med of commonMedications) {
+      const lowerMed = med.toLowerCase();
+      if (lowerMed.startsWith(lowercaseQuery)) {
+        startsWith.push(med);
+      } else if (lowerMed.includes(lowercaseQuery)) {
+        includes.push(med);
+      }
       
-      results = [...results, ...additionalResults];
+      // Early exit if we have enough results
+      if (startsWith.length + includes.length >= 20) {
+        break;
+      }
     }
     
-    // Sort alphabetically and limit to 15 results
-    return Array.from(new Set(results)).slice(0, 15);
+    // Combine results with priority to those that start with the query
+    const results = [...startsWith, ...includes];
+    
+    // Return unique results limited to 15
+    return results.slice(0, 15);
   } catch (error) {
     console.error('Error in enhanced medication search:', error);
     toast.error('Error searching medication database');

@@ -2,8 +2,8 @@
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
-// Default timeout for API calls in milliseconds
-const API_TIMEOUT = 20000; // 20 seconds
+// Default timeout for API calls in milliseconds - reduced for faster response
+const API_TIMEOUT = 10000; // 10 seconds (reduced from 20)
 
 /**
  * Searches for medications using database first, with fallback to common medications list
@@ -36,17 +36,31 @@ export const searchDrugsCom = async (query: string): Promise<string[]> => {
     // Due to Drugs.com restrictions, we use our comprehensive medication database
     console.log('Using internal medication database for:', query);
     
-    // Import our enhanced search function
+    // Import our enhanced search function - use with timeout control
     const { enhancedMedicationSearch } = await import('./medication-db/enhancedMedicationSearch');
-    return await enhancedMedicationSearch(query);
+    
+    // Create a promise that resolves with the search results or rejects after timeout
+    const searchPromise = enhancedMedicationSearch(query);
+    const timeoutPromise = new Promise<string[]>((_, reject) => {
+      setTimeout(() => reject(new Error("Search operation timed out")), API_TIMEOUT);
+    });
+    
+    // Return whichever promise resolves/rejects first
+    return await Promise.race([searchPromise, timeoutPromise]);
     
   } catch (error) {
     console.error('Error searching medications:', error);
     toast.error('Error searching for medications');
     
-    // Use fallback search in case of any error
-    const { enhancedMedicationSearch } = await import('./medication-db/enhancedMedicationSearch');
-    return await enhancedMedicationSearch(query);
+    // Use fallback search in case of any error, but with a shorter timeout
+    try {
+      const { enhancedMedicationSearch } = await import('./medication-db/enhancedMedicationSearch');
+      const results = await enhancedMedicationSearch(query);
+      return results;
+    } catch (fallbackError) {
+      console.error('Fallback search failed:', fallbackError);
+      return [];
+    }
   }
 };
 

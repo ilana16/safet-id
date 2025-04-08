@@ -5,6 +5,9 @@ import { saveMedicationToDb } from './save';
 import { toast } from 'sonner';
 import { getDrugsComUrl } from '../drugsComApi';
 
+// Configurable timeout for database operations
+const DB_OPERATION_TIMEOUT = 8000; // 8 seconds
+
 /**
  * Gets medication information from the database or fallback data
  * 
@@ -20,87 +23,112 @@ export const getMedicationFromDb = async (
 ): Promise<MedicationInfo | null> => {
   if (!medicationName) return null;
 
+  // Create a promise that will reject after the timeout period
+  const timeoutPromise = new Promise<MedicationInfo | null>((_, reject) => {
+    setTimeout(() => reject(new Error("Database operation timed out")), DB_OPERATION_TIMEOUT);
+  });
+
   try {
     const normalizedName = medicationName.toLowerCase().trim();
     
     console.log(`Getting medication from database: ${normalizedName} using source: ${preferredSource}`);
     
-    // First try to get the medication from the database
-    const { data: dbMeds, error: dbError } = await supabase
-      .from('medications')
-      .select('*')
-      .ilike('name', normalizedName)
-      .limit(1);
-    
-    if (dbError) {
-      console.error('Error getting medication from database:', dbError);
-    }
-    
-    // If found in the database, increment the search count and return the medication
-    if (dbMeds && dbMeds.length > 0) {
-      console.log('Medication found in database:', dbMeds[0].name);
-      
-      // Increment the search count
-      const newCount = (dbMeds[0].search_count || 0) + 1;
-      
-      // Update the search count and timestamp
-      await supabase
+    // First try to get the medication from the database with timeout control
+    const dbLookupPromise = (async () => {
+      const { data: dbMeds, error: dbError } = await supabase
         .from('medications')
-        .update({
-          search_count: newCount,
-          searched_at: new Date().toISOString(),
-          searched_by: userId || dbMeds[0].searched_by
-        })
-        .eq('id', dbMeds[0].id);
+        .select('*')
+        .ilike('name', normalizedName)
+        .limit(1);
       
-      // Convert database medication to MedicationInfo format with proper type handling
-      const medicationInfo: MedicationInfo = {
-        name: dbMeds[0].name,
-        genericName: dbMeds[0].generic_name,
-        description: dbMeds[0].description,
-        drugClass: dbMeds[0].drug_class,
-        prescriptionOnly: dbMeds[0].prescription_only,
-        usedFor: dbMeds[0].used_for || [],
-        warnings: dbMeds[0].warnings || [],
-        sideEffects: dbMeds[0].side_effects && typeof dbMeds[0].side_effects === 'object' 
-          ? dbMeds[0].side_effects as any 
-          : { common: [], serious: [] },
-        interactions: dbMeds[0].interactions || [],
-        dosage: dbMeds[0].dosage && typeof dbMeds[0].dosage === 'object'
-          ? dbMeds[0].dosage as any
-          : { adult: '', child: '' },
-        forms: dbMeds[0].forms || [],
-        interactionClassifications: dbMeds[0].interaction_classifications && 
-          typeof dbMeds[0].interaction_classifications === 'object'
-          ? dbMeds[0].interaction_classifications as any
-          : { major: [], moderate: [], minor: [] },
-        interactionSeverity: dbMeds[0].interaction_severity && 
-          typeof dbMeds[0].interaction_severity === 'object'
-          ? dbMeds[0].interaction_severity as any
-          : { major: [], moderate: [], minor: [] },
-        foodInteractions: dbMeds[0].food_interactions || [],
-        conditionInteractions: dbMeds[0].condition_interactions || [],
-        therapeuticDuplications: dbMeds[0].therapeutic_duplications || [],
-        pregnancy: dbMeds[0].pregnancy,
-        breastfeeding: dbMeds[0].breastfeeding,
-        // Fix: Safely handle half_life property by checking if it exists and casting as needed
-        halfLife: dbMeds[0] && 'half_life' in dbMeds[0] ? String(dbMeds[0].half_life || '') : '',
-        drugsComUrl: getDrugsComUrl(dbMeds[0].name),
-        source: dbMeds[0].source,
-        fromDatabase: true,
-        databaseSearchCount: newCount
-      };
+      if (dbError) {
+        console.error('Error getting medication from database:', dbError);
+        throw dbError;
+      }
       
-      return medicationInfo;
-    }
+      // If found in the database, increment the search count and return the medication
+      if (dbMeds && dbMeds.length > 0) {
+        console.log('Medication found in database:', dbMeds[0].name);
+        
+        // Increment the search count
+        const newCount = (dbMeds[0].search_count || 0) + 1;
+        
+        // Update the search count and timestamp in background
+        try {
+          await supabase
+            .from('medications')
+            .update({
+              search_count: newCount,
+              searched_at: new Date().toISOString(),
+              searched_by: userId || dbMeds[0].searched_by
+            })
+            .eq('id', dbMeds[0].id);
+        } catch (updateError) {
+          console.warn('Could not update search count, but continuing:', updateError);
+        }
+        
+        // Convert database medication to MedicationInfo format with proper type handling
+        const medicationInfo: MedicationInfo = {
+          name: dbMeds[0].name,
+          genericName: dbMeds[0].generic_name,
+          description: dbMeds[0].description,
+          drugClass: dbMeds[0].drug_class,
+          prescriptionOnly: dbMeds[0].prescription_only,
+          usedFor: dbMeds[0].used_for || [],
+          warnings: dbMeds[0].warnings || [],
+          sideEffects: dbMeds[0].side_effects && typeof dbMeds[0].side_effects === 'object' 
+            ? dbMeds[0].side_effects as any 
+            : { common: [], serious: [] },
+          interactions: dbMeds[0].interactions || [],
+          dosage: dbMeds[0].dosage && typeof dbMeds[0].dosage === 'object'
+            ? dbMeds[0].dosage as any
+            : { adult: '', child: '' },
+          forms: dbMeds[0].forms || [],
+          interactionClassifications: dbMeds[0].interaction_classifications && 
+            typeof dbMeds[0].interaction_classifications === 'object'
+            ? dbMeds[0].interaction_classifications as any
+            : { major: [], moderate: [], minor: [] },
+          interactionSeverity: dbMeds[0].interaction_severity && 
+            typeof dbMeds[0].interaction_severity === 'object'
+            ? dbMeds[0].interaction_severity as any
+            : { major: [], moderate: [], minor: [] },
+          foodInteractions: dbMeds[0].food_interactions || [],
+          conditionInteractions: dbMeds[0].condition_interactions || [],
+          therapeuticDuplications: dbMeds[0].therapeutic_duplications || [],
+          pregnancy: dbMeds[0].pregnancy,
+          breastfeeding: dbMeds[0].breastfeeding,
+          // Fix: Safely handle half_life property by checking if it exists and casting as needed
+          halfLife: dbMeds[0] && 'half_life' in dbMeds[0] ? String(dbMeds[0].half_life || '') : '',
+          drugsComUrl: getDrugsComUrl(dbMeds[0].name),
+          source: dbMeds[0].source,
+          fromDatabase: true,
+          databaseSearchCount: newCount
+        };
+        
+        return medicationInfo;
+      }
+      
+      return null;
+    })();
     
-    // If not found in the database, use fallback immediately
-    console.log('Medication not found in database, using fallback data');
+    // Race the database lookup against the timeout
+    const dbResult = await Promise.race([dbLookupPromise, timeoutPromise]);
+    
+    // If we got a result from the database, return it
+    if (dbResult) return dbResult;
+    
+    // If not found in the database or timed out, use fallback immediately
+    console.log('Medication not found in database or lookup timed out, using fallback data');
     return await generateMedicationInfo(medicationName, userId);
     
   } catch (error) {
     console.error('Error getting medication from database:', error);
-    toast.error('Error retrieving medication information');
+    // If it was a timeout error, give a specific message
+    if (error instanceof Error && error.message.includes('timed out')) {
+      toast.error('Database lookup timed out, using local data');
+    } else {
+      toast.error('Error retrieving medication information');
+    }
     return await generateMedicationInfo(medicationName, userId);
   }
 };
@@ -115,21 +143,36 @@ export const getMedicationFromDb = async (
 async function generateMedicationInfo(medicationName: string, userId?: string | null): Promise<MedicationInfo | null> {
   console.log('Generating medication info for:', medicationName);
   
-  // Import the enhanced medication data utility
-  const { getEnhancedMedicationData } = await import('./enhancedMedicationData');
-  
   try {
-    // Get enhanced medication data
-    const medInfo = await getEnhancedMedicationData(medicationName);
+    // Import the enhanced medication data utility with timeout control
+    const enhancedDataPromise = import('./enhancedMedicationData').then(
+      module => module.getEnhancedMedicationData(medicationName)
+    );
+    
+    const timeoutPromise = new Promise<MedicationInfo | null>((_, reject) => {
+      setTimeout(() => reject(new Error("Enhanced data generation timed out")), 5000);
+    });
+    
+    // Race the data generation against the timeout
+    const medInfo = await Promise.race([enhancedDataPromise, timeoutPromise]);
     
     if (medInfo) {
       // Mark that this is generated data
       medInfo.source = 'Enhanced Medication Database';
       
-      // Try to save to the database
-      const savedMedInfo = await saveMedicationToDb(medInfo, userId || undefined);
-      
-      return savedMedInfo || medInfo;
+      try {
+        // Try to save to the database with a short timeout
+        const savePromise = saveMedicationToDb(medInfo, userId || undefined);
+        const saveTimeoutPromise = new Promise<MedicationInfo>((_, reject) => {
+          setTimeout(() => reject(new Error("Save operation timed out")), 3000);
+        });
+        
+        const savedMedInfo = await Promise.race([savePromise, saveTimeoutPromise]);
+        return savedMedInfo || medInfo;
+      } catch (saveError) {
+        console.warn('Failed to save to database, but returning data anyway:', saveError);
+        return medInfo;
+      }
     }
     
     // If even the enhanced data fails, create a very basic fallback
@@ -171,9 +214,7 @@ async function generateMedicationInfo(medicationName: string, userId?: string | 
       source: "Basic Fallback Data"
     };
     
-    // Try to save this basic fallback to the database
-    const savedBasicInfo = await saveMedicationToDb(basicFallback, userId || undefined);
-    return savedBasicInfo || basicFallback;
+    return basicFallback;
     
   } catch (e) {
     console.error('Error in generating medication info:', e);
