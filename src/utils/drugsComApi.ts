@@ -1,153 +1,79 @@
-
-import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
-// Default timeout for API calls in milliseconds - reduced for faster response
-const API_TIMEOUT = 5000; // 5 seconds (reduced from 10)
-
-// Define interface for drug search results from RPC
-interface DrugSearchResult {
-  id: string;
-  name: string;
-  generic: string | null;
-  drug_class: string | null;
-  otc: boolean | null;
-}
-
 /**
- * Searches for medications using multiple data sources in sequence
+ * Basic search function for Drugs.com
+ * This is a fallback method when the database search doesn't yield results
  * 
- * @param query Search query string
- * @returns Promise resolving to an array of medication names
+ * @param query Search query for medications
+ * @returns Array of medication names
  */
-export const searchDrugsCom = async (query: string): Promise<string[]> => {
-  if (!query || query.trim().length < 2) return [];
-  
+export async function searchDrugsCom(query: string): Promise<string[]> {
   try {
-    // Step 1: Try to search in the medications table
-    try {
-      console.log('Searching medication database for:', query);
-      const { data: dbResults, error } = await supabase
-        .from('medications')
-        .select('name')
-        .ilike('name', `%${query}%`)
-        .order('search_count', { ascending: false })
-        .limit(10);
-      
-      if (error) {
-        console.error('Error searching medications table:', error);
-        throw error;
-      }
-      
-      if (dbResults && dbResults.length > 0) {
-        console.log('Found results in medications table:', dbResults.length);
-        return dbResults.map(result => result.name);
-      }
-    } catch (dbError) {
-      console.error('Error searching medications table:', dbError);
+    if (!query || query.trim().length < 2) {
+      return [];
     }
     
-    // Step 2: Try to search in the drugs table using the RPC function
+    // First try to use our API endpoint if it's configured
     try {
-      console.log('Searching drugs table for:', query);
-      
-      const { data: drugsResults, error } = await supabase
-        .rpc('search_drugs', { 
-          search_term: `%${query}%`, 
-          result_limit: 10 
-        }) as { data: DrugSearchResult[] | null, error: any };
-      
-      if (error) {
-        console.error('Error in drugs search RPC:', error);
-        // Fallback to simple query with fewer type guarantees
-        const { data: fallbackResults, error: fallbackError } = await supabase
-          .from('medications')
-          .select('name')
-          .ilike('name', `%${query}%`)
-          .limit(10);
-          
-        if (fallbackError) {
-          console.error('Error in fallback search:', fallbackError);
-          throw fallbackError;
-        }
-          
-        if (fallbackResults && fallbackResults.length > 0) {
-          return fallbackResults.map(result => result.name);
-        }
-      }
-      
-      if (drugsResults && drugsResults.length > 0) {
-        console.log('Found results in drugs table:', drugsResults.length);
-        return drugsResults.map((result) => result.name);
-      }
-    } catch (drugsError) {
-      console.error('Error searching drugs table:', drugsError);
-    }
-    
-    // Step 3: Use enhanced local medication database as fallback
-    console.log('Using enhanced medication database for:', query);
-    
-    // Import our enhanced search function - use with timeout control
-    const { enhancedMedicationSearch } = await import('./medication-db/enhancedMedicationSearch');
-    
-    // Create a promise that resolves with the search results or rejects after timeout
-    const searchPromise = enhancedMedicationSearch(query);
-    const timeoutPromise = new Promise<string[]>((_, reject) => {
-      setTimeout(() => reject(new Error("Search operation timed out")), API_TIMEOUT);
-    });
-    
-    try {
-      // Return whichever promise resolves/rejects first
-      return await Promise.race([searchPromise, timeoutPromise]);
-    } catch (timeoutError) {
-      console.error('Search timed out, using direct method:', timeoutError);
-      
-      // If timeout occurred, try a more direct method with exact matching
-      const { enhancedMedicationSearch: directSearch } = await import('./medication-db/enhancedMedicationSearch');
-      const directResults = await directSearch(query);
-      
-      if (directResults.length > 0) {
-        return directResults;
-      }
-      
-      // If still no results, throw an error to trigger the fallback
-      throw new Error("Search operation timed out");
-    }
-  } catch (error) {
-    console.error('Error searching medications:', error);
-    
-    // Use fallback search in case of any error, but with a shorter timeout
-    try {
-      const { enhancedMedicationSearch } = await import('./medication-db/enhancedMedicationSearch');
-      const fallbackTimeoutPromise = new Promise<string[]>((_, reject) => {
-        setTimeout(() => reject(new Error("Fallback search timed out")), 3000);
+      const apiUrl = `/api/medications?query=${encodeURIComponent(query)}`;
+      const response = await fetch(apiUrl, { 
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' }
       });
       
-      // Use race with a shorter timeout for fallback search
-      return await Promise.race([enhancedMedicationSearch(query), fallbackTimeoutPromise]);
-    } catch (fallbackError) {
-      console.error('Fallback search failed:', fallbackError);
-      
-      // Last resort: try to match just the beginning of words
-      try {
-        const { enhancedMedicationSearch: emergencySearch } = await import('./medication-db/enhancedMedicationSearch');
-        const emergencyResults = await emergencySearch(query.substring(0, 3));
-        return emergencyResults.filter(med => med.toLowerCase().includes(query.toLowerCase())).slice(0, 5);
-      } catch (e) {
-        return [];
+      if (response.ok) {
+        const data = await response.json();
+        if (Array.isArray(data) && data.length > 0) {
+          return data.map(med => med.name);
+        }
       }
+    } catch (apiError) {
+      console.log('API search unavailable, falling back to local implementation');
+      // Silently continue to fallback if API search fails
     }
+    
+    // Fallback to local implementation with common medications
+    // This is a highly simplified version just to provide something when the API is unavailable
+    const commonMedications = [
+      "Acetaminophen", "Adderall", "Albuterol", "Amitriptyline", "Amlodipine", 
+      "Amoxicillin", "Ativan", "Atorvastatin", "Azithromycin", "Benzonatate",
+      "Bisoprolol", "Budesonide", "Bupropion", "Buspirone", "Carvedilol", 
+      "Cephalexin", "Cetirizine", "Ciprofloxacin", "Citalopram", "Clindamycin",
+      "Clonazepam", "Clonidine", "Cyclobenzaprine", "Cymbalta", "Dexamethasone",
+      "Diazepam", "Diclofenac", "Dicyclomine", "Diltiazem", "Diphenhydramine",
+      "Doxycycline", "Duloxetine", "Enalapril", "Escitalopram", "Esomeprazole", 
+      "Estradiol", "Famotidine", "Fluoxetine", "Fluticasone", "Furosemide",
+      "Gabapentin", "Glipizide", "Hydrochlorothiazide", "Hydroxyzine", "Ibuprofen",
+      "Insulin", "Levothyroxine", "Lexapro", "Lisinopril", "Loratadine",
+      "Lorazepam", "Losartan", "Meloxicam", "Metformin", "Methylprednisolone",
+      "Metoprolol", "Metronidazole", "Mirtazapine", "Montelukast", "Morphine",
+      "Naproxen", "Omeprazole", "Ondansetron", "Oxycodone", "Pantoprazole",
+      "Paroxetine", "Penicillin", "Prednisone", "Pregabalin", "Propranolol",
+      "Quetiapine", "Ramipril", "Ranitidine", "Sertraline", "Simvastatin",
+      "Spironolactone", "Sumatriptan", "Tamsulosin", "Tizanidine", "Tramadol",
+      "Trazodone", "Valacyclovir", "Venlafaxine", "Verapamil", "Warfarin",
+      "Xanax", "Zoloft"
+    ];
+    
+    const query_lower = query.toLowerCase();
+    const filteredMeds = commonMedications.filter(med => 
+      med.toLowerCase().includes(query_lower)
+    ).sort((a, b) => {
+      // Sort by how closely they match the query
+      const a_index = a.toLowerCase().indexOf(query_lower);
+      const b_index = b.toLowerCase().indexOf(query_lower);
+      
+      // Favor exact matches and matches at the beginning of words
+      if (a_index === 0 && b_index !== 0) return -1;
+      if (a_index !== 0 && b_index === 0) return 1;
+      
+      // Otherwise sort alphabetically
+      return a.localeCompare(b);
+    });
+    
+    return filteredMeds.slice(0, 10);
+  } catch (error) {
+    console.error('Error searching for medications:', error);
+    return [];
   }
-};
-
-/**
- * Generates a URL for a medication on Drugs.com
- * 
- * @param medicationName Name of the medication
- * @returns URL string for the medication on Drugs.com
- */
-export const getDrugsComUrl = (medicationName: string): string => {
-  if (!medicationName) return 'https://www.drugs.com/';
-  
-  return `https://www.drugs.com/search.php?searchterm=${encodeURIComponent(medicationName)}`;
-};
+}
