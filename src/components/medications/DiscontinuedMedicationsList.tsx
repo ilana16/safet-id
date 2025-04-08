@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Pill, Calendar, Clock, FileText, Trash2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { Medication } from '@/pages/medical-profile/MedicationsSection';
+import { Medication } from '@/types/medication';
 import { formatDistanceToNow } from 'date-fns';
 
 interface DiscontinuedMedicationsListProps {

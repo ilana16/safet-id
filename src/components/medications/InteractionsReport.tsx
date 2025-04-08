@@ -1,9 +1,8 @@
-
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { AlertTriangle, Check, AlertCircle, Info } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { Medication } from '@/pages/medical-profile/MedicationsSection';
+import { Medication } from '@/types/medication';
 
 interface InteractionsReportProps {
   medications: Medication[];

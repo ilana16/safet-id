@@ -6,57 +6,43 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { PlusCircle, Pill, Clock, Search, ExternalLink, RotateCcw, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
-
-interface Medication {
-  name: string;
-  url: string;
-  added_at: string;
-}
+import { Medication, MedicationTableItem } from '@/types/medication';
+import { getDrugsComUrl } from '@/utils/drugsComApi';
 
 const MedicationsSection = () => {
   const [activeTab, setActiveTab] = useState<string>('current');
-  const [currentMedications, setCurrentMedications] = useState<Medication[]>([]);
-  const [researchMedications, setResearchMedications] = useState<Medication[]>([]);
-  const [discontinuedMedications, setDiscontinuedMedications] = useState<Medication[]>([]);
+  const [currentMedications, setCurrentMedications] = useState<MedicationTableItem[]>([]);
+  const [researchMedications, setResearchMedications] = useState<MedicationTableItem[]>([]);
+  const [discontinuedMedications, setDiscontinuedMedications] = useState<MedicationTableItem[]>([]);
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [isSearching, setIsSearching] = useState<boolean>(false);
   const [searchResults, setSearchResults] = useState<string[]>([]);
 
-  // Load medications from database on component mount
+  // Load medications from local storage on component mount
   useEffect(() => {
     loadSavedMedications();
   }, []);
 
-  // Function to load medications from Supabase
+  // Function to load medications from local storage
   const loadSavedMedications = async () => {
     try {
       // Load current medications
-      const { data: currentData, error: currentError } = await supabase
-        .from('my_medications')
-        .select('*')
-        .order('added_at', { ascending: false });
-      
-      if (currentError) throw new Error(`Error loading current medications: ${currentError.message}`);
-      setCurrentMedications(currentData || []);
+      const currentData = localStorage.getItem('my_medications');
+      if (currentData) {
+        setCurrentMedications(JSON.parse(currentData));
+      }
       
       // Load researching medications
-      const { data: researchData, error: researchError } = await supabase
-        .from('researching_medications')
-        .select('*')
-        .order('added_at', { ascending: false });
-      
-      if (researchError) throw new Error(`Error loading research medications: ${researchError.message}`);
-      setResearchMedications(researchData || []);
+      const researchData = localStorage.getItem('researching_medications');
+      if (researchData) {
+        setResearchMedications(JSON.parse(researchData));
+      }
       
       // Load discontinued medications
-      const { data: discontinuedData, error: discontinuedError } = await supabase
-        .from('discontinued_medications')
-        .select('*')
-        .order('added_at', { ascending: false });
-      
-      if (discontinuedError) throw new Error(`Error loading discontinued medications: ${discontinuedError.message}`);
-      setDiscontinuedMedications(discontinuedData || []);
+      const discontinuedData = localStorage.getItem('discontinued_medications');
+      if (discontinuedData) {
+        setDiscontinuedMedications(JSON.parse(discontinuedData));
+      }
       
     } catch (error) {
       console.error('Error loading medications:', error);
@@ -74,32 +60,19 @@ const MedicationsSection = () => {
     setIsSearching(true);
     
     try {
-      // This is a simplified search - you can replace with your actual search implementation
-      const { data, error } = await supabase
-        .from('medications')
-        .select('name')
-        .ilike('name', `%${searchTerm}%`)
-        .limit(10);
-        
-      if (error) throw error;
+      // Simple search in static list
+      const commonMedications = [
+        'Acetaminophen', 'Adderall', 'Albuterol', 'Alprazolam', 'Amoxicillin', 
+        'Atorvastatin', 'Azithromycin', 'Benzonatate', 'Bupropion', 'Buspirone',
+        'Cefdinir', 'Cephalexin', 'Ciprofloxacin', 'Citalopram', 'Clindamycin',
+        'Ibuprofen', 'Metformin', 'Lisinopril', 'Metoprolol', 'Amlodipine'
+      ];
       
-      if (data && data.length > 0) {
-        setSearchResults(data.map(item => item.name));
-      } else {
-        // Fallback to a simple search in case no database results
-        const commonMedications = [
-          'Acetaminophen', 'Adderall', 'Albuterol', 'Alprazolam', 'Amoxicillin', 
-          'Atorvastatin', 'Azithromycin', 'Benzonatate', 'Bupropion', 'Buspirone',
-          'Cefdinir', 'Cephalexin', 'Ciprofloxacin', 'Citalopram', 'Clindamycin',
-          'Ibuprofen', 'Metformin', 'Lisinopril', 'Metoprolol', 'Amlodipine'
-        ];
-        
-        const filteredResults = commonMedications.filter(
-          med => med.toLowerCase().includes(searchTerm.toLowerCase())
-        );
-        
-        setSearchResults(filteredResults);
-      }
+      const filteredResults = commonMedications.filter(
+        med => med.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+      
+      setSearchResults(filteredResults);
     } catch (err) {
       console.error('Error searching medications:', err);
       toast.error('Error searching medications');
@@ -111,18 +84,33 @@ const MedicationsSection = () => {
   // Function to add medication to a specific list
   const addMedication = async (name: string, listType: 'current' | 'research') => {
     try {
-      const tableName = listType === 'current' ? 'my_medications' : 'researching_medications';
+      const storageName = listType === 'current' ? 'my_medications' : 'researching_medications';
       const url = getDrugsComUrl(name);
+      const newMedication: MedicationTableItem = {
+        name, 
+        url, 
+        added_at: new Date().toISOString()
+      };
       
-      const { error } = await supabase
-        .from(tableName)
-        .upsert([{ 
-          name, 
-          url, 
-          added_at: new Date().toISOString() 
-        }], { onConflict: ['name'] });
+      // Get current list from storage
+      let currentList: MedicationTableItem[] = [];
+      const storedData = localStorage.getItem(storageName);
+      if (storedData) {
+        currentList = JSON.parse(storedData);
+      }
       
-      if (error) throw error;
+      // Check if medication already exists
+      const existingIndex = currentList.findIndex(med => med.name === name);
+      if (existingIndex >= 0) {
+        // Update existing entry
+        currentList[existingIndex] = newMedication;
+      } else {
+        // Add new entry
+        currentList.push(newMedication);
+      }
+      
+      // Save back to storage
+      localStorage.setItem(storageName, JSON.stringify(currentList));
       
       toast.success(`Added ${name} to ${listType === 'current' ? 'current' : 'research'} medications`);
       await loadSavedMedications();
@@ -138,23 +126,39 @@ const MedicationsSection = () => {
   const discontinueMedication = async (name: string, url: string) => {
     try {
       // First add to discontinued list
-      const { error: insertError } = await supabase
-        .from('discontinued_medications')
-        .upsert([{ 
-          name, 
-          url, 
-          added_at: new Date().toISOString() 
-        }], { onConflict: ['name'] });
+      const newMedication: MedicationTableItem = { 
+        name, 
+        url, 
+        added_at: new Date().toISOString() 
+      };
       
-      if (insertError) throw insertError;
+      let discontinuedList: MedicationTableItem[] = [];
+      const storedData = localStorage.getItem('discontinued_medications');
+      if (storedData) {
+        discontinuedList = JSON.parse(storedData);
+      }
+      
+      // Check if medication already exists in discontinued list
+      const existingIndex = discontinuedList.findIndex(med => med.name === name);
+      if (existingIndex >= 0) {
+        // Update existing entry
+        discontinuedList[existingIndex] = newMedication;
+      } else {
+        // Add new entry
+        discontinuedList.push(newMedication);
+      }
+      
+      // Save discontinued list
+      localStorage.setItem('discontinued_medications', JSON.stringify(discontinuedList));
       
       // Then remove from current medications
-      const { error: deleteError } = await supabase
-        .from('my_medications')
-        .delete()
-        .eq('name', name);
-      
-      if (deleteError) throw deleteError;
+      let currentList: MedicationTableItem[] = [];
+      const currentData = localStorage.getItem('my_medications');
+      if (currentData) {
+        currentList = JSON.parse(currentData);
+        currentList = currentList.filter(med => med.name !== name);
+        localStorage.setItem('my_medications', JSON.stringify(currentList));
+      }
       
       toast.success(`Moved ${name} to discontinued medications`);
       await loadSavedMedications();
@@ -168,23 +172,39 @@ const MedicationsSection = () => {
   const restoreMedication = async (name: string, url: string) => {
     try {
       // First add back to current medications
-      const { error: insertError } = await supabase
-        .from('my_medications')
-        .upsert([{ 
-          name, 
-          url, 
-          added_at: new Date().toISOString() 
-        }], { onConflict: ['name'] });
+      const newMedication: MedicationTableItem = { 
+        name, 
+        url, 
+        added_at: new Date().toISOString() 
+      };
       
-      if (insertError) throw insertError;
+      let currentList: MedicationTableItem[] = [];
+      const storedData = localStorage.getItem('my_medications');
+      if (storedData) {
+        currentList = JSON.parse(storedData);
+      }
+      
+      // Check if medication already exists
+      const existingIndex = currentList.findIndex(med => med.name === name);
+      if (existingIndex >= 0) {
+        // Update existing entry
+        currentList[existingIndex] = newMedication;
+      } else {
+        // Add new entry
+        currentList.push(newMedication);
+      }
+      
+      // Save current list
+      localStorage.setItem('my_medications', JSON.stringify(currentList));
       
       // Then remove from discontinued list
-      const { error: deleteError } = await supabase
-        .from('discontinued_medications')
-        .delete()
-        .eq('name', name);
-      
-      if (deleteError) throw deleteError;
+      let discontinuedList: MedicationTableItem[] = [];
+      const discontinuedData = localStorage.getItem('discontinued_medications');
+      if (discontinuedData) {
+        discontinuedList = JSON.parse(discontinuedData);
+        discontinuedList = discontinuedList.filter(med => med.name !== name);
+        localStorage.setItem('discontinued_medications', JSON.stringify(discontinuedList));
+      }
       
       toast.success(`Restored ${name} to current medications`);
       await loadSavedMedications();
@@ -197,12 +217,13 @@ const MedicationsSection = () => {
   // Function to permanently delete medication
   const permanentlyDelete = async (name: string) => {
     try {
-      const { error } = await supabase
-        .from('discontinued_medications')
-        .delete()
-        .eq('name', name);
-      
-      if (error) throw error;
+      let discontinuedList: MedicationTableItem[] = [];
+      const discontinuedData = localStorage.getItem('discontinued_medications');
+      if (discontinuedData) {
+        discontinuedList = JSON.parse(discontinuedData);
+        discontinuedList = discontinuedList.filter(med => med.name !== name);
+        localStorage.setItem('discontinued_medications', JSON.stringify(discontinuedList));
+      }
       
       toast.success(`Permanently deleted ${name}`);
       await loadSavedMedications();
@@ -210,13 +231,6 @@ const MedicationsSection = () => {
       console.error('Error deleting medication:', err);
       toast.error('Failed to delete medication');
     }
-  };
-
-  // Generate URL for a medication on Drugs.com
-  const getDrugsComUrl = (medicationName: string): string => {
-    if (!medicationName) return '';
-    const formattedName = medicationName.toLowerCase().replace(/[^a-z0-9]/g, '-');
-    return `https://www.drugs.com/${formattedName}.html`;
   };
 
   return (

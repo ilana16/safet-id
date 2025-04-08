@@ -5,7 +5,7 @@ import { ExternalLink, Loader2, AlertTriangle } from 'lucide-react';
 import { MedicationInfo } from '@/utils/medicationData.d';
 import { toast } from 'sonner';
 import { v4 as uuidv4 } from 'uuid';
-import { Medication } from '@/pages/medical-profile/MedicationsSection';
+import { Medication } from '@/types/medication';
 import MedicationSearch from './drug-lookup/MedicationSearch';
 import MedicationInfoDisplay from './drug-lookup/MedicationInfoDisplay';
 import MedicationAddForm from './drug-lookup/MedicationAddForm';
