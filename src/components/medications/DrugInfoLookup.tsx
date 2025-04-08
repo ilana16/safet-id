@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { getDrugsComInfo, getDrugsComUrl, searchDrugsCom } from '@/utils/drugsComApi';
+import { getDrugsComInfo, getDrugsComUrl, fetchDrugsComLiveInfo } from '@/utils/drugsComApi';
 import { Button } from '@/components/ui/button';
 import { ExternalLink, Loader2, Database } from 'lucide-react';
 import { MedicationInfo as MedicationInfoType } from '@/utils/medicationData';
@@ -52,28 +52,13 @@ const DrugInfoLookup: React.FC<DrugInfoLookupProps> = ({ onAddMedication }) => {
   };
 
   const fetchComprehensiveMedicationData = async (medication: string): Promise<MedicationInfoType | null> => {
-    // This would be replaced with an actual API call to a comprehensive database
-    // For now, we'll simulate a response with a timeout
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        // Create a basic medication info structure with the name
-        const info: MedicationInfoType = {
-          name: medication,
-          description: `Comprehensive information for ${medication}. This would contain detailed medication data from a comprehensive database of all medications, vitamins, and supplements.`,
-          dosage: {
-            adult: "Refer to your doctor for specific dosing instructions.",
-            frequency: "As prescribed by your healthcare provider.",
-          },
-          sideEffects: {
-            common: ["Data would be populated from comprehensive database"],
-            serious: ["Data would be populated from comprehensive database"],
-          },
-          usedFor: ["Various conditions - refer to comprehensive database for details"],
-          source: "Comprehensive Medication Database API",
-        };
-        resolve(info);
-      }, 1500); // Simulate network delay
-    });
+    try {
+      // Use the live drugs.com API for the comprehensive database as well
+      return await fetchDrugsComLiveInfo(medication);
+    } catch (error) {
+      console.error('Error fetching comprehensive medication data:', error);
+      return null;
+    }
   };
 
   const selectMedication = async (medication: string) => {
@@ -96,9 +81,10 @@ const DrugInfoLookup: React.FC<DrugInfoLookupProps> = ({ onAddMedication }) => {
       let info: MedicationInfoType | null;
       
       if (activeDataSource === 'drugscom') {
+        // Use the getDrugsComInfo function which now uses our live API
         info = await getDrugsComInfo(medication);
       } else {
-        // Use comprehensive database source
+        // Use comprehensive database source with live data
         info = await fetchComprehensiveMedicationData(medication);
       }
       
@@ -124,7 +110,7 @@ const DrugInfoLookup: React.FC<DrugInfoLookupProps> = ({ onAddMedication }) => {
       setError('Unable to load medication information. Please try another medication or try again later.');
       toast.error('Error loading medication information');
     } finally {
-      setIsLoading(false);
+      setIsSearching(false);
     }
   };
 
@@ -137,11 +123,8 @@ const DrugInfoLookup: React.FC<DrugInfoLookupProps> = ({ onAddMedication }) => {
 
   const openComprehensiveDatabasePage = () => {
     if (selectedMedication) {
-      // This would open the comprehensive database page in a new tab
-      const encodedMedName = encodeURIComponent(selectedMedication);
-      // For demonstration purposes, we'll use a generic URL
-      window.open(`https://comprehensive-meds-database.com/drug/${encodedMedName}`, '_blank', 'noopener,noreferrer');
-      toast.info(`Opening comprehensive database page for ${selectedMedication}`);
+      // Use the same drugs.com URL since we're using drugs.com as our data source
+      openDrugsComPage();
     }
   };
 
@@ -149,16 +132,9 @@ const DrugInfoLookup: React.FC<DrugInfoLookupProps> = ({ onAddMedication }) => {
     if (!query || query.trim() === '') return;
     
     // Open the external site directly with the search query
-    if (activeDataSource === 'drugscom') {
-      const searchUrl = `https://www.drugs.com/search.php?searchterm=${encodeURIComponent(query)}`;
-      window.open(searchUrl, '_blank', 'noopener,noreferrer');
-      toast.info(`Searching for "${query}" on Drugs.com`);
-    } else {
-      // For demonstration purposes with the comprehensive database
-      const searchUrl = `https://comprehensive-meds-database.com/search?q=${encodeURIComponent(query)}`;
-      window.open(searchUrl, '_blank', 'noopener,noreferrer');
-      toast.info(`Searching for "${query}" on comprehensive database`);
-    }
+    const searchUrl = `https://www.drugs.com/search.php?searchterm=${encodeURIComponent(query)}`;
+    window.open(searchUrl, '_blank', 'noopener,noreferrer');
+    toast.info(`Searching for "${query}" on Drugs.com`);
   };
 
   const handleAddToProfile = () => {
@@ -210,8 +186,8 @@ const DrugInfoLookup: React.FC<DrugInfoLookupProps> = ({ onAddMedication }) => {
           >
             <ExternalLink className="h-4 w-4 mr-1" />
             {activeDataSource === 'drugscom' 
-              ? 'Visit Drugs.com' 
-              : 'Visit Full Database'}
+              ? 'View on Drugs.com' 
+              : 'View on Drugs.com'}
           </Button>
         </div>
         
@@ -251,7 +227,7 @@ const DrugInfoLookup: React.FC<DrugInfoLookupProps> = ({ onAddMedication }) => {
               <div className="flex items-center space-x-2">
                 <Loader2 className="h-6 w-6 animate-spin text-safet-500" />
                 <span className="text-gray-600">
-                  Loading medication information from {activeDataSource === 'drugscom' ? 'Drugs.com' : 'comprehensive database'}...
+                  Loading live medication information from drugs.com...
                 </span>
               </div>
             </div>
@@ -268,8 +244,8 @@ const DrugInfoLookup: React.FC<DrugInfoLookupProps> = ({ onAddMedication }) => {
           canAddToProfile={Boolean(onAddMedication)}
           isLoading={isLoading}
           error={error}
-          dataSource={activeDataSource === 'drugscom' ? 'Drugs.com' : 'Comprehensive Database'}
-          onOpenExternalLink={activeDataSource === 'drugscom' ? openDrugsComPage : openComprehensiveDatabasePage}
+          dataSource={activeDataSource === 'drugscom' ? 'Drugs.com Live' : 'Comprehensive Database (Drugs.com)'}
+          onOpenExternalLink={openDrugsComPage}
         />
       )}
 

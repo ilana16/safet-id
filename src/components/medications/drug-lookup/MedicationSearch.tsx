@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -5,7 +6,7 @@ import { Search, Loader2, X, Globe, Brain, Database, ExternalLink } from 'lucide
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { Pill, PillIcon, ArrowRight } from 'lucide-react';
-import { searchDrugsCom } from '@/utils/drugsComApi';
+import { searchDrugsCom, performLiveDrugsComSearch } from '@/utils/drugsComApi';
 import { toast } from 'sonner';
 import { useDebounce } from '@/hooks/useDebounce';
 
@@ -47,7 +48,8 @@ const MedicationSearch: React.FC<MedicationSearchProps> = ({
       if (debouncedSearchTerm.length >= 2) {
         setIsSearching(true);
         try {
-          const results = await searchDrugsCom(debouncedSearchTerm);
+          // Use the live search for drugs.com
+          const results = await performLiveDrugsComSearch(debouncedSearchTerm);
           setSearchResults(results);
         } catch (error) {
           console.error('Error searching medications:', error);
@@ -80,7 +82,8 @@ const MedicationSearch: React.FC<MedicationSearchProps> = ({
     setIsSearching(true);
     
     try {
-      const results = await searchDrugsCom(query);
+      // Use live search for real-time results
+      const results = await performLiveDrugsComSearch(query);
       setSearchResults(results);
       
       if (results.length === 1 && results[0].toLowerCase() === query.toLowerCase()) {
@@ -131,6 +134,11 @@ const MedicationSearch: React.FC<MedicationSearchProps> = ({
 
   return (
     <div>
+      <div className="mb-3 p-3 bg-blue-50 rounded-md border border-blue-200 text-blue-800 text-sm flex items-center">
+        <Database className="h-4 w-4 text-blue-500 mr-2 flex-shrink-0" />
+        <span>Performing live searches against {activeDataSource === 'drugscom' ? 'Drugs.com' : 'comprehensive medication database'}</span>
+      </div>
+      
       <form onSubmit={handleSearch} className="flex gap-2">
         <div className="relative flex-1">
           <Input

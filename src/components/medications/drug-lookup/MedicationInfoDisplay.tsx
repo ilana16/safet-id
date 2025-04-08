@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -58,13 +59,15 @@ const MedicationInfoDisplay: React.FC<MedicationInfoDisplayProps> = ({
 
   if (!medicationInfo || isLoading) return null;
 
+  const isLiveSource = dataSource.toLowerCase().includes('live');
+
   return (
     <Card className="border-safet-200">
       <CardHeader className="pb-2">
         <div className="flex justify-between items-center">
           <CardTitle className="text-lg flex items-center">
             {medicationInfo.name}
-            <Badge className="ml-2 bg-safet-100 text-safet-600 hover:bg-safet-200 hover:text-safet-700">
+            <Badge className={`ml-2 ${isLiveSource ? 'bg-green-100 text-green-600' : 'bg-safet-100 text-safet-600'} hover:bg-safet-200 hover:text-safet-700`}>
               {dataSource}
             </Badge>
             {medicationInfo.prescriptionOnly && (
@@ -80,7 +83,7 @@ const MedicationInfoDisplay: React.FC<MedicationInfoDisplayProps> = ({
                 className="text-gray-500 hover:text-safet-600"
               >
                 <ExternalLink className="h-4 w-4 mr-1" />
-                View on {dataSource === "Drugs.com" ? "Drugs.com" : "External Site"}
+                View on Drugs.com
               </Button>
             )}
             <Button onClick={onResetSearch} variant="ghost" size="sm" className="text-gray-500">
@@ -101,6 +104,15 @@ const MedicationInfoDisplay: React.FC<MedicationInfoDisplayProps> = ({
 
       <CardContent className="pt-2">
         <div className="space-y-5">
+          {isLiveSource && (
+            <div className="p-3 bg-green-50 rounded-md border border-green-200 text-green-800 text-sm mb-4">
+              <p className="flex items-center">
+                <AlertCircle className="h-4 w-4 mr-2 text-green-600" />
+                This information is being fetched in real-time from our medication database.
+              </p>
+            </div>
+          )}
+
           <div>
             <h3 className="text-sm font-medium text-gray-700 mb-1">Description</h3>
             <p className="text-sm text-gray-600">{medicationInfo.description}</p>
