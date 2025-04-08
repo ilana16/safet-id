@@ -1,4 +1,3 @@
-
 import { toast } from '@/lib/toast';
 import { supabase } from '@/integrations/supabase/client';
 import { MedicationInfo } from './medicationData.d';
@@ -215,8 +214,7 @@ export const getDrugDetails = async (drugId: string): Promise<MedicationInfo | n
     
     // Try to store in database when possible
     try {
-      // This is the problematic part we need to fix
-      // The column names must match the database schema
+      // Fix the column names to match the database schema
       await supabase
         .from('medications')
         .upsert({
@@ -346,4 +344,3 @@ const fallbackDrugDetails = (drugId: string): MedicationInfo => {
     }
   };
 };
-
