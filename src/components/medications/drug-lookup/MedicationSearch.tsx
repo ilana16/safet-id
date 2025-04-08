@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -6,7 +5,7 @@ import { Search, Loader2, X, Database, ExternalLink, PillIcon, ArrowRight } from
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { Pill } from 'lucide-react';
-import { performMedicationSearch } from '@/utils/modrugsApi';
+import { performMedicationSearch } from '@/utils/medicationDbUtils';
 import { getMedicationFromDb } from '@/utils/medicationDbUtils';
 import { toast } from 'sonner';
 import { useDebounce } from '@/hooks/useDebounce';
@@ -51,7 +50,7 @@ const MedicationSearch: React.FC<MedicationSearchProps> = ({
       if (debouncedSearchTerm.length >= 2) {
         setIsSearching(true);
         try {
-          console.log('Running Python scraper search for:', debouncedSearchTerm);
+          console.log('Searching medications for:', debouncedSearchTerm);
           const results = await performMedicationSearch(debouncedSearchTerm);
           setSearchResults(results);
         } catch (error) {
@@ -130,8 +129,7 @@ const MedicationSearch: React.FC<MedicationSearchProps> = ({
       <div className="mb-3 p-3 bg-amber-50 rounded-md border border-amber-200 text-amber-800 text-sm flex items-center">
         <Database className="h-4 w-4 text-amber-500 mr-2 flex-shrink-0" />
         <span>
-          Using Python-based Drugs.com scraper with Selenium and BeautifulSoup to retrieve detailed medication information 
-          including interactions, side effects, and contraindications
+          Using real-time Drugs.com data via our Supabase Edge Function scraper
         </span>
       </div>
       

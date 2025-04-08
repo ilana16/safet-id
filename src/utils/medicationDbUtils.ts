@@ -241,27 +241,45 @@ export const getMedicationFromDb = async (
     }
     
     // If not found in the database, try to get from external API
-    console.log('Medication not found in database, fetching from external API');
-    let externalMedInfo: MedicationInfo | null = null;
+    console.log('Medication not found in database, fetching from Supabase Edge Function');
     
-    // Use the preferred source to fetch the medication info
-    if (preferredSource === 'drugscom') {
-      // Use the drugs.com scraper
-      const { fetchMedicationInfo } = await import('./modrugsApi');
-      externalMedInfo = await fetchMedicationInfo(medicationName);
-    } else {
-      // Default to drugs.com
-      const { fetchMedicationInfo } = await import('./modrugsApi');
-      externalMedInfo = await fetchMedicationInfo(medicationName);
+    // Call our Supabase Edge Function to get drug information
+    const { data, error } = await supabase.functions.invoke('drugs-scraper', {
+      body: { drugName: medicationName },
+    });
+
+    if (error) {
+      console.error('Error calling drugs-scraper function:', error);
+      toast.error('Error calling medication scraper');
+      return null;
     }
-    
-    if (externalMedInfo) {
-      console.log('Medication found in external API:', externalMedInfo.name);
+
+    if (data && data.name) {
+      console.log('Drug information retrieved successfully:', data.name);
       
-      // Set the source of the medication info if not already set
-      if (!externalMedInfo.source) {
-        externalMedInfo.source = 'Python Drugs.com Scraper';
-      }
+      const externalMedInfo: MedicationInfo = {
+        name: data.name || medicationName,
+        genericName: data.genericName,
+        description: data.description,
+        drugClass: data.drugClass,
+        prescriptionOnly: data.prescriptionOnly,
+        usedFor: data.usedFor || [],
+        warnings: data.warnings || [],
+        sideEffects: data.sideEffects || { common: [], serious: [] },
+        interactions: data.interactions || [],
+        dosage: data.dosage || { adult: '', child: '' },
+        forms: data.forms || [],
+        interactionClassifications: data.interactionClassifications || { major: [], moderate: [], minor: [] },
+        interactionSeverity: data.interactionSeverity || { major: [], moderate: [], minor: [] },
+        foodInteractions: data.foodInteractions || [],
+        conditionInteractions: data.conditionInteractions || [],
+        therapeuticDuplications: data.therapeuticDuplications || [],
+        pregnancy: data.pregnancy || '',
+        breastfeeding: data.breastfeeding || '',
+        halfLife: data.halfLife || '',
+        drugsComUrl: data.drugsComUrl || '',
+        source: data.source || 'Drugs.com Scraper'
+      };
       
       // Save the medication to the database
       const savedMedInfo = await saveMedicationToDb(externalMedInfo, userId || undefined);
@@ -274,6 +292,55 @@ export const getMedicationFromDb = async (
     console.error('Error getting medication from database or API:', error);
     toast.error('Error retrieving medication information');
     return null;
+  }
+};
+
+/**
+ * Performs a search for medications in the database or external API
+ * 
+ * @param query The search query
+ * @returns Promise resolving to an array of medication names
+ */
+export const performMedicationSearch = async (query: string): Promise<string[]> => {
+  if (!query || query.length < 2) return [];
+  
+  try {
+    console.log(`Performing medication search for: ${query}`);
+    
+    // First try to search in the database
+    const { data: dbResults } = await supabase
+      .from('medications')
+      .select('name')
+      .ilike('name', `%${query}%`)
+      .order('search_count', { ascending: false })
+      .limit(10);
+    
+    if (dbResults && dbResults.length > 0) {
+      console.log('Found results in database:', dbResults.length);
+      return dbResults.map(result => result.name);
+    }
+    
+    // If not found in database, use the Edge Function to search
+    console.log('No results in database, using Edge Function to search');
+    
+    const { data, error } = await supabase.functions.invoke('drugs-scraper', {
+      body: { drugName: query, action: 'search' },
+    });
+    
+    if (error) {
+      console.error('Error calling drugs-scraper search function:', error);
+      return [];
+    }
+    
+    if (data && data.results) {
+      console.log('Found results from scraper:', data.results.length);
+      return data.results;
+    }
+    
+    return [];
+  } catch (error) {
+    console.error('Error performing medication search:', error);
+    return [];
   }
 };
 
