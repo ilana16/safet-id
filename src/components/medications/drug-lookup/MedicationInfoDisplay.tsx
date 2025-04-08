@@ -3,7 +3,7 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { AlertTriangle, AlertCircle, Plus, RotateCcw } from 'lucide-react';
+import { AlertTriangle, AlertCircle, Plus, RotateCcw, ExternalLink } from 'lucide-react';
 import { MedicationInfo as MedicationInfoType } from '@/utils/medicationData';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
@@ -16,6 +16,7 @@ interface MedicationInfoDisplayProps {
   dataSource?: string;
   onResetSearch: () => void;
   onAddToProfile: () => void;
+  onOpenExternalLink?: () => void;
 }
 
 const MedicationInfoDisplay: React.FC<MedicationInfoDisplayProps> = ({
@@ -26,7 +27,8 @@ const MedicationInfoDisplay: React.FC<MedicationInfoDisplayProps> = ({
   canAddToProfile,
   dataSource = "Drugs.com",
   onResetSearch,
-  onAddToProfile
+  onAddToProfile,
+  onOpenExternalLink
 }) => {
   if (error) {
     return (
@@ -70,10 +72,23 @@ const MedicationInfoDisplay: React.FC<MedicationInfoDisplayProps> = ({
               <Badge className="ml-2 bg-blue-100 text-blue-600 hover:bg-blue-200">Rx Only</Badge>
             )}
           </CardTitle>
-          <Button onClick={onResetSearch} variant="ghost" size="sm" className="text-gray-500">
-            <RotateCcw className="h-4 w-4 mr-1" />
-            New Search
-          </Button>
+          <div className="flex items-center gap-2">
+            {onOpenExternalLink && (
+              <Button 
+                onClick={onOpenExternalLink}
+                variant="outline"
+                size="sm"
+                className="text-gray-500 hover:text-safet-600"
+              >
+                <ExternalLink className="h-4 w-4 mr-1" />
+                View in {dataSource}
+              </Button>
+            )}
+            <Button onClick={onResetSearch} variant="ghost" size="sm" className="text-gray-500">
+              <RotateCcw className="h-4 w-4 mr-1" />
+              New Search
+            </Button>
+          </div>
         </div>
         {medicationInfo.genericName && medicationInfo.genericName !== medicationInfo.name && (
           <p className="text-sm text-gray-500 mt-1">Generic: {medicationInfo.genericName}</p>

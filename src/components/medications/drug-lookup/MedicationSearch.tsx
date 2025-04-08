@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Search, Loader2, X, Globe, Brain } from 'lucide-react';
+import { Search, Loader2, X, Globe, Brain, Database } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { Pill, PillIcon, ArrowRight } from 'lucide-react';
@@ -12,6 +12,7 @@ import { useDebounce } from '@/hooks/useDebounce';
 
 interface MedicationSearchProps {
   onSelectMedication: (medication: string) => void;
+  activeDataSource?: 'drugscom' | 'comprehensive';
 }
 
 interface SearchResultItem {
@@ -19,7 +20,10 @@ interface SearchResultItem {
   source?: 'local' | 'rxnorm' | 'dailymed' | 'who' | 'ema' | 'emaIris';
 }
 
-const MedicationSearch: React.FC<MedicationSearchProps> = ({ onSelectMedication }) => {
+const MedicationSearch: React.FC<MedicationSearchProps> = ({ 
+  onSelectMedication,
+  activeDataSource = 'drugscom'
+}) => {
   const [query, setQuery] = useState('');
   const [searchResults, setSearchResults] = useState<string[]>([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -42,6 +46,8 @@ const MedicationSearch: React.FC<MedicationSearchProps> = ({ onSelectMedication 
       if (debouncedSearchTerm.length >= 2) {
         setIsSearching(true);
         try {
+          // Always use searchDrugsCom - in a real implementation this would be switched based on activeDataSource
+          // but our mock implementation already simulates searching both databases
           const results = await searchDrugsCom(debouncedSearchTerm);
           setSearchResults(results);
         } catch (error) {
@@ -56,7 +62,7 @@ const MedicationSearch: React.FC<MedicationSearchProps> = ({ onSelectMedication 
     };
 
     performSearch();
-  }, [debouncedSearchTerm]);
+  }, [debouncedSearchTerm, activeDataSource]);
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
@@ -75,6 +81,8 @@ const MedicationSearch: React.FC<MedicationSearchProps> = ({ onSelectMedication 
     setIsSearching(true);
     
     try {
+      // Always use searchDrugsCom - in a real implementation this would be switched based on activeDataSource
+      // but our mock implementation already simulates searching both databases
       const results = await searchDrugsCom(query);
       setSearchResults(results);
       
@@ -99,25 +107,23 @@ const MedicationSearch: React.FC<MedicationSearchProps> = ({ onSelectMedication 
     setSearchResults([]);
   };
 
-  // Updated popular medications list to include psychiatric medications
-  const popularMedications = [
-    'lisinopril', 'metformin', 'atorvastatin', 'sertraline', 
-    'fluoxetine', 'escitalopram', 'risperidone', 'lithium'
-  ];
-
-  // Category of medications for better organization
-  const medicationCategories = [
-    {
-      name: "Common Medications",
-      icon: <Pill className="h-4 w-4 text-safet-500 mr-2" />,
-      medications: ['lisinopril', 'metformin', 'atorvastatin', 'amoxicillin']
-    },
-    {
-      name: "Psychiatric Medications",
-      icon: <Brain className="h-4 w-4 text-safet-500 mr-2" />,
-      medications: ['fluoxetine', 'escitalopram', 'risperidone', 'lithium']
+  // Updated popular medications list based on database type
+  const getPopularMedications = () => {
+    if (activeDataSource === 'comprehensive') {
+      return {
+        "Common Medications": ['lisinopril', 'metformin', 'atorvastatin', 'amoxicillin'],
+        "Psychiatric Medications": ['fluoxetine', 'escitalopram', 'risperidone', 'lithium'],
+        "Vitamins & Supplements": ['vitamin d', 'calcium', 'iron', 'omega-3']
+      };
     }
-  ];
+    
+    return {
+      "Common Medications": ['lisinopril', 'metformin', 'atorvastatin', 'amoxicillin'],
+      "Psychiatric Medications": ['fluoxetine', 'escitalopram', 'risperidone', 'lithium']
+    };
+  };
+
+  const popularMedicationCategories = getPopularMedications();
 
   return (
     <div>
@@ -125,7 +131,7 @@ const MedicationSearch: React.FC<MedicationSearchProps> = ({ onSelectMedication 
         <div className="relative flex-1">
           <Input
             type="text"
-            placeholder="Enter medication name..."
+            placeholder={`Enter ${activeDataSource === 'comprehensive' ? 'medication, vitamin, or supplement' : 'medication'} name...`}
             value={query}
             onChange={handleSearchChange}
             className="pl-10 w-full pr-10"
@@ -151,6 +157,9 @@ const MedicationSearch: React.FC<MedicationSearchProps> = ({ onSelectMedication 
                     result.includes('(EMA)') || 
                     result.includes('IRIS') ||
                     /\b[A-Z]{2,}\b/.test(result);
+                  
+                  const isVitaminOrSupplement = 
+                    /\b(vitamin|supplement|mineral|herb|omega|fish oil|probiotics)\b/i.test(result);
                     
                   return (
                     <li 
@@ -158,12 +167,21 @@ const MedicationSearch: React.FC<MedicationSearchProps> = ({ onSelectMedication 
                       className="px-4 py-2 hover:bg-gray-100 cursor-pointer flex items-center"
                       onClick={() => handleSelectMedication(result)}
                     >
-                      <Pill className="h-4 w-4 text-safet-500 mr-2" />
+                      {isVitaminOrSupplement ? (
+                        <PillIcon className="h-4 w-4 text-green-500 mr-2" />
+                      ) : (
+                        <Pill className="h-4 w-4 text-safet-500 mr-2" />
+                      )}
                       <span>{result}</span>
                       {isInternational && (
                         <Badge className="ml-2 bg-blue-100 text-blue-800 border-blue-200">
                           <Globe className="h-3 w-3 mr-1" />
                           <span className="text-xs">Int'l</span>
+                        </Badge>
+                      )}
+                      {isVitaminOrSupplement && (
+                        <Badge className="ml-2 bg-green-100 text-green-800 border-green-200">
+                          <span className="text-xs">Supplement</span>
                         </Badge>
                       )}
                     </li>
@@ -202,24 +220,33 @@ const MedicationSearch: React.FC<MedicationSearchProps> = ({ onSelectMedication 
       
       {!query && (
         <div className="mt-6">
-          {medicationCategories.map((category, catIndex) => (
+          {Object.entries(popularMedicationCategories).map(([categoryName, medications], catIndex) => (
             <div key={catIndex} className="mb-6">
               <h3 className="text-sm font-medium text-gray-500 mb-2 flex items-center">
-                {category.icon}
-                {category.name}:
+                {categoryName === "Psychiatric Medications" ? (
+                  <Brain className="h-4 w-4 text-safet-500 mr-2" />
+                ) : categoryName === "Vitamins & Supplements" ? (
+                  <Database className="h-4 w-4 text-green-500 mr-2" />
+                ) : (
+                  <PillIcon className="h-4 w-4 text-safet-500 mr-2" />
+                )}
+                {categoryName}:
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {category.medications.map((drug, index) => (
+                {medications.map((drug, index) => (
                   <Card 
                     key={index} 
                     className="p-3 hover:bg-gray-50 cursor-pointer transition-colors border-gray-200"
                     onClick={() => handleSelectMedication(drug)}
                   >
                     <div className="flex items-center">
-                      {category.name === "Psychiatric Medications" ? 
-                        <Brain className="h-4 w-4 text-safet-500 mr-2" /> :
+                      {categoryName === "Psychiatric Medications" ? (
+                        <Brain className="h-4 w-4 text-safet-500 mr-2" />
+                      ) : categoryName === "Vitamins & Supplements" ? (
+                        <Database className="h-4 w-4 text-green-500 mr-2" />
+                      ) : (
                         <PillIcon className="h-4 w-4 text-safet-500 mr-2" />
-                      }
+                      )}
                       <span className="text-gray-700">{drug}</span>
                       <ArrowRight className="h-3 w-3 text-gray-400 ml-auto" />
                     </div>

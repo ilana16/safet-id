@@ -135,6 +135,16 @@ const DrugInfoLookup: React.FC<DrugInfoLookupProps> = ({ onAddMedication }) => {
     }
   };
 
+  const openComprehensiveDatabasePage = () => {
+    if (selectedMedication) {
+      // This would open the comprehensive database page in a new tab
+      // For now we'll simulate this with a toast notification
+      toast.info(`Opening comprehensive database page for ${selectedMedication}`);
+      // In a real implementation, this would open a URL like:
+      // window.open(`https://comprehensive-meds-database.com/drug/${encodeURIComponent(selectedMedication)}`, '_blank', 'noopener,noreferrer');
+    }
+  };
+
   const handleAddToProfile = () => {
     if (medicationInfo) {
       setShowAddForm(true);
@@ -179,11 +189,13 @@ const DrugInfoLookup: React.FC<DrugInfoLookupProps> = ({ onAddMedication }) => {
             variant="outline" 
             size="sm" 
             className="bg-white/10 hover:bg-white/20 text-white border-white/20"
-            onClick={openDrugsComPage}
-            disabled={!selectedMedication || activeDataSource !== 'drugscom'}
+            onClick={activeDataSource === 'drugscom' ? openDrugsComPage : openComprehensiveDatabasePage}
+            disabled={!selectedMedication}
           >
             <ExternalLink className="h-4 w-4 mr-1" />
-            Visit Drugs.com
+            {activeDataSource === 'drugscom' 
+              ? 'Visit Drugs.com' 
+              : 'Visit Full Database'}
           </Button>
         </div>
         
@@ -210,7 +222,10 @@ const DrugInfoLookup: React.FC<DrugInfoLookupProps> = ({ onAddMedication }) => {
                   Search for any medication name to retrieve information.
                 </div>
               )}
-              <MedicationSearch onSelectMedication={selectMedication} />
+              <MedicationSearch 
+                onSelectMedication={selectMedication}
+                activeDataSource={activeDataSource}
+              />
             </>
           ) : null}
           
@@ -237,6 +252,7 @@ const DrugInfoLookup: React.FC<DrugInfoLookupProps> = ({ onAddMedication }) => {
           isLoading={isLoading}
           error={error}
           dataSource={activeDataSource === 'drugscom' ? 'Drugs.com' : 'Comprehensive Database'}
+          onOpenExternalLink={activeDataSource === 'drugscom' ? openDrugsComPage : openComprehensiveDatabasePage}
         />
       )}
 
