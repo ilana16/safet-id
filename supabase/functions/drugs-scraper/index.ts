@@ -1,12 +1,33 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { DOMParser } from "https://deno.land/x/deno_dom@v0.1.38/deno-dom-wasm.ts";
 import { cheerio } from "https://esm.sh/cheerio@1.0.0-rc.12";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+// Set timeout for fetch operations
+const FETCH_TIMEOUT = 10000; // 10 seconds
+
+// Function to fetch with timeout
+async function fetchWithTimeout(url: string, options = {}) {
+  const controller = new AbortController();
+  const { signal } = controller;
+  
+  const timeout = setTimeout(() => {
+    controller.abort();
+  }, FETCH_TIMEOUT);
+  
+  try {
+    const response = await fetch(url, { ...options, signal });
+    clearTimeout(timeout);
+    return response;
+  } catch (error) {
+    clearTimeout(timeout);
+    throw error;
+  }
+}
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -33,8 +54,12 @@ serve(async (req) => {
     }
   } catch (error) {
     console.error('Error in drugs-scraper function:', error);
-    return new Response(JSON.stringify({ error: error.message }), {
-      status: 500,
+    return new Response(JSON.stringify({ 
+      error: error.message,
+      type: error.name,
+      isAbort: error.name === 'AbortError'
+    }), {
+      status: error.name === 'AbortError' ? 408 : 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
@@ -47,7 +72,7 @@ async function handleSearch(query: string): Promise<Response> {
     const searchUrl = `https://www.drugs.com/search.php?searchterm=${encodeURIComponent(query)}`;
     console.log(`Fetching search results from: ${searchUrl}`);
     
-    const response = await fetch(searchUrl);
+    const response = await fetchWithTimeout(searchUrl);
     const html = await response.text();
     
     const $ = cheerio.load(html);
@@ -67,8 +92,13 @@ async function handleSearch(query: string): Promise<Response> {
     });
   } catch (error) {
     console.error('Error in search function:', error);
-    return new Response(JSON.stringify({ error: error.message, results: [] }), {
-      status: 500,
+    const isTimeout = error.name === 'AbortError';
+    
+    return new Response(JSON.stringify({ 
+      error: isTimeout ? 'Search request timed out' : error.message,
+      results: [] 
+    }), {
+      status: isTimeout ? 408 : 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
@@ -91,7 +121,7 @@ async function handleDrugInfo(drugName: string): Promise<Response> {
     for (const url of urls) {
       console.log(`Attempting to fetch from: ${url}`);
       try {
-        const response = await fetch(url);
+        const response = await fetchWithTimeout(url);
         if (response.ok) {
           html = await response.text();
           foundUrl = url;
@@ -100,36 +130,49 @@ async function handleDrugInfo(drugName: string): Promise<Response> {
         }
       } catch (e) {
         console.log(`Failed to fetch from: ${url}`);
+        if (e.name === 'AbortError') {
+          throw new Error('Drug information request timed out');
+        }
       }
     }
     
     if (!html) {
       // If direct URLs fail, try search first
       console.log('Direct URL approach failed, trying search');
-      const searchResponse = await handleSearch(drugName);
-      const searchData = await searchResponse.json();
-      
-      if (searchData.results && searchData.results.length > 0) {
-        // Use the first search result
-        const firstResult = searchData.results[0];
-        const normalizedResult = firstResult.toLowerCase().replace(/\s+/g, '-');
+      try {
+        const searchResponse = await handleSearch(drugName);
+        const searchData = await searchResponse.json();
         
-        for (const url of urls) {
-          const urlWithResult = url.replace(normalizedDrugName, normalizedResult);
-          console.log(`Attempting to fetch from search result URL: ${urlWithResult}`);
+        if (searchData.results && searchData.results.length > 0) {
+          // Use the first search result
+          const firstResult = searchData.results[0];
+          const normalizedResult = firstResult.toLowerCase().replace(/\s+/g, '-');
           
-          try {
-            const response = await fetch(urlWithResult);
-            if (response.ok) {
-              html = await response.text();
-              foundUrl = urlWithResult;
-              console.log(`Successfully fetched from search result: ${urlWithResult}`);
-              break;
+          for (const url of urls) {
+            const urlWithResult = url.replace(normalizedDrugName, normalizedResult);
+            console.log(`Attempting to fetch from search result URL: ${urlWithResult}`);
+            
+            try {
+              const response = await fetchWithTimeout(urlWithResult);
+              if (response.ok) {
+                html = await response.text();
+                foundUrl = urlWithResult;
+                console.log(`Successfully fetched from search result: ${urlWithResult}`);
+                break;
+              }
+            } catch (e) {
+              console.log(`Failed to fetch from search result: ${urlWithResult}`);
+              if (e.name === 'AbortError') {
+                throw new Error('Drug information request timed out');
+              }
             }
-          } catch (e) {
-            console.log(`Failed to fetch from search result: ${urlWithResult}`);
           }
         }
+      } catch (error) {
+        if (error.name === 'AbortError') {
+          throw new Error('Drug information request timed out');
+        }
+        console.error('Error during search fallback:', error);
       }
     }
     
@@ -273,8 +316,13 @@ async function handleDrugInfo(drugName: string): Promise<Response> {
     });
   } catch (error) {
     console.error('Error in handleDrugInfo function:', error);
-    return new Response(JSON.stringify({ error: error.message }), {
-      status: 500,
+    const isTimeout = error.name === 'AbortError' || 
+                      (error.message && error.message.includes('timed out'));
+                      
+    return new Response(JSON.stringify({ 
+      error: isTimeout ? 'Drug information request timed out' : error.message 
+    }), {
+      status: isTimeout ? 408 : 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }

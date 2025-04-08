@@ -1,8 +1,12 @@
 
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+
+// Default timeout for API calls in milliseconds
+const API_TIMEOUT = 15000; // 15 seconds
 
 /**
- * Performs a search for medications in the database or external API
+ * Performs a search for medications in the database or external API with timeout
  * 
  * @param query The search query
  * @returns Promise resolving to an array of medication names
@@ -29,9 +33,23 @@ export const performMedicationSearch = async (query: string): Promise<string[]> 
     // If not found in database, use the Edge Function to search
     console.log('No results in database, using Edge Function to search');
     
-    const { data, error } = await supabase.functions.invoke('drugs-scraper', {
+    // Create a promise that rejects after timeout
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(() => reject(new Error('Search request timed out')), API_TIMEOUT);
+    });
+    
+    // Actual API call
+    const apiCallPromise = supabase.functions.invoke('drugs-scraper', {
       body: { drugName: query, action: 'search' },
     });
+    
+    // Race the API call against the timeout
+    const { data, error } = await Promise.race([
+      apiCallPromise,
+      timeoutPromise.then(() => {
+        throw new Error('Search request timed out');
+      })
+    ]);
     
     if (error) {
       console.error('Error calling drugs-scraper search function:', error);
@@ -46,6 +64,9 @@ export const performMedicationSearch = async (query: string): Promise<string[]> 
     return [];
   } catch (error) {
     console.error('Error performing medication search:', error);
+    toast.error(error instanceof Error && error.message.includes('timed out')
+      ? 'Search request timed out. Please try again.'
+      : 'Error searching for medications');
     return [];
   }
 };

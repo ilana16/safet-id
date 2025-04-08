@@ -5,6 +5,9 @@ import { saveMedicationToDb } from './save';
 import { toast } from 'sonner';
 import { getDrugsComUrl } from '../drugsComApi';
 
+// Default timeout for API calls in milliseconds
+const API_TIMEOUT = 30000; // 30 seconds
+
 /**
  * Gets medication information from the database or external API
  * 
@@ -101,51 +104,73 @@ export const getMedicationFromDb = async (
     // If not found in the database, try to get from external API
     console.log('Medication not found in database, fetching from Supabase Edge Function');
     
-    // Call our Supabase Edge Function to get drug information
-    const { data, error } = await supabase.functions.invoke('drugs-scraper', {
-      body: { drugName: medicationName },
-    });
+    try {
+      // Create a promise that rejects after timeout
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error('API request timed out')), API_TIMEOUT);
+      });
+      
+      // Actual API call
+      const apiCallPromise = supabase.functions.invoke('drugs-scraper', {
+        body: { drugName: medicationName },
+      });
+      
+      // Race the API call against the timeout
+      const { data, error } = await Promise.race([
+        apiCallPromise,
+        timeoutPromise.then(() => {
+          throw new Error('API request timed out');
+        })
+      ]);
 
-    if (error) {
-      console.error('Error calling drugs-scraper function:', error);
-      toast.error('Error calling medication scraper');
+      if (error) {
+        console.error('Error calling drugs-scraper function:', error);
+        toast.error('Error calling medication scraper');
+        return null;
+      }
+
+      if (data && data.name) {
+        console.log('Drug information retrieved successfully:', data.name);
+        
+        const externalMedInfo: MedicationInfo = {
+          name: data.name || medicationName,
+          genericName: data.genericName,
+          description: data.description,
+          drugClass: data.drugClass,
+          prescriptionOnly: data.prescriptionOnly,
+          usedFor: data.usedFor || [],
+          warnings: data.warnings || [],
+          sideEffects: data.sideEffects || { common: [], serious: [] },
+          interactions: data.interactions || [],
+          dosage: data.dosage || { adult: '', child: '' },
+          forms: data.forms || [],
+          interactionClassifications: data.interactionClassifications || { major: [], moderate: [], minor: [] },
+          interactionSeverity: data.interactionSeverity || { major: [], moderate: [], minor: [] },
+          foodInteractions: data.foodInteractions || [],
+          conditionInteractions: data.conditionInteractions || [],
+          therapeuticDuplications: data.therapeuticDuplications || [],
+          pregnancy: data.pregnancy || '',
+          breastfeeding: data.breastfeeding || '',
+          halfLife: data.halfLife || '',
+          drugsComUrl: data.drugsComUrl || getDrugsComUrl(data.name || medicationName),
+          source: data.source || 'Drugs.com Scraper'
+        };
+        
+        // Save the medication to the database
+        const savedMedInfo = await saveMedicationToDb(externalMedInfo, userId || undefined);
+        
+        return savedMedInfo || externalMedInfo;
+      } else {
+        toast.error(`No information found for ${medicationName}`);
+        return null;
+      }
+    } catch (error) {
+      console.error('Error getting medication from API:', error);
+      toast.error(error instanceof Error && error.message.includes('timed out')
+        ? 'Search request timed out. Please try again.'
+        : 'Error retrieving medication information');
       return null;
     }
-
-    if (data && data.name) {
-      console.log('Drug information retrieved successfully:', data.name);
-      
-      const externalMedInfo: MedicationInfo = {
-        name: data.name || medicationName,
-        genericName: data.genericName,
-        description: data.description,
-        drugClass: data.drugClass,
-        prescriptionOnly: data.prescriptionOnly,
-        usedFor: data.usedFor || [],
-        warnings: data.warnings || [],
-        sideEffects: data.sideEffects || { common: [], serious: [] },
-        interactions: data.interactions || [],
-        dosage: data.dosage || { adult: '', child: '' },
-        forms: data.forms || [],
-        interactionClassifications: data.interactionClassifications || { major: [], moderate: [], minor: [] },
-        interactionSeverity: data.interactionSeverity || { major: [], moderate: [], minor: [] },
-        foodInteractions: data.foodInteractions || [],
-        conditionInteractions: data.conditionInteractions || [],
-        therapeuticDuplications: data.therapeuticDuplications || [],
-        pregnancy: data.pregnancy || '',
-        breastfeeding: data.breastfeeding || '',
-        halfLife: data.halfLife || '',
-        drugsComUrl: data.drugsComUrl || getDrugsComUrl(data.name || medicationName),
-        source: data.source || 'Drugs.com Scraper'
-      };
-      
-      // Save the medication to the database
-      const savedMedInfo = await saveMedicationToDb(externalMedInfo, userId || undefined);
-      
-      return savedMedInfo || externalMedInfo;
-    }
-    
-    return null;
   } catch (error) {
     console.error('Error getting medication from database or API:', error);
     toast.error('Error retrieving medication information');

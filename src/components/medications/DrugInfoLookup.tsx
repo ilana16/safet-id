@@ -1,6 +1,7 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { ExternalLink, Loader2 } from 'lucide-react';
+import { ExternalLink, Loader2, AlertTriangle } from 'lucide-react';
 import { MedicationInfo } from '@/utils/medicationData.d';
 import { toast } from 'sonner';
 import { v4 as uuidv4 } from 'uuid';
@@ -23,6 +24,7 @@ const DrugInfoLookup: React.FC<DrugInfoLookupProps> = ({ onAddMedication }) => {
   const [showAddForm, setShowAddForm] = useState(false);
   const [searchAttempted, setSearchAttempted] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
+  const [searchTimeoutId, setSearchTimeoutId] = useState<number | null>(null);
   const [newMedication, setNewMedication] = useState<Partial<Medication>>({
     id: uuidv4(),
     dosage: '',
@@ -43,6 +45,15 @@ const DrugInfoLookup: React.FC<DrugInfoLookupProps> = ({ onAddMedication }) => {
     
     getCurrentUser();
   }, []);
+
+  // Cleanup timeout on component unmount
+  React.useEffect(() => {
+    return () => {
+      if (searchTimeoutId) {
+        clearTimeout(searchTimeoutId);
+      }
+    };
+  }, [searchTimeoutId]);
 
   const saveHistory = (medication: string) => {
     if (!medication || medication.trim() === '') return;
@@ -75,10 +86,30 @@ const DrugInfoLookup: React.FC<DrugInfoLookupProps> = ({ onAddMedication }) => {
     setSearchAttempted(true);
     saveHistory(medication);
     
+    // Clear any existing timeout
+    if (searchTimeoutId) {
+      clearTimeout(searchTimeoutId);
+    }
+    
+    // Set a new timeout to cancel the search if it takes too long
+    const timeoutId = window.setTimeout(() => {
+      setIsLoading(false);
+      setError('The search took too long to complete. Please try again.');
+      toast.error('Search timed out. Please try again.');
+    }, 30000); // 30 second timeout
+    
+    setSearchTimeoutId(timeoutId);
+    
     try {
       console.log(`Fetching information for medication: ${medication} from database or Python scraper`);
       
       const medInfo = await getMedicationFromDb(medication, userId, 'drugscom');
+      
+      // Clear the timeout as the search has completed
+      if (searchTimeoutId) {
+        clearTimeout(timeoutId);
+        setSearchTimeoutId(null);
+      }
       
       if (medInfo) {
         console.log('Medication info received:', medInfo.name);
@@ -107,10 +138,17 @@ const DrugInfoLookup: React.FC<DrugInfoLookupProps> = ({ onAddMedication }) => {
       }
     } catch (error) {
       console.error('Error fetching medication information:', error);
-      setError('Unable to load medication information. Please try another medication or try again later.');
+      setError(error instanceof Error && error.message.includes('timed out')
+        ? 'The search took too long to complete. Please try again.'
+        : 'Unable to load medication information. Please try another medication or try again later.');
       toast.error('Error loading medication information');
     } finally {
       setIsLoading(false);
+      // Clear the timeout as we've handled the error or success
+      if (searchTimeoutId) {
+        clearTimeout(timeoutId);
+        setSearchTimeoutId(null);
+      }
     }
   };
 
@@ -217,13 +255,56 @@ const DrugInfoLookup: React.FC<DrugInfoLookupProps> = ({ onAddMedication }) => {
           
           {isLoading && (
             <div className="flex justify-center p-8">
-              <div className="flex items-center space-x-2">
-                <Loader2 className="h-6 w-6 animate-spin text-safet-500" />
-                <span className="text-gray-600">
-                  {medicationInfo?.fromDatabase 
-                    ? 'Loading saved medication information...' 
-                    : 'Running Python scraper on Drugs.com...'}
-                </span>
+              <div className="flex flex-col items-center space-y-4">
+                <div className="flex items-center space-x-2">
+                  <Loader2 className="h-6 w-6 animate-spin text-safet-500" />
+                  <span className="text-gray-600">
+                    {medicationInfo?.fromDatabase 
+                      ? 'Loading saved medication information...' 
+                      : 'Running Python scraper on Drugs.com...'}
+                  </span>
+                </div>
+                
+                <div className="w-full max-w-sm bg-gray-100 rounded-full h-2.5">
+                  <div className="bg-safet-500 h-2.5 rounded-full animate-pulse" style={{ width: '70%' }}></div>
+                </div>
+                
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="mt-4"
+                  onClick={resetSearch}
+                >
+                  Cancel Search
+                </Button>
+              </div>
+            </div>
+          )}
+          
+          {error && searchAttempted && !isLoading && (
+            <div className="p-4 border border-red-300 bg-red-50 rounded-md text-red-800">
+              <div className="flex items-start space-x-3">
+                <AlertTriangle className="h-5 w-5 text-red-500 mt-0.5" />
+                <div className="space-y-2">
+                  <p className="font-medium">Error searching for medication information</p>
+                  <p className="text-sm">{error}</p>
+                  <div className="pt-2 flex space-x-2">
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={resetSearch}
+                    >
+                      Try Another Medication
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleDirectExternalSearch(selectedMedication || '')}
+                    >
+                      Search on Drugs.com
+                    </Button>
+                  </div>
+                </div>
               </div>
             </div>
           )}
