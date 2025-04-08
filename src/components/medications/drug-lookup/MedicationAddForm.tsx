@@ -87,7 +87,15 @@ const MedicationAddForm: React.FC<MedicationAddFormProps> = ({
       foodInteractions: newMedication.foodInteractions || [],
       conditionInteractions: newMedication.conditionInteractions || [],
       therapeuticDuplications: newMedication.therapeuticDuplications || [],
-      interactionClassifications: medicationInfo.interactionClassifications,
+      interactionClassifications: {
+        ...(medicationInfo.interactionClassifications ? 
+          Object.fromEntries(
+            Object.entries(medicationInfo.interactionClassifications).map(
+              ([key, value]) => [key, Array.isArray(value) ? value.join(', ') : value]
+            )
+          ) : {}
+        )
+      },
       pregnancy: medicationInfo.pregnancy,
       breastfeeding: medicationInfo.breastfeeding,
     };

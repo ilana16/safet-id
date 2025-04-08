@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { PlusCircle, Trash2, Clock, Pill, Search, ChevronDown, ChevronUp, Loader2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
@@ -7,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   DropdownMenu,
   DropdownMenuContent,

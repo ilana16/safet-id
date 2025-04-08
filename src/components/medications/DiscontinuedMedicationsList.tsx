@@ -78,7 +78,7 @@ const DiscontinuedMedicationsList: React.FC<DiscontinuedMedicationsListProps> = 
                 
                 <p className="text-sm text-gray-700 flex items-start gap-2 mt-2">
                   <Clock className="h-4 w-4 text-gray-400 mt-0.5" />
-                  <span><strong>Reason stopped:</strong> {medication.discontinuedReason}</span>
+                  <span><strong>Reason stopped:</strong> {medication.discontinuationReason}</span>
                 </p>
               </div>
             </div>
