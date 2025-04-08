@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -26,7 +27,9 @@ const MedicationSearch: React.FC<MedicationSearchProps> = ({
   const [userId, setUserId] = useState<string | null>(null);
   const [searchError, setSearchError] = useState<string | null>(null);
   const [searchTimeoutId, setSearchTimeoutId] = useState<number | null>(null);
-  const debouncedSearchTerm = useDebounce(query, 300);
+  const [autoSearchEnabled, setAutoSearchEnabled] = useState(false);
+  // We use the debounce hook with the autoSearchEnabled flag
+  const debouncedSearchTerm = useDebounce(query, 300, autoSearchEnabled);
 
   useEffect(() => {
     const getCurrentUser = async () => {
@@ -53,6 +56,9 @@ const MedicationSearch: React.FC<MedicationSearchProps> = ({
   }, []);
 
   useEffect(() => {
+    // Only perform search on debounced term change if autosearch is enabled
+    if (!autoSearchEnabled) return;
+    
     if (searchTimeoutId) {
       clearTimeout(searchTimeoutId);
       setSearchTimeoutId(null);
@@ -97,12 +103,17 @@ const MedicationSearch: React.FC<MedicationSearchProps> = ({
     };
 
     performSearch();
-  }, [debouncedSearchTerm]);
+  }, [debouncedSearchTerm, autoSearchEnabled]);
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setQuery(value);
     setSearchError(null);
+    
+    // Clear results when query changes if autosearch is disabled
+    if (!autoSearchEnabled && searchResults.length > 0) {
+      setSearchResults([]);
+    }
   };
 
   const handleClearSearch = () => {
