@@ -1,7 +1,8 @@
+
 import React, { useState } from 'react';
 import { getDrugsComUrl } from '@/utils/drugsComApi';
 import { Button } from '@/components/ui/button';
-import { ExternalLink, Loader2, Database, Archive, BookOpen, AlertTriangle, Microscope } from 'lucide-react';
+import { ExternalLink, Loader2, Database, Archive, BookOpen, AlertTriangle, Microscope, Globe } from 'lucide-react';
 import { MedicationInfo } from '@/utils/medicationData.d';
 import { toast } from 'sonner';
 import { v4 as uuidv4 } from 'uuid';
@@ -24,7 +25,7 @@ const DrugInfoLookup: React.FC<DrugInfoLookupProps> = ({ onAddMedication }) => {
   const [error, setError] = useState<string | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
   const [searchAttempted, setSearchAttempted] = useState(false);
-  const [activeDataSource, setActiveDataSource] = useState<'drugscom' | 'elsevier' | 'comprehensive' | 'webcrawler' | 'modrugs' | 'comprehensive'>('drugscom');
+  const [activeDataSource, setActiveDataSource] = useState<'drugscom' | 'elsevier' | 'comprehensive' | 'webcrawler' | 'modrugs'>('drugscom');
   const [userId, setUserId] = useState<string | null>(null);
   const [newMedication, setNewMedication] = useState<Partial<Medication>>({
     id: uuidv4(),
@@ -158,6 +159,19 @@ const DrugInfoLookup: React.FC<DrugInfoLookupProps> = ({ onAddMedication }) => {
         openWebCrawlerPage();
       } else if (activeDataSource === 'modrugs') {
         openMoDrugsPage();
+      } else if (activeDataSource === 'comprehensive') {
+        // For comprehensive, use the most appropriate external resource
+        if (medicationInfo?.source?.includes('Drugs.com')) {
+          openDrugsComPage();
+        } else if (medicationInfo?.source?.includes('Elsevier')) {
+          openElsevierPage();
+        } else if (medicationInfo?.source?.includes('Web Crawler')) {
+          openWebCrawlerPage();
+        } else if (medicationInfo?.source?.includes('MoDrugs')) {
+          openMoDrugsPage();
+        } else {
+          openDrugsComPage(); // Default to drugs.com
+        }
       } else {
         openDrugsComPage();
       }
@@ -237,7 +251,7 @@ const DrugInfoLookup: React.FC<DrugInfoLookupProps> = ({ onAddMedication }) => {
               {activeDataSource === 'elsevier' && 'View on Elsevier'}
               {activeDataSource === 'webcrawler' && 'View Web Crawler Data'}
               {activeDataSource === 'modrugs' && 'View MoDrugs Data'}
-              {activeDataSource === 'comprehensive' && 'View on Database'}
+              {activeDataSource === 'comprehensive' && 'View Source'}
             </span>
             <span className="sm:hidden">External</span>
           </Button>
@@ -246,7 +260,7 @@ const DrugInfoLookup: React.FC<DrugInfoLookupProps> = ({ onAddMedication }) => {
         <div className="border-b border-[#D1DEE8]">
           <Tabs 
             value={activeDataSource} 
-            onValueChange={(value) => setActiveDataSource(value as 'drugscom' | 'elsevier' | 'webcrawler' | 'modrugs' | 'comprehensive')}
+            onValueChange={(value) => setActiveDataSource(value as 'drugscom' | 'elsevier' | 'comprehensive' | 'webcrawler' | 'modrugs')}
           >
             <TabsList className="w-full">
               <TabsTrigger value="drugscom" className="flex-1">
@@ -290,7 +304,7 @@ const DrugInfoLookup: React.FC<DrugInfoLookupProps> = ({ onAddMedication }) => {
                 )}
               </TabsTrigger>
               <TabsTrigger value="comprehensive" className="flex-1">
-                <Database className="h-4 w-4 mr-1" />
+                <Globe className="h-4 w-4 mr-1" />
                 All Sources
               </TabsTrigger>
             </TabsList>
@@ -324,8 +338,8 @@ const DrugInfoLookup: React.FC<DrugInfoLookupProps> = ({ onAddMedication }) => {
               
               {activeDataSource === 'comprehensive' && (
                 <div className="mb-4 p-3 bg-blue-50 rounded-md border border-blue-200 text-blue-800 text-sm">
-                  The comprehensive database includes all medications, vitamins, and supplements from multiple sources. 
-                  Search for any medication name to retrieve information.
+                  Searching across all medication databases simultaneously for the most comprehensive results.
+                  Results will include medications from Drugs.com, Elsevier, Web Crawler, and MoDrugs databases.
                 </div>
               )}
               

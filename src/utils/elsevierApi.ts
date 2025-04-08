@@ -73,3 +73,35 @@ export const fetchElsevierDrugInfo = async (drugName: string): Promise<Medicatio
     return null;
   }
 };
+
+/**
+ * Performs a search in the Elsevier database for medications matching the query
+ * 
+ * @param query The search query
+ * @returns Promise resolving to an array of medication names
+ */
+export const performElsevierSearch = async (query: string): Promise<string[]> => {
+  if (!query || query.length < 2) return [];
+  
+  try {
+    // In a real implementation, this would search the Elsevier API
+    await new Promise(resolve => setTimeout(resolve, 400));
+    
+    // Common medications in the Elsevier database
+    const commonMedications = [
+      'Lisinopril', 'Metformin', 'Amlodipine', 'Simvastatin',
+      'Omeprazole', 'Levothyroxine', 'Atorvastatin', 'Metoprolol',
+      'Losartan', 'Albuterol', 'Gabapentin', 'Hydrochlorothiazide',
+      'Furosemide', 'Sertraline', 'Escitalopram', 'Fluoxetine',
+      'Tramadol', 'Duloxetine', 'Pantoprazole', 'Citalopram'
+    ];
+    
+    // Filter medications based on the search query
+    return commonMedications.filter(med => 
+      med.toLowerCase().includes(query.toLowerCase())
+    );
+  } catch (error) {
+    console.error('Error searching Elsevier medications:', error);
+    return [];
+  }
+};

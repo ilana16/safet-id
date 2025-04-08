@@ -6,9 +6,7 @@ import { Search, Loader2, X, Globe, Brain, Database, ExternalLink, AlertTriangle
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { Pill, PillIcon, ArrowRight } from 'lucide-react';
-import { performLiveDrugsComSearch } from '@/utils/drugsComApi';
-import { performWebCrawlerSearch } from '@/utils/webCrawlerApi';
-import { performMoDrugsSearch } from '@/utils/modrugsApi';
+import { performUnifiedMedicationSearch } from '@/utils/modrugsApi';
 import { getMedicationFromDb } from '@/utils/medicationDbUtils';
 import { toast } from 'sonner';
 import { useDebounce } from '@/hooks/useDebounce';
@@ -62,12 +60,15 @@ const MedicationSearch: React.FC<MedicationSearchProps> = ({
         try {
           let results: string[] = [];
           
-          if (activeDataSource === 'webcrawler') {
-            results = await performWebCrawlerSearch(debouncedSearchTerm);
-          } else if (activeDataSource === 'modrugs') {
-            results = await performMoDrugsSearch(debouncedSearchTerm);
+          if (activeDataSource === 'comprehensive') {
+            // Search all databases
+            results = await performUnifiedMedicationSearch(debouncedSearchTerm);
           } else {
-            results = await performLiveDrugsComSearch(debouncedSearchTerm);
+            // Search specific database
+            results = await performUnifiedMedicationSearch(
+              debouncedSearchTerm, 
+              [activeDataSource as 'drugscom' | 'elsevier' | 'webcrawler' | 'modrugs']
+            );
           }
           
           setSearchResults(results);
@@ -104,12 +105,15 @@ const MedicationSearch: React.FC<MedicationSearchProps> = ({
     try {
       let results: string[] = [];
       
-      if (activeDataSource === 'webcrawler') {
-        results = await performWebCrawlerSearch(query);
-      } else if (activeDataSource === 'modrugs') {
-        results = await performMoDrugsSearch(query);
+      if (activeDataSource === 'comprehensive') {
+        // Search all databases
+        results = await performUnifiedMedicationSearch(query);
       } else {
-        results = await performLiveDrugsComSearch(query);
+        // Search specific database
+        results = await performUnifiedMedicationSearch(
+          query, 
+          [activeDataSource as 'drugscom' | 'elsevier' | 'webcrawler' | 'modrugs']
+        );
       }
       
       setSearchResults(results);
@@ -181,7 +185,7 @@ const MedicationSearch: React.FC<MedicationSearchProps> = ({
           {activeDataSource === 'elsevier' && 'Performing live searches against Elsevier medication database'}
           {activeDataSource === 'webcrawler' && 'Using Web Crawler for Drug Interaction Data'}
           {activeDataSource === 'modrugs' && 'Using MoDrugs molecular-level drug database'}
-          {activeDataSource === 'comprehensive' && 'Performing live searches against comprehensive medication database'}
+          {activeDataSource === 'comprehensive' && 'Searching across all medication databases for comprehensive results'}
         </span>
       </div>
       
