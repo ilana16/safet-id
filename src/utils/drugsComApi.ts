@@ -177,28 +177,32 @@ export const getDrugDetails = async (drugId: string): Promise<MedicationInfo | n
     medicationInfoCache.set(drugId, medicationInfo);
     
     try {
+      const dbRecord = {
+        name: medicationInfo.name,
+        generic_name: medicationInfo.genericName,
+        description: medicationInfo.description,
+        drug_class: medicationInfo.drugClass,
+        used_for: medicationInfo.usedFor,
+        side_effects: JSON.parse(JSON.stringify(medicationInfo.sideEffects || {})),
+        dosage: JSON.parse(JSON.stringify(medicationInfo.dosage || {})),
+        warnings: medicationInfo.warnings,
+        interactions: medicationInfo.interactions,
+        prescription_only: medicationInfo.prescriptionOnly,
+        forms: medicationInfo.forms,
+        pregnancy: medicationInfo.pregnancy,
+        breastfeeding: medicationInfo.breastfeeding,
+        source: medicationInfo.source,
+        food_interactions: medicationInfo.foodInteractions,
+        condition_interactions: medicationInfo.conditionInteractions,
+        therapeutic_duplications: medicationInfo.therapeuticDuplications,
+        interaction_classifications: JSON.parse(JSON.stringify(medicationInfo.interactionClassifications || {})),
+        half_life: medicationInfo.halfLife || null,
+        searched_by: userId || null
+      };
+      
       await supabase
         .from('medications')
-        .upsert([{
-          name: medicationInfo.name,
-          generic_name: medicationInfo.genericName,
-          description: medicationInfo.description,
-          drug_class: medicationInfo.drugClass,
-          used_for: medicationInfo.usedFor,
-          side_effects: medicationInfo.sideEffects,
-          dosage: medicationInfo.dosage,
-          warnings: medicationInfo.warnings,
-          interactions: medicationInfo.interactions,
-          prescription_only: medicationInfo.prescriptionOnly,
-          forms: medicationInfo.forms,
-          pregnancy: medicationInfo.pregnancy,
-          breastfeeding: medicationInfo.breastfeeding,
-          source: medicationInfo.source,
-          food_interactions: medicationInfo.foodInteractions,
-          condition_interactions: medicationInfo.conditionInteractions,
-          therapeutic_duplications: medicationInfo.therapeuticDuplications,
-          interaction_classifications: medicationInfo.interactionClassifications
-        }]);
+        .upsert([dbRecord]);
     } catch (dbError) {
       console.error('Error caching drug details:', dbError);
     }
