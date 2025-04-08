@@ -88,7 +88,8 @@ export const getMedicationFromDb = async (
         therapeuticDuplications: dbMeds[0].therapeutic_duplications || [],
         pregnancy: dbMeds[0].pregnancy,
         breastfeeding: dbMeds[0].breastfeeding,
-        halfLife: dbMeds[0].half_life || '',
+        // Fix: Check if half_life exists before accessing it
+        halfLife: 'half_life' in dbMeds[0] ? String(dbMeds[0].half_life || '') : '',
         drugsComUrl: getDrugsComUrl(dbMeds[0].name),
         source: dbMeds[0].source,
         fromDatabase: true,
