@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { getDrugsComUrl } from '@/utils/drugsComApi';
 import { Button } from '@/components/ui/button';
@@ -38,8 +37,7 @@ const DrugInfoLookup: React.FC<DrugInfoLookupProps> = ({ onAddMedication }) => {
     conditionInteractions: [],
     therapeuticDuplications: [],
   });
-  
-  // Get current user ID when component mounts
+
   React.useEffect(() => {
     const getCurrentUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -83,12 +81,10 @@ const DrugInfoLookup: React.FC<DrugInfoLookupProps> = ({ onAddMedication }) => {
     try {
       console.log(`Fetching information for medication: ${medication} from database or API`);
       
-      // Determine which data source to use
       const preferredSource = activeDataSource === 'elsevier' 
         ? 'elsevier' 
         : 'drugscom';
       
-      // Enhanced function now checks database first, then fetches from the preferred source if needed
       const medInfo = await getMedicationFromDb(medication, userId, preferredSource as 'drugscom' | 'elsevier');
       
       if (medInfo) {
@@ -134,8 +130,6 @@ const DrugInfoLookup: React.FC<DrugInfoLookupProps> = ({ onAddMedication }) => {
 
   const openElsevierPage = () => {
     if (selectedMedication) {
-      // In a real implementation, this would link to the Elsevier page for this medication
-      // For now, we'll just link to the Elsevier documentation
       window.open('https://druginfo.elsevier.com/docs/api/docs.json', '_blank', 'noopener,noreferrer');
     }
   };

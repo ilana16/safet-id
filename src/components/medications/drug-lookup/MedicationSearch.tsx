@@ -14,7 +14,7 @@ import { supabase } from '@/integrations/supabase/client';
 
 interface MedicationSearchProps {
   onSelectMedication: (medication: string) => void;
-  activeDataSource?: 'drugscom' | 'comprehensive';
+  activeDataSource?: 'drugscom' | 'elsevier' | 'comprehensive';
   onExternalSearch?: (query: string) => void;
 }
 
