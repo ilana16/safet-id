@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { MedicationInfo } from '../medicationData.d';
 
@@ -8,6 +9,7 @@ interface MedicationRecord {
   generic_name?: string | null;
   description?: string | null;
   search_count?: number | null;
+  searched_by?: string | null; // Add searched_by property
   imprints?: Array<{imprint_code: string | null, image_url: string | null, description: string | null}> | null;
   international_names?: Array<{country: string, name: string}> | null;
   // ... other properties that might be needed
