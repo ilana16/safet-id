@@ -179,7 +179,7 @@ export const getDrugDetails = async (drugId: string): Promise<MedicationInfo | n
     try {
       await supabase
         .from('medications')
-        .upsert({
+        .upsert([{
           name: medicationInfo.name,
           generic_name: medicationInfo.genericName,
           description: medicationInfo.description,
@@ -198,7 +198,7 @@ export const getDrugDetails = async (drugId: string): Promise<MedicationInfo | n
           condition_interactions: medicationInfo.conditionInteractions,
           therapeutic_duplications: medicationInfo.therapeuticDuplications,
           interaction_classifications: medicationInfo.interactionClassifications
-        });
+        }]);
     } catch (dbError) {
       console.error('Error caching drug details:', dbError);
     }
