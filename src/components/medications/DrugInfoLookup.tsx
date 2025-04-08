@@ -79,7 +79,7 @@ const DrugInfoLookup: React.FC<DrugInfoLookupProps> = ({ onAddMedication }) => {
     try {
       console.log(`Fetching information for medication: ${medication} from database or API`);
       
-      // Updated to use 'drugscom' instead of 'drugscomScraper'
+      // Using the drugscom source which uses our scraper
       const medInfo = await getMedicationFromDb(medication, userId, 'drugscom');
       
       if (medInfo) {
@@ -187,8 +187,8 @@ const DrugInfoLookup: React.FC<DrugInfoLookupProps> = ({ onAddMedication }) => {
         <div className="p-5">
           {(!medicationInfo && !isLoading && !error) || (!searchAttempted) ? (
             <div className="mb-4 p-3 bg-amber-50 rounded-md border border-amber-200 text-amber-800 text-sm">
-              This database uses the Drugs.com scraper to provide comprehensive medication information including 
-              detailed side effects, interactions, and warnings.
+              This database uses the Python-based Drugs.com scraper to provide comprehensive medication information including 
+              detailed side effects, interactions, and warnings. It utilizes Selenium and BeautifulSoup for data extraction.
               <div className="mt-2">
                 <a href="https://github.com/miteoshi/Drugs.com-scrapper" target="_blank" rel="noopener noreferrer" className="underline">
                   View the Drugs.com scraper on GitHub
@@ -228,8 +228,8 @@ const DrugInfoLookup: React.FC<DrugInfoLookupProps> = ({ onAddMedication }) => {
           error={error}
           dataSource={
             medicationInfo?.fromDatabase
-              ? `Drugs.com Scraper (Searched ${medicationInfo.databaseSearchCount || 1} time${medicationInfo.databaseSearchCount !== 1 ? 's' : ''})`
-              : 'Drugs.com Scraper'
+              ? `Python Drugs.com Scraper (Searched ${medicationInfo.databaseSearchCount || 1} time${medicationInfo.databaseSearchCount !== 1 ? 's' : ''})`
+              : 'Python Drugs.com Scraper'
           }
           onOpenExternalLink={openDrugsComPage}
         />

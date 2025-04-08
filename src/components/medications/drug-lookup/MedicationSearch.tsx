@@ -129,7 +129,7 @@ const MedicationSearch: React.FC<MedicationSearchProps> = ({
       <div className="mb-3 p-3 bg-amber-50 rounded-md border border-amber-200 text-amber-800 text-sm flex items-center">
         <Database className="h-4 w-4 text-amber-500 mr-2 flex-shrink-0" />
         <span>
-          Using Drugs.com scraper to retrieve comprehensive medication information
+          Using Python-based Drugs.com scraper (with Selenium and BeautifulSoup) to retrieve comprehensive medication information
         </span>
       </div>
       
@@ -159,11 +159,6 @@ const MedicationSearch: React.FC<MedicationSearchProps> = ({
             <div className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-auto">
               <ul className="py-1">
                 {searchResults.map((result, index) => {
-                  const isInternational = 
-                    result.includes('(EMA)') || 
-                    result.includes('IRIS') ||
-                    /\b[A-Z]{2,}\b/.test(result);
-                  
                   const isVitaminOrSupplement = 
                     /\b(vitamin|supplement|mineral|herb|omega|fish oil|probiotics)\b/i.test(result);
                     
@@ -179,11 +174,6 @@ const MedicationSearch: React.FC<MedicationSearchProps> = ({
                         <Pill className="h-4 w-4 text-safet-500 mr-2" />
                       )}
                       <span>{result}</span>
-                      {isInternational && (
-                        <Badge className="ml-2 bg-blue-100 text-blue-800 border-blue-200">
-                          <span className="text-xs">Int'l</span>
-                        </Badge>
-                      )}
                       {isVitaminOrSupplement && (
                         <Badge className="ml-2 bg-green-100 text-green-800 border-green-200">
                           <span className="text-xs">Supplement</span>

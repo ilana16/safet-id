@@ -1,104 +1,155 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { MedicationInfo } from './medicationData.d';
 import { toast } from 'sonner';
-import { Json } from '@/integrations/supabase/types';
 
 /**
- * Save medication information to the database
+ * Increments the search count for a medication in the database
  * 
- * @param medicationInfo The medication information to save
- * @param userId User ID of the person searching (optional)
- * @returns Promise resolving to success status
+ * @param medicationName Name of the medication to increment
+ * @returns Promise resolving to true if successful, false if not
  */
-export const saveMedicationToDb = async (
-  medicationInfo: MedicationInfo,
-  userId?: string
-): Promise<boolean> => {
-  if (!medicationInfo || !medicationInfo.name) {
-    console.error('Invalid medication information provided');
-    return false;
-  }
-
+export const incrementMedicationSearchCount = async (medicationName: string): Promise<boolean> => {
+  if (!medicationName) return false;
+  
   try {
-    console.log(`Saving medication to database: ${medicationInfo.name}`);
+    const normalizedName = medicationName.toLowerCase().trim();
     
-    // Prepare the medication data for database
-    const medicationData = {
-      name: medicationInfo.name,
-      generic_name: medicationInfo.genericName || null,
-      description: medicationInfo.description || null,
-      drug_class: medicationInfo.drugClass || null,
-      prescription_only: medicationInfo.prescriptionOnly || false,
-      used_for: medicationInfo.usedFor || [],
-      warnings: medicationInfo.warnings || [],
-      side_effects: medicationInfo.sideEffects || {},
-      interactions: medicationInfo.interactions || [],
-      dosage: medicationInfo.dosage || {},
-      forms: medicationInfo.forms || [],
-      pregnancy: medicationInfo.pregnancy || null,
-      breastfeeding: medicationInfo.breastfeeding || null,
-      food_interactions: medicationInfo.foodInteractions || [],
-      condition_interactions: medicationInfo.conditionInteractions || [],
-      therapeutic_duplications: medicationInfo.therapeuticDuplications || [],
-      interaction_classifications: medicationInfo.interactionClassifications || {},
-      interaction_severity: medicationInfo.interactionSeverity || {},
-      source: medicationInfo.source || 'Drugs.com',
-      searched_by: userId || null
-    };
-
-    // Check if this medication already exists in the database
-    const { data: existingMed, error: fetchError } = await supabase
+    console.log('Incrementing search count for:', normalizedName);
+    
+    // First try to get the medication to see if it exists
+    const { data: existingMeds } = await supabase
       .from('medications')
       .select('id, search_count')
-      .ilike('name', medicationInfo.name)
-      .maybeSingle();
+      .ilike('name', normalizedName)
+      .limit(1);
     
-    if (fetchError) {
-      console.error('Error checking for existing medication:', fetchError);
-      return false;
-    }
-    
-    if (existingMed) {
-      // Update the existing medication with new data and increment search count
-      const { error: updateError } = await supabase
+    if (existingMeds && existingMeds.length > 0) {
+      // Medication exists, update the search count and timestamp
+      const med = existingMeds[0];
+      const newCount = (med.search_count || 0) + 1;
+      
+      const { error } = await supabase
         .from('medications')
-        .update({ 
-          ...medicationData,
-          search_count: (existingMed.search_count || 0) + 1,
+        .update({
+          search_count: newCount,
           searched_at: new Date().toISOString()
         })
-        .eq('id', existingMed.id);
+        .eq('id', med.id);
       
-      if (updateError) {
-        console.error('Error updating medication in database:', updateError);
+      if (error) {
+        console.error('Error incrementing medication search count:', error);
         return false;
       }
       
-      console.log(`Updated existing medication: ${medicationInfo.name}`);
-      return true;
-    } else {
-      // Insert new medication
-      const { error: insertError } = await supabase
-        .from('medications')
-        .insert(medicationData);
-      
-      if (insertError) {
-        console.error('Error saving medication to database:', insertError);
-        return false;
-      }
-      
-      console.log(`Added new medication to database: ${medicationInfo.name}`);
       return true;
     }
+    
+    return false;
   } catch (error) {
-    console.error(`Error saving medication to database:`, error);
+    console.error('Error incrementing medication search count:', error);
     return false;
   }
 };
 
 /**
- * Retrieve medication information from the database
- * If not found in database, automatically fetch from available sources and save to database
+ * Saves medication information to the database
+ * 
+ * @param medicationInfo Medication information to save
+ * @param userId User ID of the person saving the medication (optional)
+ * @returns Promise resolving to the saved medication information if successful, null if not
+ */
+export const saveMedicationToDb = async (
+  medicationInfo: MedicationInfo, 
+  userId?: string | null
+): Promise<MedicationInfo | null> => {
+  if (!medicationInfo || !medicationInfo.name) return null;
+  
+  try {
+    const normalizedName = medicationInfo.name.toLowerCase().trim();
+    
+    console.log('Saving medication to database:', normalizedName);
+    
+    // First try to get the medication to see if it exists
+    const { data: existingMeds } = await supabase
+      .from('medications')
+      .select('*')
+      .ilike('name', normalizedName)
+      .limit(1);
+    
+    if (existingMeds && existingMeds.length > 0) {
+      // Medication exists, update the search count and timestamp
+      const med = existingMeds[0];
+      const newCount = (med.search_count || 0) + 1;
+      
+      const { error } = await supabase
+        .from('medications')
+        .update({
+          search_count: newCount,
+          searched_at: new Date().toISOString(),
+          searched_by: userId || med.searched_by
+        })
+        .eq('id', med.id);
+      
+      if (error) {
+        console.error('Error updating medication search count:', error);
+      }
+      
+      return {
+        ...medicationInfo,
+        fromDatabase: true,
+        databaseSearchCount: newCount
+      };
+    } else {
+      // Medication doesn't exist, insert it
+      const { data, error } = await supabase
+        .from('medications')
+        .insert({
+          name: medicationInfo.name,
+          generic_name: medicationInfo.genericName,
+          description: medicationInfo.description,
+          drug_class: medicationInfo.drugClass,
+          prescription_only: medicationInfo.prescriptionOnly,
+          used_for: medicationInfo.usedFor,
+          warnings: medicationInfo.warnings,
+          side_effects: medicationInfo.sideEffects,
+          dosage: medicationInfo.dosage,
+          interaction_classifications: medicationInfo.interactionClassifications,
+          interaction_severity: medicationInfo.interactionSeverity,
+          food_interactions: medicationInfo.foodInteractions,
+          condition_interactions: medicationInfo.conditionInteractions,
+          therapeutic_duplications: medicationInfo.therapeuticDuplications,
+          interactions: medicationInfo.interactions,
+          pregnancy: medicationInfo.pregnancy,
+          breastfeeding: medicationInfo.breastfeeding,
+          forms: medicationInfo.forms,
+          source: medicationInfo.source,
+          searched_by: userId
+        })
+        .select()
+        .single();
+      
+      if (error) {
+        console.error('Error inserting medication:', error);
+        return medicationInfo;
+      }
+      
+      console.log('Medication saved to database:', data.name);
+      
+      return {
+        ...medicationInfo,
+        fromDatabase: true,
+        databaseSearchCount: 1
+      };
+    }
+  } catch (error) {
+    console.error('Error saving medication to database:', error);
+    return medicationInfo;
+  }
+};
+
+/**
+ * Gets medication information from the database or external API
  * 
  * @param medicationName Name of the medication to retrieve
  * @param userId User ID of the person searching (optional)
@@ -107,190 +158,90 @@ export const saveMedicationToDb = async (
  */
 export const getMedicationFromDb = async (
   medicationName: string, 
-  userId?: string,
+  userId?: string | null,
   preferredSource: 'drugscom' | 'elsevier' | 'webcrawler' = 'drugscom'
 ): Promise<MedicationInfo | null> => {
   if (!medicationName) return null;
 
   try {
-    console.log(`Searching database for medication: ${medicationName}`);
+    const normalizedName = medicationName.toLowerCase().trim();
     
-    // Query the database for the medication
-    const { data, error } = await supabase
+    console.log(`Getting medication from database: ${normalizedName} using source: ${preferredSource}`);
+    
+    // First try to get the medication from the database
+    const { data: dbMeds, error: dbError } = await supabase
       .from('medications')
       .select('*')
-      .ilike('name', medicationName)
-      .maybeSingle();
+      .ilike('name', normalizedName)
+      .limit(1);
     
-    if (error) {
-      console.error('Error retrieving medication from database:', error);
-      return null;
+    if (dbError) {
+      console.error('Error getting medication from database:', dbError);
     }
     
-    if (data) {
-      console.log(`Found medication in database: ${data.name}`);
+    // If found in the database, increment the search count and return the medication
+    if (dbMeds && dbMeds.length > 0) {
+      console.log('Medication found in database:', dbMeds[0].name);
       
-      // Update search count
-      const { error: updateError } = await supabase
+      // Increment the search count
+      const newCount = (dbMeds[0].search_count || 0) + 1;
+      
+      // Update the search count and timestamp
+      await supabase
         .from('medications')
-        .update({ 
-          search_count: (data.search_count || 0) + 1,
-          searched_at: new Date().toISOString()
+        .update({
+          search_count: newCount,
+          searched_at: new Date().toISOString(),
+          searched_by: userId || dbMeds[0].searched_by
         })
-        .eq('id', data.id);
+        .eq('id', dbMeds[0].id);
       
-      if (updateError) {
-        console.error('Error updating search count:', updateError);
-      }
-      
-      // Define interface for side effects to ensure proper typing
-      interface SideEffectsObject {
-        common?: string[];
-        serious?: string[];
-        rare?: string[];
-      }
-      
-      // Define interface for dosage to ensure proper typing
-      interface DosageObject {
-        adult?: string;
-        child?: string;
-        elderly?: string;
-        frequency?: string;
-        renal?: string;
-        hepatic?: string;
-      }
-      
-      // Define interface for interaction classifications to ensure proper typing
-      interface InteractionClassificationsObject {
-        major?: string[];
-        moderate?: string[];
-        minor?: string[];
-        unknown?: string[];
-      }
-      
-      // Define interface for interaction severity to ensure proper typing
-      interface InteractionSeverityObject {
-        major?: string[];
-        moderate?: string[];
-        minor?: string[];
-      }
-
-      // Helper function to safely handle nested objects with proper type casting
-      const safeGetNestedObject = <T>(obj: any, defaultValue: T): T => {
-        if (typeof obj === 'object' && obj !== null && !Array.isArray(obj)) {
-          return obj as unknown as T;
-        }
-        return defaultValue;
-      };
-
-      // Helper function to safely get array values
-      const safeGetArray = (value: any): string[] => {
-        if (Array.isArray(value)) {
-          return value as string[];
-        }
-        return [];
-      };
-
-      // Safely get side effects with default values for each property
-      // Create default object with the expected structure
-      const defaultSideEffects: SideEffectsObject = { common: [], serious: [], rare: [] };
-      const sideEffectsObj = safeGetNestedObject(data.side_effects, defaultSideEffects);
-      
-      const sideEffects = {
-        common: Array.isArray(sideEffectsObj.common) ? sideEffectsObj.common : [],
-        serious: Array.isArray(sideEffectsObj.serious) ? sideEffectsObj.serious : [],
-        rare: Array.isArray(sideEffectsObj.rare) ? sideEffectsObj.rare : []
-      };
-
-      // Safely get dosage with default values for each property
-      // Create default object with the expected structure
-      const defaultDosage: DosageObject = { adult: '', child: '', elderly: '', frequency: '', renal: '', hepatic: '' };
-      const dosageObj = safeGetNestedObject(data.dosage, defaultDosage);
-      
-      const dosage = {
-        adult: typeof dosageObj.adult === 'string' ? dosageObj.adult : '',
-        child: typeof dosageObj.child === 'string' ? dosageObj.child : '',
-        elderly: typeof dosageObj.elderly === 'string' ? dosageObj.elderly : '',
-        frequency: typeof dosageObj.frequency === 'string' ? dosageObj.frequency : '',
-        renal: typeof dosageObj.renal === 'string' ? dosageObj.renal : '',
-        hepatic: typeof dosageObj.hepatic === 'string' ? dosageObj.hepatic : ''
-      };
-
-      // Safely get interaction classifications with default values for each property
-      // Create default object with the expected structure
-      const defaultInteractionClassifications: InteractionClassificationsObject = { 
-        major: [], moderate: [], minor: [], unknown: [] 
-      };
-      const interactionClassificationsObj = safeGetNestedObject(
-        data.interaction_classifications, 
-        defaultInteractionClassifications
-      );
-      
-      const interactionClassifications = {
-        major: Array.isArray(interactionClassificationsObj.major) ? interactionClassificationsObj.major : [],
-        moderate: Array.isArray(interactionClassificationsObj.moderate) ? interactionClassificationsObj.moderate : [],
-        minor: Array.isArray(interactionClassificationsObj.minor) ? interactionClassificationsObj.minor : [],
-        unknown: Array.isArray(interactionClassificationsObj.unknown) ? interactionClassificationsObj.unknown : []
-      };
-
-      // Safely get interaction severity with default values for each property
-      // Create default object with the expected structure
-      const defaultInteractionSeverity: InteractionSeverityObject = { 
-        major: [], moderate: [], minor: [] 
-      };
-      const interactionSeverityObj = safeGetNestedObject(
-        data.interaction_severity, 
-        defaultInteractionSeverity
-      );
-      
-      const interactionSeverity = {
-        major: Array.isArray(interactionSeverityObj.major) ? interactionSeverityObj.major : [],
-        moderate: Array.isArray(interactionSeverityObj.moderate) ? interactionSeverityObj.moderate : [],
-        minor: Array.isArray(interactionSeverityObj.minor) ? interactionSeverityObj.minor : []
-      };
-      
-      // Convert database structure back to MedicationInfo with proper type handling
+      // Convert database medication to MedicationInfo format
       const medicationInfo: MedicationInfo = {
-        name: data.name,
-        genericName: data.generic_name || '',
-        description: data.description || '',
-        drugClass: data.drug_class || '',
-        prescriptionOnly: data.prescription_only || false,
-        usedFor: safeGetArray(data.used_for),
-        warnings: safeGetArray(data.warnings),
-        sideEffects: sideEffects,
-        interactions: safeGetArray(data.interactions),
-        dosage: dosage,
-        forms: safeGetArray(data.forms),
-        pregnancy: data.pregnancy || '',
-        breastfeeding: data.breastfeeding || '',
-        foodInteractions: safeGetArray(data.food_interactions),
-        conditionInteractions: safeGetArray(data.condition_interactions),
-        therapeuticDuplications: safeGetArray(data.therapeutic_duplications),
-        interactionClassifications: interactionClassifications,
-        interactionSeverity: interactionSeverity,
-        source: data.source || 'Database',
-        drugsComUrl: getDrugsComUrl(data.name),
+        name: dbMeds[0].name,
+        genericName: dbMeds[0].generic_name,
+        description: dbMeds[0].description,
+        drugClass: dbMeds[0].drug_class,
+        prescriptionOnly: dbMeds[0].prescription_only,
+        usedFor: dbMeds[0].used_for,
+        warnings: dbMeds[0].warnings,
+        sideEffects: dbMeds[0].side_effects,
+        interactions: dbMeds[0].interactions,
+        dosage: dbMeds[0].dosage,
+        forms: dbMeds[0].forms,
+        interactionClassifications: dbMeds[0].interaction_classifications,
+        interactionSeverity: dbMeds[0].interaction_severity,
+        foodInteractions: dbMeds[0].food_interactions,
+        conditionInteractions: dbMeds[0].condition_interactions,
+        therapeuticDuplications: dbMeds[0].therapeutic_duplications,
+        pregnancy: dbMeds[0].pregnancy,
+        breastfeeding: dbMeds[0].breastfeeding,
+        source: dbMeds[0].source,
         fromDatabase: true,
-        databaseSearchCount: data.search_count
+        databaseSearchCount: newCount
       };
       
       return medicationInfo;
     }
     
-    // If not found in database, fetch from the preferred source
-    console.log(`Medication not found in database: ${medicationName}. Fetching from ${preferredSource}...`);
-    
+    // If not found in the database, try to get from external API
+    console.log('Medication not found in database, fetching from external API');
     let externalMedInfo: MedicationInfo | null = null;
     
-    if (preferredSource === 'webcrawler') {
+    // Use the preferred source to fetch the medication info
+    if (preferredSource === 'drugscom') {
+      // Use the drugs.com scraper
+      const { fetchMedicationInfo } = await import('./modrugsApi');
+      externalMedInfo = await fetchMedicationInfo(medicationName);
+    } else if (preferredSource === 'webcrawler') {
       // First try Web Crawler
       externalMedInfo = await fetchWebCrawlerDrugInfo(medicationName);
       
       // If not found in Web Crawler, fallback to drugs.com
       if (!externalMedInfo) {
         console.log(`Medication not found in Web Crawler: ${medicationName}. Trying drugs.com...`);
-        externalMedInfo = await fetchDrugsComLiveInfo(medicationName);
+        const { fetchMedicationInfo } = await import('./modrugsApi');
+        externalMedInfo = await fetchMedicationInfo(medicationName);
       }
     } else if (preferredSource === 'elsevier') {
       // First try Elsevier
@@ -299,43 +250,44 @@ export const getMedicationFromDb = async (
       // If not found in Elsevier, fallback to drugs.com
       if (!externalMedInfo) {
         console.log(`Medication not found in Elsevier: ${medicationName}. Trying drugs.com...`);
-        externalMedInfo = await fetchDrugsComLiveInfo(medicationName);
+        const { fetchMedicationInfo } = await import('./modrugsApi');
+        externalMedInfo = await fetchMedicationInfo(medicationName);
       }
     } else {
       // Default to drugs.com
-      externalMedInfo = await fetchDrugsComLiveInfo(medicationName);
+      const { fetchMedicationInfo } = await import('./modrugsApi');
+      externalMedInfo = await fetchMedicationInfo(medicationName);
     }
     
     if (externalMedInfo) {
-      console.log(`Retrieved information for ${medicationName}. Saving to database...`);
+      console.log('Medication found in external API:', externalMedInfo.name);
       
-      // Save the medication info to the database
-      await saveMedicationToDb(externalMedInfo, userId);
-      
-      // Set the source
+      // Set the source of the medication info if not already set
       if (!externalMedInfo.source) {
-        externalMedInfo.source = preferredSource === 'elsevier' 
-          ? 'Elsevier Drug Info API' 
-          : preferredSource === 'webcrawler'
-            ? 'Web Crawler for Drug Interaction Data'
-            : 'Drugs.com';
+        externalMedInfo.source = preferredSource === 'drugscom' 
+          ? 'Drugs.com Scraper' 
+          : preferredSource === 'elsevier' 
+            ? 'Elsevier Drug Info API' 
+            : preferredSource === 'webcrawler'
+              ? 'Web Crawler for Drug Interaction Data'
+              : 'Drugs.com';
       }
       
-      // Set the URL
-      externalMedInfo.drugsComUrl = getDrugsComUrl(externalMedInfo.name || medicationName);
+      // Save the medication to the database
+      const savedMedInfo = await saveMedicationToDb(externalMedInfo, userId || undefined);
       
-      return externalMedInfo;
+      return savedMedInfo || externalMedInfo;
     }
     
-    console.log(`No information found for ${medicationName} from any source`);
     return null;
   } catch (error) {
-    console.error(`Error retrieving medication from database:`, error);
+    console.error('Error getting medication from database or API:', error);
+    toast.error('Error retrieving medication information');
     return null;
   }
 };
 
-// Import from drugsComApi to get URL function and fetchDrugsComLiveInfo function
-import { getDrugsComUrl, fetchDrugsComLiveInfo } from './drugsComApi';
+// Import other necessary functions
+import { getDrugsComUrl } from './drugsComApi';
 import { fetchElsevierDrugInfo } from './elsevierApi';
 import { fetchWebCrawlerDrugInfo } from './webCrawlerApi';
