@@ -1,5 +1,7 @@
+
 import { toast } from 'sonner';
 import { performMedicationSearch } from './medication-db';
+import { enhancedMedicationSearch } from './medication-db/enhancedMedicationSearch';
 
 /**
  * Basic search function for Drugs.com
@@ -23,9 +25,9 @@ export async function searchDrugsCom(query: string): Promise<string[]> {
     console.log(`searchDrugsCom: Found ${results.length} results:`, results);
     
     if (results.length === 0) {
-      console.log('searchDrugsCom: No results found, using backup search');
+      console.log('searchDrugsCom: No results found, using enhanced local search');
       // Use the enhanced medication search as backup
-      return await enhancedLocalSearch(normalizedQuery);
+      return await enhancedMedicationSearch(normalizedQuery);
     }
     
     return results;
@@ -36,7 +38,7 @@ export async function searchDrugsCom(query: string): Promise<string[]> {
     
     // Fallback to enhancedLocalSearch in case of error
     console.log('searchDrugsCom: Error occurred, using backup search');
-    return await enhancedLocalSearch(query.trim().toLowerCase());
+    return await enhancedMedicationSearch(query.trim().toLowerCase());
   }
 }
 

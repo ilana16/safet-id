@@ -27,9 +27,9 @@ const MedicationSearch: React.FC<MedicationSearchProps> = ({
   const [history, setHistory] = useState<string[]>([]);
   const [userId, setUserId] = useState<string | null>(null);
   const [searchError, setSearchError] = useState<string | null>(null);
-  const [searchTimeoutId, setSearchTimeoutId] = useState<number | null>(null);
+  const [searchTimeoutId, setSearchTimeoutId] = useState<NodeJS.Timeout | null>(null);
   const [autoSearchEnabled, setAutoSearchEnabled] = useState(true);
-  const debouncedSearchTerm = useDebounce(query, 300, autoSearchEnabled);
+  const debouncedSearchTerm = useDebounce(query, 300);
 
   useEffect(() => {
     const getCurrentUser = async () => {
@@ -102,7 +102,8 @@ const MedicationSearch: React.FC<MedicationSearchProps> = ({
     const timeoutDuration = isAuto ? 8000 : 15000;
     
     try {
-      const timeoutId = window.setTimeout(() => {
+      console.log(`Setting search timeout for ${timeoutDuration}ms`);
+      const timeoutId = setTimeout(() => {
         console.log('Search timeout triggered');
         setIsSearching(false);
         setSearchError('Search request timed out. Please try again with a simpler query.');
@@ -113,7 +114,7 @@ const MedicationSearch: React.FC<MedicationSearchProps> = ({
       
       console.log(`${isAuto ? 'Auto' : 'Manual'} search for: "${searchTerm}"`);
       const results = await searchDrugsCom(searchTerm);
-      console.log(`Search returned ${results.length} results`);
+      console.log(`Search returned ${results.length} results:`, results);
       
       clearTimeout(timeoutId);
       setSearchTimeoutId(null);
@@ -121,7 +122,7 @@ const MedicationSearch: React.FC<MedicationSearchProps> = ({
       setSearchResults(results);
       setIsSearching(false);
       
-      if (results.length === 0) {
+      if (results.length === 0 && searchTerm.length >= 2) {
         console.log('No results found for search');
         toast.info(`No results found for "${searchTerm}"`);
       } else if (!isAuto && results.length === 1 && results[0].toLowerCase() === searchTerm.toLowerCase()) {

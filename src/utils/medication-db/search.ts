@@ -59,7 +59,7 @@ export const performMedicationSearch = async (query: string): Promise<string[]> 
         .rpc('search_drugs', { 
           search_term: `%${query}%`, 
           result_limit: 10 
-        }) as { data: DrugSearchResult[] | null, error: any };
+        });
       
       if (error) {
         console.error('Error in drugs search RPC:', error);

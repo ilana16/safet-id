@@ -18,7 +18,7 @@ export const enhancedMedicationSearch = async (query: string): Promise<string[]>
   
   try {
     // Comprehensive list of common medications stored as a Set for faster lookups
-    const commonMedicationsSet = new Set([
+    const commonMedications = [
       'Acetaminophen', 'Adderall', 'Albuterol', 'Alprazolam', 'Amoxicillin', 
       'Atorvastatin', 'Azithromycin', 'Benzonatate', 'Bupropion', 'Buspirone',
       'Cefdinir', 'Cephalexin', 'Ciprofloxacin', 'Citalopram', 'Clindamycin', 
@@ -36,35 +36,9 @@ export const enhancedMedicationSearch = async (query: string): Promise<string[]>
       'Digoxin', 'Diltiazem', 'Diphenhydramine', 'Furosemide', 'Glipizide',
       'Hydralazine', 'Hydrocodone', 'Insulin', 'Lamotrigine', 'Latanoprost',
       'Levothroid', 'Lexapro', 'Meloxicam', 'Methotrexate', 'Methylprednisolone',
-      'Minoxidil', 'Montelukast', 'Morphine', 'Nabumetone', 'Nifedipine',
-      'Nitrofurantoin', 'Norvasc', 'Olmesartan', 'Oxycontin', 'Paroxetine',
-      'Penicillin', 'Phenytoin', 'Plavix', 'Quetiapine', 'Ramipril',
-      'Ranitidine', 'Risperdal', 'Rosuvastatin', 'Spiriva', 'Tamsulosin',
-      'Tramadol', 'Valacyclovir', 'Valium', 'Valsartan', 'Venlafaxine',
-      'Ventolin', 'Verapamil', 'Wellbutrin', 'Xarelto', 'Zestril',
-      'Amitriptyline', 'Aricept', 'Celebrex', 'Cozaar', 'Cymbalta',
-      'Effexor', 'Flomax', 'Fosamax', 'Glucophage', 'Januvia',
-      'Keppra', 'Lamictal', 'Lyrica', 'Neurontin', 'Paxil',
-      'Premarin', 'Pristiq', 'Protonix', 'Remicade', 'Seroquel',
-      'Singulair', 'Topamax', 'Toprol', 'Zetia',
-      'Actos', 'Ativan', 'Augmentin', 'Bactrim', 'Benadryl',
-      'Boniva', 'Bumex', 'Cardizem', 'Celexa', 'Coreg',
-      'Coumadin', 'Crestor', 'Depakote', 'Diovan', 'Enbrel',
-      'Flonase', 'Focalin', 'Hyzaar', 'Imitrex', 'Keflex',
-      'Lasix', 'Levaquin', 'Levitra', 'Lipitor', 'Lunesta',
-      'Mobic', 'Naprosyn', 'Nasonex', 'Nexium', 'Norvasc',
-      'Paxil', 'Pepcid', 'Prevacid', 'Prilosec', 'Prinivil',
-      'Provigil', 'Prozac', 'Seroquel', 'Singular', 'Synthroid',
-      'Tamiflu', 'Tums', 'Ultram', 'Valtrex', 'Viagra',
-      'Vytorin', 'Wellbutrin', 'Xalatan', 'Xanax', 'Yasmin',
-      'Zantac', 'Zestoretic', 'Zithromax', 'Zocor', 'Zoloft'
-    ]);
+      'Minoxidil', 'Montelukast', 'Morphine', 'Nabumetone', 'Nifedipine'
+    ];
 
-    // Faster algorithm - single-pass search with immediate results
-    const startsWith = [];
-    const includes = [];
-    const commonMedications = Array.from(commonMedicationsSet);
-    
     // Direct matches first (exact or starts-with)
     const exactMatch = commonMedications.find(
       med => med.toLowerCase() === lowercaseQuery
@@ -75,34 +49,20 @@ export const enhancedMedicationSearch = async (query: string): Promise<string[]>
       return [exactMatch]; // Return immediately on exact match
     }
     
-    // Limit search time by processing in batches if needed
-    const batchSize = 100;
-    const totalMeds = commonMedications.length;
+    // Starts with matches
+    const startsWithResults = commonMedications.filter(med => 
+      med.toLowerCase().startsWith(lowercaseQuery)
+    );
     
-    for (let i = 0; i < totalMeds; i++) {
-      const med = commonMedications[i];
-      const lowerMed = med.toLowerCase();
-      
-      if (lowerMed.startsWith(lowercaseQuery)) {
-        startsWith.push(med);
-      } else if (lowerMed.includes(lowercaseQuery)) {
-        includes.push(med);
-      }
-      
-      // Early exit conditions
-      if (startsWith.length >= 10) {
-        break; // We have enough results that start with the query
-      }
-      
-      // Process in batches to avoid blocking UI
-      if ((i + 1) % batchSize === 0 && startsWith.length > 0) {
-        break; // Exit after processing a batch if we have some results
-      }
-    }
+    // Contains matches (but doesn't start with)
+    const includesResults = commonMedications.filter(med => 
+      !med.toLowerCase().startsWith(lowercaseQuery) && 
+      med.toLowerCase().includes(lowercaseQuery)
+    );
     
     // Combine results with priority to those that start with the query
-    const results = [...startsWith, ...includes];
-    console.log(`Enhanced search found ${results.length} results`);
+    const results = [...startsWithResults, ...includesResults];
+    console.log(`Enhanced search found ${results.length} results for "${query}"`);
     
     // Return unique results limited to 15
     return results.slice(0, 15);
