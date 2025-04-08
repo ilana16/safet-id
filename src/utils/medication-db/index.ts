@@ -1,6 +1,4 @@
 
-// This file exports all the functions for interacting with the medications database
-
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type { MedicationInfo } from '../medicationData.d';
@@ -75,8 +73,6 @@ export const saveMedicationToDb = async (
       interaction_classifications: medicationInfo.interactionClassifications ? JSON.parse(JSON.stringify(medicationInfo.interactionClassifications)) : null,
       interaction_severity: medicationInfo.interactionSeverity ? JSON.parse(JSON.stringify(medicationInfo.interactionSeverity)) : null,
       dosage: medicationInfo.dosage ? JSON.parse(JSON.stringify(medicationInfo.dosage)) : null,
-      // Use halfLife property instead of half_life
-      // Change this line to match the database column name exactly
       half_life: medicationInfo.halfLife || null
     };
     
@@ -157,32 +153,35 @@ export const getMedicationFromDb = async (
     if (medData) {
       incrementMedicationSearchCount(medData.name, userId);
       
+      // Use type assertion to tell TypeScript about the structure
+      const typedMedData = medData as any;
+      
       // Convert database format to MedicationInfo format
       const medicationInfo: MedicationInfo = {
-        id: medData.id,
-        name: medData.name,
-        genericName: medData.generic_name || undefined,
-        description: medData.description || undefined,
-        drugClass: medData.drug_class || undefined,
-        prescriptionOnly: medData.prescription_only ?? false,
-        usedFor: medData.used_for || [],
-        warnings: medData.warnings || [],
-        foodInteractions: medData.food_interactions || [],
-        conditionInteractions: medData.condition_interactions || [],
-        therapeuticDuplications: medData.therapeutic_duplications || [],
-        source: source || medData.source || 'database',
-        forms: medData.forms || [],
-        pregnancy: medData.pregnancy || undefined,
-        breastfeeding: medData.breastfeeding || undefined,
+        id: typedMedData.id,
+        name: typedMedData.name,
+        genericName: typedMedData.generic_name || undefined,
+        description: typedMedData.description || undefined,
+        drugClass: typedMedData.drug_class || undefined,
+        prescriptionOnly: typedMedData.prescription_only ?? false,
+        usedFor: typedMedData.used_for || [],
+        warnings: typedMedData.warnings || [],
+        foodInteractions: typedMedData.food_interactions || [],
+        conditionInteractions: typedMedData.condition_interactions || [],
+        therapeuticDuplications: typedMedData.therapeutic_duplications || [],
+        source: source || typedMedData.source || 'database',
+        forms: typedMedData.forms || [],
+        pregnancy: typedMedData.pregnancy || undefined,
+        breastfeeding: typedMedData.breastfeeding || undefined,
         // Handle JSON data from the database
-        sideEffects: medData.side_effects ? medData.side_effects as any : { common: [], serious: [], rare: [] },
-        interactions: medData.interactions || [],
-        interactionClassifications: medData.interaction_classifications as any,
-        interactionSeverity: medData.interaction_severity as any,
-        dosage: medData.dosage as any,
-        // Change this line to access the correct database column
-        halfLife: medData.half_life,
-        drugsComUrl: getDrugsComUrl(medData.name)
+        sideEffects: typedMedData.side_effects ? typedMedData.side_effects as any : { common: [], serious: [], rare: [] },
+        interactions: typedMedData.interactions || [],
+        interactionClassifications: typedMedData.interaction_classifications as any,
+        interactionSeverity: typedMedData.interaction_severity as any,
+        dosage: typedMedData.dosage as any,
+        // Use type assertion to access the half_life property
+        halfLife: typedMedData.half_life,
+        drugsComUrl: getDrugsComUrl(typedMedData.name)
       };
       
       return medicationInfo;
