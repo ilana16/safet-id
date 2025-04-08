@@ -101,7 +101,7 @@ export const saveMedicationToDb = async (
       // Insert new medication
       const { error } = await supabase
         .from('medications')
-        .insert(medicationData);
+        .insert([medicationData]);
       
       if (error) {
         console.error('Error inserting medication:', error);
@@ -153,8 +153,34 @@ export const getMedicationFromDb = async (
     if (medData) {
       incrementMedicationSearchCount(medData.name, userId);
       
-      // Use type assertion to tell TypeScript about the structure
-      const typedMedData = medData as any;
+      // Define a proper DB response type with all needed fields
+      interface MedicationDbResponse {
+        id: string;
+        name: string;
+        generic_name?: string | null;
+        description?: string | null;
+        drug_class?: string | null;
+        prescription_only?: boolean | null;
+        used_for?: string[] | null;
+        warnings?: string[] | null;
+        side_effects?: any;
+        food_interactions?: string[] | null;
+        condition_interactions?: string[] | null;
+        therapeutic_duplications?: string[] | null;
+        source?: string | null;
+        forms?: string[] | null;
+        pregnancy?: string | null;
+        breastfeeding?: string | null;
+        interactions?: string[] | null;
+        interaction_classifications?: any;
+        interaction_severity?: any;
+        dosage?: any;
+        half_life?: string | null;
+        search_count?: number | null;
+      }
+      
+      // Cast to our defined type to ensure we have all expected fields
+      const typedMedData = medData as MedicationDbResponse;
       
       // Convert database format to MedicationInfo format
       const medicationInfo: MedicationInfo = {
@@ -174,14 +200,15 @@ export const getMedicationFromDb = async (
         pregnancy: typedMedData.pregnancy || undefined,
         breastfeeding: typedMedData.breastfeeding || undefined,
         // Handle JSON data from the database
-        sideEffects: typedMedData.side_effects ? typedMedData.side_effects as any : { common: [], serious: [], rare: [] },
+        sideEffects: typedMedData.side_effects ? typedMedData.side_effects : { common: [], serious: [], rare: [] },
         interactions: typedMedData.interactions || [],
-        interactionClassifications: typedMedData.interaction_classifications as any,
-        interactionSeverity: typedMedData.interaction_severity as any,
-        dosage: typedMedData.dosage as any,
-        // Use type assertion to access the half_life property
+        interactionClassifications: typedMedData.interaction_classifications,
+        interactionSeverity: typedMedData.interaction_severity,
+        dosage: typedMedData.dosage,
         halfLife: typedMedData.half_life,
-        drugsComUrl: getDrugsComUrl(typedMedData.name)
+        drugsComUrl: getDrugsComUrl(typedMedData.name),
+        databaseSearchCount: typedMedData.search_count || 1,
+        fromDatabase: true
       };
       
       return medicationInfo;
