@@ -23,6 +23,12 @@ export interface DosageInfo {
   hepatic?: string;
 }
 
+export interface ATCClassification {
+  code: string;
+  name: string;
+  level: number;
+}
+
 export interface MedicationInfo {
   id?: string;
   name: string;
@@ -50,6 +56,14 @@ export interface MedicationInfo {
   halfLife?: string; // Added half-life information
   drugsComUrl?: string;
   source?: string;
+  
+  // New fields from additional APIs
+  rxcui?: string;
+  ndc?: string[];
+  manufacturer?: string;
+  productType?: string;
+  routeOfAdministration?: string[];
+  atcClassification?: ATCClassification[];
   
   // Database-related properties
   fromDatabase?: boolean; // Indicates if the data came from the database
