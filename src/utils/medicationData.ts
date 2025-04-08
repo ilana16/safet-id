@@ -3,52 +3,7 @@
  * This represents medication data from a medical API like Drugs.com
  */
 
-export interface MedicationInfo {
-  name: string;
-  genericName?: string;
-  description: string;
-  drugsComUrl?: string;
-  drugClass?: string;
-  usedFor?: string[];
-  dosage: {
-    adult: string;
-    child?: string;
-    elderly?: string;
-    frequency?: string;
-    renal?: string;
-    hepatic?: string;
-  };
-  sideEffects: {
-    common?: string[];
-    serious?: string[];
-    rare?: string[];
-  };
-  overdose?: {
-    symptoms: string[];
-    treatment: string;
-    antidote?: string;
-  };
-  warnings?: string[];
-  interactions?: string[];
-  interactionSeverity?: {
-    major?: string[];
-    moderate?: string[];
-    minor?: string[];
-  };
-  pharmacokinetics?: {
-    absorption?: string;
-    distribution?: string;
-    metabolism?: string;
-    elimination?: string;
-  };
-  pregnancy?: string;
-  blackBoxWarning?: string;
-  halfLife?: string;
-  controlledSubstance?: string;
-  prescriptionOnly?: boolean;
-  forms?: string[];
-  source?: string;
-}
+import { MedicationInfo } from './medicationData';
 
 // Real medication database with data from actual drug information sources
 export const medicationDatabase: Record<string, MedicationInfo> = {
