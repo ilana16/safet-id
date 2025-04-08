@@ -1,183 +1,224 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { ExternalLink, PlusCircle, AlertCircle, Search, AlertOctagon } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { AlertTriangle, AlertCircle, Plus, RotateCcw } from 'lucide-react';
 import { MedicationInfo as MedicationInfoType } from '@/utils/medicationData';
-import MedicationInfo from '../MedicationInfo';
-import { toast } from 'sonner';
-import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface MedicationInfoDisplayProps {
   medicationInfo: MedicationInfoType | null;
   selectedMedication: string | null;
+  isLoading: boolean;
+  error: string | null;
+  canAddToProfile: boolean;
+  dataSource?: string;
   onResetSearch: () => void;
   onAddToProfile: () => void;
-  canAddToProfile: boolean;
-  isLoading?: boolean;
-  error?: string | null;
 }
 
 const MedicationInfoDisplay: React.FC<MedicationInfoDisplayProps> = ({
   medicationInfo,
   selectedMedication,
-  onResetSearch,
-  onAddToProfile,
+  isLoading,
+  error,
   canAddToProfile,
-  isLoading = false,
-  error = null
+  dataSource = "Drugs.com",
+  onResetSearch,
+  onAddToProfile
 }) => {
-  if (isLoading) {
-    return (
-      <div className="bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm">
-        <div className="p-6 text-center">
-          <div className="animate-pulse flex flex-col items-center">
-            <div className="h-10 w-full bg-gray-200 rounded mb-4"></div>
-            <div className="h-32 w-full bg-gray-200 rounded mb-4"></div>
-            <div className="h-16 w-full bg-gray-200 rounded"></div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   if (error) {
     return (
-      <div className="bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm">
-        <div className="p-6">
-          <Alert variant="destructive" className="mb-4">
-            <AlertCircle className="h-4 w-4" />
-            <AlertTitle>Error</AlertTitle>
-            <AlertDescription>
-              {error}
-            </AlertDescription>
-          </Alert>
-          <div className="mt-4">
-            <p className="text-sm text-gray-500 mb-4">
-              Suggestions:
-              <ul className="list-disc list-inside mt-2 space-y-1">
-                <li>Check if the medication name is spelled correctly</li>
-                <li>Try searching for a different medication</li>
-                <li>Use the generic name instead of a brand name</li>
-              </ul>
-            </p>
+      <Card className="border-red-200 bg-red-50">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-lg flex items-center text-red-700">
+            <AlertTriangle className="h-5 w-5 mr-2" />
+            Error Finding Medication Information
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-sm text-gray-700 mb-4">
+            <p>{error}</p>
+            {selectedMedication && (
+              <p className="mt-2">
+                Could not find information for: <span className="font-medium">{selectedMedication}</span>
+              </p>
+            )}
           </div>
-          <Button 
-            variant="outline" 
-            className="mt-2" 
-            onClick={onResetSearch}
-          >
-            <Search className="h-4 w-4 mr-2" />
-            Back to Search
+          <Button onClick={onResetSearch} variant="outline" size="sm">
+            <RotateCcw className="h-4 w-4 mr-2" />
+            Try Another Search
           </Button>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
     );
   }
 
-  if (!medicationInfo) {
-    return (
-      <div className="bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm">
-        <div className="p-6">
-          <Alert variant="destructive" className="mb-4">
-            <AlertCircle className="h-4 w-4" />
-            <AlertTitle>No Data Found</AlertTitle>
-            <AlertDescription>
-              We couldn't find information for "{selectedMedication}". Please verify the spelling or try another medication.
-            </AlertDescription>
-          </Alert>
-          <div className="mt-4">
-            <p className="text-sm text-gray-500 mb-4">
-              Suggestions:
-              <ul className="list-disc list-inside mt-2 space-y-1">
-                <li>Try using a generic name (e.g., "acetaminophen" instead of "Tylenol")</li>
-                <li>Check if the medication name is spelled correctly</li>
-                <li>Search for a common medication like "ibuprofen" or "aspirin"</li>
-              </ul>
-            </p>
-          </div>
-          <Button 
-            variant="outline" 
-            className="mt-2" 
-            onClick={onResetSearch}
-          >
-            <Search className="h-4 w-4 mr-2" />
-            Back to Search
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
-  const handleAddToProfile = () => {
-    try {
-      onAddToProfile();
-    } catch (error) {
-      console.error('Error adding medication to profile:', error);
-      toast.error('Error adding medication to profile');
-    }
-  };
-
-  // Show emergency warning if medication has overdose information
-  const hasOverdoseInfo = medicationInfo.overdose && 
-    (medicationInfo.overdose.symptoms?.length > 0 || 
-     medicationInfo.overdose.treatment || 
-     medicationInfo.overdose.antidote);
+  if (!medicationInfo || isLoading) return null;
 
   return (
-    <div className="bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm">
-      <div className="flex justify-between items-center mb-4 p-4 border-b border-gray-200">
-        <Button 
-          variant="outline" 
-          className="text-safet-600" 
-          onClick={onResetSearch}
-        >
-          <Search className="h-4 w-4 mr-2" />
-          Back to Search
-        </Button>
-        
-        <div className="flex gap-2">
+    <Card className="border-safet-200">
+      <CardHeader className="pb-2">
+        <div className="flex justify-between items-center">
+          <CardTitle className="text-lg flex items-center">
+            {medicationInfo.name}
+            <Badge className="ml-2 bg-safet-100 text-safet-600 hover:bg-safet-200 hover:text-safet-700">
+              {dataSource}
+            </Badge>
+            {medicationInfo.prescriptionOnly && (
+              <Badge className="ml-2 bg-blue-100 text-blue-600 hover:bg-blue-200">Rx Only</Badge>
+            )}
+          </CardTitle>
+          <Button onClick={onResetSearch} variant="ghost" size="sm" className="text-gray-500">
+            <RotateCcw className="h-4 w-4 mr-1" />
+            New Search
+          </Button>
+        </div>
+        {medicationInfo.genericName && medicationInfo.genericName !== medicationInfo.name && (
+          <p className="text-sm text-gray-500 mt-1">Generic: {medicationInfo.genericName}</p>
+        )}
+        {medicationInfo.drugClass && (
+          <Badge variant="outline" className="mt-2 bg-gray-100">
+            {medicationInfo.drugClass}
+          </Badge>
+        )}
+      </CardHeader>
+
+      <CardContent className="pt-2">
+        <div className="space-y-5">
+          <div>
+            <h3 className="text-sm font-medium text-gray-700 mb-1">Description</h3>
+            <p className="text-sm text-gray-600">{medicationInfo.description}</p>
+          </div>
+
+          {medicationInfo.usedFor && medicationInfo.usedFor.length > 0 && (
+            <div>
+              <h3 className="text-sm font-medium text-gray-700 mb-1">Used For</h3>
+              <div className="flex flex-wrap gap-1">
+                {medicationInfo.usedFor.map((use, index) => (
+                  <Badge key={index} className="bg-blue-50 text-blue-700 border-blue-100 hover:bg-blue-100">
+                    {use}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {medicationInfo.dosage && (
+            <div>
+              <h3 className="text-sm font-medium text-gray-700 mb-1">Dosage</h3>
+              <div className="text-sm text-gray-600 space-y-2">
+                {medicationInfo.dosage.adult && (
+                  <p><span className="font-medium">Adult:</span> {medicationInfo.dosage.adult}</p>
+                )}
+                {medicationInfo.dosage.child && (
+                  <p><span className="font-medium">Child:</span> {medicationInfo.dosage.child}</p>
+                )}
+                {medicationInfo.dosage.elderly && (
+                  <p><span className="font-medium">Elderly:</span> {medicationInfo.dosage.elderly}</p>
+                )}
+                {medicationInfo.dosage.frequency && (
+                  <p><span className="font-medium">Frequency:</span> {medicationInfo.dosage.frequency}</p>
+                )}
+              </div>
+            </div>
+          )}
+
+          {medicationInfo.sideEffects && (
+            <div>
+              <h3 className="text-sm font-medium text-gray-700 mb-1">Side Effects</h3>
+              {medicationInfo.sideEffects.common && medicationInfo.sideEffects.common.length > 0 && (
+                <div className="mb-2">
+                  <p className="text-xs text-gray-500">Common:</p>
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {medicationInfo.sideEffects.common.slice(0, 5).map((effect, index) => (
+                      <Badge key={index} variant="outline" className="bg-gray-50 text-gray-700">
+                        {effect}
+                      </Badge>
+                    ))}
+                    {medicationInfo.sideEffects.common.length > 5 && (
+                      <Badge variant="outline" className="bg-gray-50 text-gray-700">
+                        +{medicationInfo.sideEffects.common.length - 5} more
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {medicationInfo.sideEffects.serious && medicationInfo.sideEffects.serious.length > 0 && (
+                <div>
+                  <p className="text-xs text-red-600 flex items-center">
+                    <AlertCircle className="h-3 w-3 mr-1" />
+                    Serious:
+                  </p>
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {medicationInfo.sideEffects.serious.slice(0, 3).map((effect, index) => (
+                      <Badge key={index} className="bg-red-50 text-red-700 border-red-100">
+                        {effect}
+                      </Badge>
+                    ))}
+                    {medicationInfo.sideEffects.serious.length > 3 && (
+                      <Badge className="bg-red-50 text-red-700 border-red-100">
+                        +{medicationInfo.sideEffects.serious.length - 3} more
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {medicationInfo.warnings && medicationInfo.warnings.length > 0 && (
+            <div>
+              <h3 className="text-sm font-medium text-gray-700 mb-1 flex items-center">
+                <AlertTriangle className="h-4 w-4 mr-1 text-amber-500" />
+                Warnings
+              </h3>
+              <ScrollArea className="h-24 w-full">
+                <ul className="text-sm text-gray-600 list-disc pl-5 space-y-1">
+                  {medicationInfo.warnings.map((warning, index) => (
+                    <li key={index}>{warning}</li>
+                  ))}
+                </ul>
+              </ScrollArea>
+            </div>
+          )}
+
+          {medicationInfo.interactions && medicationInfo.interactions.length > 0 && (
+            <div>
+              <h3 className="text-sm font-medium text-gray-700 mb-1">Drug Interactions</h3>
+              <ScrollArea className="h-24 w-full">
+                <ul className="text-sm text-gray-600 list-disc pl-5 space-y-1">
+                  {medicationInfo.interactions.map((interaction, index) => (
+                    <li key={index}>{interaction}</li>
+                  ))}
+                </ul>
+              </ScrollArea>
+            </div>
+          )}
+
+          {medicationInfo.pregnancy && (
+            <div>
+              <h3 className="text-sm font-medium text-gray-700 mb-1">Pregnancy</h3>
+              <p className="text-sm text-gray-600">{medicationInfo.pregnancy}</p>
+            </div>
+          )}
+
           {canAddToProfile && (
-            <Button 
-              className="bg-safet-500 hover:bg-safet-600"
-              onClick={handleAddToProfile}
-            >
-              <PlusCircle className="h-4 w-4 mr-2" />
-              Add to My Medications
-            </Button>
-          )}
-          
-          {medicationInfo.drugsComUrl && (
-            <Button variant="outline" className="text-safet-600" asChild>
-              <a 
-                href={medicationInfo.drugsComUrl} 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="inline-flex items-center"
+            <div className="pt-3">
+              <Button 
+                onClick={onAddToProfile} 
+                className="w-full"
               >
-                <ExternalLink className="h-4 w-4 mr-1" />
-                View on Drugs.com
-              </a>
-            </Button>
+                <Plus className="h-4 w-4 mr-2" />
+                Add to My Medications
+              </Button>
+            </div>
           )}
         </div>
-      </div>
-      
-      {hasOverdoseInfo && (
-        <div className="mx-4 mb-4">
-          <Alert variant="destructive" className="bg-red-50 text-red-900 border-red-200">
-            <AlertOctagon className="h-4 w-4" />
-            <AlertTitle className="text-red-900">Emergency: Overdose Information Available</AlertTitle>
-            <AlertDescription className="text-red-800">
-              This medication has important overdose information. In case of emergency, call 911 or poison control at 1-800-222-1222.
-            </AlertDescription>
-          </Alert>
-        </div>
-      )}
-      
-      <div className="px-4 pb-4">
-        <MedicationInfo medication={medicationInfo} />
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 };
 

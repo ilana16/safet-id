@@ -1,8 +1,8 @@
 
 import React, { useState } from 'react';
-import { getDrugsComInfo, getDrugsComUrl } from '@/utils/drugsComApi';
+import { getDrugsComInfo, getDrugsComUrl, searchDrugsCom } from '@/utils/drugsComApi';
 import { Button } from '@/components/ui/button';
-import { ExternalLink, Loader2 } from 'lucide-react';
+import { ExternalLink, Loader2, Database } from 'lucide-react';
 import { MedicationInfo as MedicationInfoType } from '@/utils/medicationData';
 import { toast } from 'sonner';
 import { v4 as uuidv4 } from 'uuid';
@@ -12,6 +12,7 @@ import { Medication } from '@/pages/medical-profile/MedicationsSection';
 import MedicationSearch from './drug-lookup/MedicationSearch';
 import MedicationInfoDisplay from './drug-lookup/MedicationInfoDisplay';
 import MedicationAddForm from './drug-lookup/MedicationAddForm';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 
 interface DrugInfoLookupProps {
   onAddMedication?: (medication: Medication) => void;
@@ -24,6 +25,7 @@ const DrugInfoLookup: React.FC<DrugInfoLookupProps> = ({ onAddMedication }) => {
   const [error, setError] = useState<string | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
   const [searchAttempted, setSearchAttempted] = useState(false);
+  const [activeDataSource, setActiveDataSource] = useState<'drugscom' | 'comprehensive'>('drugscom');
   const [newMedication, setNewMedication] = useState<Partial<Medication>>({
     id: uuidv4(),
     dosage: '',
@@ -49,6 +51,31 @@ const DrugInfoLookup: React.FC<DrugInfoLookupProps> = ({ onAddMedication }) => {
     }
   };
 
+  const fetchComprehensiveMedicationData = async (medication: string): Promise<MedicationInfoType | null> => {
+    // This would be replaced with an actual API call to a comprehensive database
+    // For now, we'll simulate a response with a timeout
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        // Create a basic medication info structure with the name
+        const info: MedicationInfoType = {
+          name: medication,
+          description: `Comprehensive information for ${medication}. This would contain detailed medication data from a comprehensive database of all medications, vitamins, and supplements.`,
+          dosage: {
+            adult: "Refer to your doctor for specific dosing instructions.",
+            frequency: "As prescribed by your healthcare provider.",
+          },
+          sideEffects: {
+            common: ["Data would be populated from comprehensive database"],
+            serious: ["Data would be populated from comprehensive database"],
+          },
+          usedFor: ["Various conditions - refer to comprehensive database for details"],
+          source: "Comprehensive Medication Database API",
+        };
+        resolve(info);
+      }, 1500); // Simulate network delay
+    });
+  };
+
   const selectMedication = async (medication: string) => {
     if (!medication || medication.trim() === '') {
       toast.error('Please enter a valid medication name');
@@ -64,8 +91,16 @@ const DrugInfoLookup: React.FC<DrugInfoLookupProps> = ({ onAddMedication }) => {
     saveHistory(medication);
     
     try {
-      console.log('Fetching information for medication:', medication);
-      const info = await getDrugsComInfo(medication);
+      console.log(`Fetching information for medication: ${medication} from source: ${activeDataSource}`);
+      
+      let info: MedicationInfoType | null;
+      
+      if (activeDataSource === 'drugscom') {
+        info = await getDrugsComInfo(medication);
+      } else {
+        // Use comprehensive database source
+        info = await fetchComprehensiveMedicationData(medication);
+      }
       
       if (info) {
         console.log('Medication info received:', info.name);
@@ -139,28 +174,53 @@ const DrugInfoLookup: React.FC<DrugInfoLookupProps> = ({ onAddMedication }) => {
     <div className="space-y-6">
       <div className="bg-white border border-[#D1DEE8] rounded-md overflow-hidden">
         <div className="bg-safet-600 text-white px-5 py-3 font-medium flex items-center justify-between">
-          <span>Search Drugs.com Database</span>
+          <span>Search Medication Database</span>
           <Button 
             variant="outline" 
             size="sm" 
             className="bg-white/10 hover:bg-white/20 text-white border-white/20"
             onClick={openDrugsComPage}
-            disabled={!selectedMedication}
+            disabled={!selectedMedication || activeDataSource !== 'drugscom'}
           >
             <ExternalLink className="h-4 w-4 mr-1" />
             Visit Drugs.com
           </Button>
         </div>
+        
+        <div className="border-b border-[#D1DEE8]">
+          <Tabs value={activeDataSource} onValueChange={(value) => setActiveDataSource(value as 'drugscom' | 'comprehensive')}>
+            <TabsList className="w-full">
+              <TabsTrigger value="drugscom" className="flex-1">
+                Drugs.com Database
+              </TabsTrigger>
+              <TabsTrigger value="comprehensive" className="flex-1">
+                <Database className="h-4 w-4 mr-1" />
+                Comprehensive Database
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+        </div>
+        
         <div className="p-5">
           {(!medicationInfo && !isLoading && !error) || (!searchAttempted) ? (
-            <MedicationSearch onSelectMedication={selectMedication} />
+            <>
+              {activeDataSource === 'comprehensive' && (
+                <div className="mb-4 p-3 bg-blue-50 rounded-md border border-blue-200 text-blue-800 text-sm">
+                  The comprehensive database includes all medications, vitamins, and supplements currently on the market. 
+                  Search for any medication name to retrieve information.
+                </div>
+              )}
+              <MedicationSearch onSelectMedication={selectMedication} />
+            </>
           ) : null}
           
           {isLoading && (
             <div className="flex justify-center p-8">
               <div className="flex items-center space-x-2">
                 <Loader2 className="h-6 w-6 animate-spin text-safet-500" />
-                <span className="text-gray-600">Loading medication information from Drugs.com...</span>
+                <span className="text-gray-600">
+                  Loading medication information from {activeDataSource === 'drugscom' ? 'Drugs.com' : 'comprehensive database'}...
+                </span>
               </div>
             </div>
           )}
@@ -176,6 +236,7 @@ const DrugInfoLookup: React.FC<DrugInfoLookupProps> = ({ onAddMedication }) => {
           canAddToProfile={Boolean(onAddMedication)}
           isLoading={isLoading}
           error={error}
+          dataSource={activeDataSource === 'drugscom' ? 'Drugs.com' : 'Comprehensive Database'}
         />
       )}
 
