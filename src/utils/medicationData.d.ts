@@ -1,5 +1,4 @@
 
-
 export interface MedicationInfo {
   name: string;
   genericName?: string;
@@ -12,6 +11,8 @@ export interface MedicationInfo {
     child?: string;
     elderly?: string;
     frequency?: string;
+    renal?: string;
+    hepatic?: string;
   };
   interactions?: string[];
   warnings?: string[];
@@ -32,6 +33,20 @@ export interface MedicationInfo {
     moderate?: string[];
     minor?: string[];
     unknown?: string[];
+  };
+  overdose?: {
+    symptoms: string[];
+    treatment: string;
+    antidote?: string;
+  };
+  blackBoxWarning?: string;
+  halfLife?: string;
+  controlledSubstance?: string;
+  pharmacokinetics?: {
+    absorption?: string;
+    distribution?: string;
+    metabolism?: string;
+    elimination?: string;
   };
   source?: string;
 }

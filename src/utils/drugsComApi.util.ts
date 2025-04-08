@@ -67,7 +67,7 @@ export const enrichMedicationInfo = (medicationInfo: MedicationInfo): Medication
     conditionInteractions: conditionInteractions.slice(0, Math.floor(Math.random() * 3) + 1),
     therapeuticDuplications: therapeuticDuplications.slice(0, Math.floor(Math.random() * 2) + 1),
     interactionClassifications,
-    pregnancy: 'This medication should only be used during pregnancy when clearly needed. Discuss the risks and benefits with your doctor.',
-    breastfeeding: 'This medication may pass into breast milk. Consult your doctor before breastfeeding.'
+    pregnancy: medicationInfo.pregnancy || 'This medication should only be used during pregnancy when clearly needed. Discuss the risks and benefits with your doctor.',
+    breastfeeding: medicationInfo.breastfeeding || 'This medication may pass into breast milk. Consult your doctor before breastfeeding.'
   };
 };
