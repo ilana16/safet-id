@@ -51,6 +51,7 @@ const MedicationSearch: React.FC<MedicationSearchProps> = ({
       if (debouncedSearchTerm.length >= 2) {
         setIsSearching(true);
         try {
+          console.log('Running Python scraper search for:', debouncedSearchTerm);
           const results = await performMedicationSearch(debouncedSearchTerm);
           setSearchResults(results);
         } catch (error) {
@@ -129,7 +130,8 @@ const MedicationSearch: React.FC<MedicationSearchProps> = ({
       <div className="mb-3 p-3 bg-amber-50 rounded-md border border-amber-200 text-amber-800 text-sm flex items-center">
         <Database className="h-4 w-4 text-amber-500 mr-2 flex-shrink-0" />
         <span>
-          Using Python-based Drugs.com scraper (with Selenium and BeautifulSoup) to retrieve comprehensive medication information
+          Using Python-based Drugs.com scraper with Selenium and BeautifulSoup to retrieve detailed medication information 
+          including interactions, side effects, and contraindications
         </span>
       </div>
       
@@ -137,7 +139,7 @@ const MedicationSearch: React.FC<MedicationSearchProps> = ({
         <div className="relative flex-1">
           <Input
             type="text"
-            placeholder="Enter medication, vitamin, or supplement name..."
+            placeholder="Enter medication name (e.g., aspirin, lisinopril, metformin)..."
             value={query}
             onChange={handleSearchChange}
             className="pl-10 w-full pr-10"
@@ -191,8 +193,11 @@ const MedicationSearch: React.FC<MedicationSearchProps> = ({
           disabled={isSearching || query.length < 2}
           className="bg-safet-500 hover:bg-safet-600"
         >
-          {isSearching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
-          <span className="ml-2">Search</span>
+          {isSearching ? 
+            <Loader2 className="h-4 w-4 animate-spin" /> : 
+            <Search className="h-4 w-4" />
+          }
+          <span className="ml-2">{isSearching ? 'Searching...' : 'Search'}</span>
         </Button>
         
         {onExternalSearch && (
@@ -229,6 +234,7 @@ const MedicationSearch: React.FC<MedicationSearchProps> = ({
       
       {!query && (
         <div className="mt-6">
+          <h3 className="text-sm font-medium text-gray-700 mb-3">Common Medications by Category</h3>
           {Object.entries(popularMedicationCategories).map(([categoryName, medications], catIndex) => (
             <div key={catIndex} className="mb-6">
               <h3 className="text-sm font-medium text-gray-500 mb-2 flex items-center">

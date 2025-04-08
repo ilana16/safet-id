@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { ExternalLink, Loader2, Archive } from 'lucide-react';
+import { ExternalLink, Loader2 } from 'lucide-react';
 import { MedicationInfo } from '@/utils/medicationData.d';
 import { toast } from 'sonner';
 import { v4 as uuidv4 } from 'uuid';
@@ -77,9 +77,9 @@ const DrugInfoLookup: React.FC<DrugInfoLookupProps> = ({ onAddMedication }) => {
     saveHistory(medication);
     
     try {
-      console.log(`Fetching information for medication: ${medication} from database or API`);
+      console.log(`Fetching information for medication: ${medication} from database or Python scraper`);
       
-      // Using the drugscom source which uses our scraper
+      // Using the drugscom source which uses our Python scraper
       const medInfo = await getMedicationFromDb(medication, userId, 'drugscom');
       
       if (medInfo) {
@@ -105,7 +105,7 @@ const DrugInfoLookup: React.FC<DrugInfoLookupProps> = ({ onAddMedication }) => {
         toast.success(`Information loaded for ${medInfo.name}`);
       } else {
         console.error('No information returned for:', medication);
-        setError(`No information found for ${medication}`);
+        setError(`No information found for ${medication}. Please check the spelling or try another medication.`);
       }
     } catch (error) {
       console.error('Error fetching medication information:', error);
@@ -170,7 +170,7 @@ const DrugInfoLookup: React.FC<DrugInfoLookupProps> = ({ onAddMedication }) => {
     <div className="space-y-6">
       <div className="bg-white border border-[#D1DEE8] rounded-md overflow-hidden">
         <div className="bg-safet-600 text-white px-5 py-3 font-medium flex items-center justify-between">
-          <span>Search Medication Database</span>
+          <span>Python-Based Drugs.com Database Search</span>
           <Button 
             variant="outline" 
             size="sm" 
@@ -187,8 +187,17 @@ const DrugInfoLookup: React.FC<DrugInfoLookupProps> = ({ onAddMedication }) => {
         <div className="p-5">
           {(!medicationInfo && !isLoading && !error) || (!searchAttempted) ? (
             <div className="mb-4 p-3 bg-amber-50 rounded-md border border-amber-200 text-amber-800 text-sm">
-              This database uses the Python-based Drugs.com scraper to provide comprehensive medication information including 
-              detailed side effects, interactions, and warnings. It utilizes Selenium and BeautifulSoup for data extraction.
+              <p className="font-medium mb-1">Using Python-based Drugs.com Scraper</p>
+              This database uses the Python-based Drugs.com scraper to provide comprehensive medication information including:
+              <ul className="list-disc pl-5 mt-2 space-y-1">
+                <li>Medication interactions (major, moderate, minor)</li>
+                <li>Medical condition interactions</li>
+                <li>Food interactions</li>
+                <li>Therapeutic duplications</li>
+                <li>Detailed side effects</li>
+                <li>Pregnancy and breastfeeding information</li>
+                <li>Drug half-life data</li>
+              </ul>
               <div className="mt-2">
                 <a href="https://github.com/miteoshi/Drugs.com-scrapper" target="_blank" rel="noopener noreferrer" className="underline">
                   View the Drugs.com scraper on GitHub
@@ -209,7 +218,9 @@ const DrugInfoLookup: React.FC<DrugInfoLookupProps> = ({ onAddMedication }) => {
               <div className="flex items-center space-x-2">
                 <Loader2 className="h-6 w-6 animate-spin text-safet-500" />
                 <span className="text-gray-600">
-                  Loading {medicationInfo?.fromDatabase ? 'saved' : 'live'} medication information...
+                  {medicationInfo?.fromDatabase 
+                    ? 'Loading saved medication information...' 
+                    : 'Running Python scraper on Drugs.com...'}
                 </span>
               </div>
             </div>

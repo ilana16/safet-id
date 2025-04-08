@@ -124,6 +124,7 @@ export const saveMedicationToDb = async (
           breastfeeding: medicationInfo.breastfeeding,
           forms: medicationInfo.forms,
           source: medicationInfo.source,
+          half_life: medicationInfo.halfLife,
           searched_by: userId
         })
         .select()
@@ -196,26 +197,41 @@ export const getMedicationFromDb = async (
         })
         .eq('id', dbMeds[0].id);
       
-      // Convert database medication to MedicationInfo format
+      // Convert database medication to MedicationInfo format with proper type handling
       const medicationInfo: MedicationInfo = {
         name: dbMeds[0].name,
         genericName: dbMeds[0].generic_name,
         description: dbMeds[0].description,
         drugClass: dbMeds[0].drug_class,
         prescriptionOnly: dbMeds[0].prescription_only,
-        usedFor: dbMeds[0].used_for,
-        warnings: dbMeds[0].warnings,
-        sideEffects: dbMeds[0].side_effects,
-        interactions: dbMeds[0].interactions,
-        dosage: dbMeds[0].dosage,
-        forms: dbMeds[0].forms,
-        interactionClassifications: dbMeds[0].interaction_classifications,
-        interactionSeverity: dbMeds[0].interaction_severity,
-        foodInteractions: dbMeds[0].food_interactions,
-        conditionInteractions: dbMeds[0].condition_interactions,
-        therapeuticDuplications: dbMeds[0].therapeutic_duplications,
+        usedFor: dbMeds[0].used_for || [],
+        warnings: dbMeds[0].warnings || [],
+        // Properly handle side effects object
+        sideEffects: dbMeds[0].side_effects && typeof dbMeds[0].side_effects === 'object' 
+          ? dbMeds[0].side_effects as any 
+          : { common: [], serious: [] },
+        interactions: dbMeds[0].interactions || [],
+        // Properly handle dosage object
+        dosage: dbMeds[0].dosage && typeof dbMeds[0].dosage === 'object'
+          ? dbMeds[0].dosage as any
+          : { adult: '', child: '' },
+        forms: dbMeds[0].forms || [],
+        // Properly handle interaction classifications object
+        interactionClassifications: dbMeds[0].interaction_classifications && 
+          typeof dbMeds[0].interaction_classifications === 'object'
+          ? dbMeds[0].interaction_classifications as any
+          : { major: [], moderate: [], minor: [] },
+        // Properly handle interaction severity object
+        interactionSeverity: dbMeds[0].interaction_severity && 
+          typeof dbMeds[0].interaction_severity === 'object'
+          ? dbMeds[0].interaction_severity as any
+          : { major: [], moderate: [], minor: [] },
+        foodInteractions: dbMeds[0].food_interactions || [],
+        conditionInteractions: dbMeds[0].condition_interactions || [],
+        therapeuticDuplications: dbMeds[0].therapeutic_duplications || [],
         pregnancy: dbMeds[0].pregnancy,
         breastfeeding: dbMeds[0].breastfeeding,
+        halfLife: dbMeds[0].half_life,
         source: dbMeds[0].source,
         fromDatabase: true,
         databaseSearchCount: newCount
@@ -233,26 +249,6 @@ export const getMedicationFromDb = async (
       // Use the drugs.com scraper
       const { fetchMedicationInfo } = await import('./modrugsApi');
       externalMedInfo = await fetchMedicationInfo(medicationName);
-    } else if (preferredSource === 'webcrawler') {
-      // First try Web Crawler
-      externalMedInfo = await fetchWebCrawlerDrugInfo(medicationName);
-      
-      // If not found in Web Crawler, fallback to drugs.com
-      if (!externalMedInfo) {
-        console.log(`Medication not found in Web Crawler: ${medicationName}. Trying drugs.com...`);
-        const { fetchMedicationInfo } = await import('./modrugsApi');
-        externalMedInfo = await fetchMedicationInfo(medicationName);
-      }
-    } else if (preferredSource === 'elsevier') {
-      // First try Elsevier
-      externalMedInfo = await fetchElsevierDrugInfo(medicationName);
-      
-      // If not found in Elsevier, fallback to drugs.com
-      if (!externalMedInfo) {
-        console.log(`Medication not found in Elsevier: ${medicationName}. Trying drugs.com...`);
-        const { fetchMedicationInfo } = await import('./modrugsApi');
-        externalMedInfo = await fetchMedicationInfo(medicationName);
-      }
     } else {
       // Default to drugs.com
       const { fetchMedicationInfo } = await import('./modrugsApi');
@@ -264,13 +260,7 @@ export const getMedicationFromDb = async (
       
       // Set the source of the medication info if not already set
       if (!externalMedInfo.source) {
-        externalMedInfo.source = preferredSource === 'drugscom' 
-          ? 'Drugs.com Scraper' 
-          : preferredSource === 'elsevier' 
-            ? 'Elsevier Drug Info API' 
-            : preferredSource === 'webcrawler'
-              ? 'Web Crawler for Drug Interaction Data'
-              : 'Drugs.com';
+        externalMedInfo.source = 'Python Drugs.com Scraper';
       }
       
       // Save the medication to the database
@@ -289,5 +279,3 @@ export const getMedicationFromDb = async (
 
 // Import other necessary functions
 import { getDrugsComUrl } from './drugsComApi';
-import { fetchElsevierDrugInfo } from './elsevierApi';
-import { fetchWebCrawlerDrugInfo } from './webCrawlerApi';
