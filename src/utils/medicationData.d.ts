@@ -18,6 +18,8 @@ export interface MedicationInfo {
     child?: string;
     elderly?: string;
     frequency?: string;
+    renal?: string;
+    hepatic?: string;
   };
   forms?: string[];
   pregnancy?: string;
@@ -41,6 +43,19 @@ export interface MedicationInfo {
   // New properties for database integration
   fromDatabase?: boolean;
   databaseSearchCount?: number;
+  halfLife?: string;
+  overdose?: {
+    symptoms?: string[];
+    treatment?: string;
+    antidote?: string;
+  };
+  blackBoxWarning?: string;
+  pharmacokinetics?: {
+    absorption?: string;
+    distribution?: string;
+    metabolism?: string;
+    elimination?: string;
+  };
 }
 
 export interface MedicationDatabase {
