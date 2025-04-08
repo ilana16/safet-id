@@ -1,3 +1,4 @@
+
 import { toast } from '@/lib/toast';
 import { supabase } from '@/integrations/supabase/client';
 import { MedicationInfo } from './medicationData.d';
@@ -177,6 +178,10 @@ export const getDrugDetails = async (drugId: string): Promise<MedicationInfo | n
     medicationInfoCache.set(drugId, medicationInfo);
     
     try {
+      // Get the current user's ID
+      const { data: { session } } = await supabase.auth.getSession();
+      const userId = session?.user?.id || null;
+      
       const dbRecord = {
         name: medicationInfo.name,
         generic_name: medicationInfo.genericName,
@@ -197,7 +202,7 @@ export const getDrugDetails = async (drugId: string): Promise<MedicationInfo | n
         therapeutic_duplications: medicationInfo.therapeuticDuplications,
         interaction_classifications: JSON.parse(JSON.stringify(medicationInfo.interactionClassifications || {})),
         half_life: medicationInfo.halfLife || null,
-        searched_by: userId || null
+        searched_by: userId
       };
       
       await supabase
