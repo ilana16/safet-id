@@ -54,7 +54,7 @@ export const performMedicationSearch = async (query: string): Promise<string[]> 
     // Actual API call
     const apiCallPromise = supabase.functions.invoke('drugs-scraper', {
       body: { drugName: query, action: 'search' },
-      signal: abortController.signal,
+      // Remove the signal property as it's not supported in FunctionInvokeOptions
     });
     
     // Race the API call against the timeout
