@@ -1,3 +1,4 @@
+
 import { toast } from '@/lib/toast';
 import { supabase } from '@/integrations/supabase/client';
 import { MedicationInfo } from './medicationData.d';
@@ -214,6 +215,7 @@ export const getDrugDetails = async (drugId: string): Promise<MedicationInfo | n
     
     // Try to store in database when possible
     try {
+      // Convert our object properties to match the database column names
       await supabase
         .from('medications')
         .upsert({
