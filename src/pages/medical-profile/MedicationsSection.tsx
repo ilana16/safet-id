@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { PlusCircle, Pill, Clock, AlertTriangle } from 'lucide-react';
+import { PlusCircle, Pill, Clock, AlertTriangle, Database } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useOutletContext } from 'react-router-dom';
 import { useFieldPersistence } from '@/hooks/useFieldPersistence';
@@ -99,7 +99,7 @@ const MedicationsSection = () => {
   return (
     <div className="space-y-6">
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid grid-cols-4 mb-4">
+        <TabsList className="grid grid-cols-5 mb-4">
           <TabsTrigger value="current" className="flex items-center gap-2">
             <Pill className="h-4 w-4" />
             My Medications
@@ -115,6 +115,10 @@ const MedicationsSection = () => {
           <TabsTrigger value="search" className="flex items-center gap-2">
             <PlusCircle className="h-4 w-4" />
             Drug Information
+          </TabsTrigger>
+          <TabsTrigger value="database" className="flex items-center gap-2">
+            <Database className="h-4 w-4" />
+            Databases
           </TabsTrigger>
         </TabsList>
 
@@ -188,6 +192,97 @@ const MedicationsSection = () => {
             <DrugInfoLookup 
               onAddMedication={handleAddMedication}
             />
+          </div>
+        </TabsContent>
+
+        <TabsContent value="database">
+          <div className="space-y-4">
+            <h3 className="text-lg font-medium">Medication Databases</h3>
+            <p className="text-sm text-gray-600 mb-4">
+              View and manage the connected medication databases.
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Drugs.com</CardTitle>
+                  <CardDescription>Live medication data from Drugs.com</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-gray-600">
+                    Provides real-time information about medications, interactions, and dosage guidelines.
+                  </p>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader>
+                  <CardTitle>Drugs.com Scraper</CardTitle>
+                  <CardDescription>Enhanced scraper for Drugs.com</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-gray-600">
+                    Detailed medication information extracted from Drugs.com pages including comprehensive side effects, 
+                    interactions, and warnings.
+                  </p>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader>
+                  <CardTitle>MoDrugs</CardTitle>
+                  <CardDescription>Molecular-level drug database</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-gray-600">
+                    Provides molecular interaction data and detailed pharmacokinetic information.
+                  </p>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader>
+                  <CardTitle>Web Crawler</CardTitle>
+                  <CardDescription>Drug interaction data crawler</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-gray-600">
+                    Collects and aggregates drug interaction information from multiple online sources.
+                  </p>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader>
+                  <CardTitle>Elsevier</CardTitle>
+                  <CardDescription>Professional medication database</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-gray-600">
+                    Clinical-grade medication information from a trusted medical publisher.
+                  </p>
+                </CardContent>
+              </Card>
+              
+              <Card className="bg-safet-50 border-safet-200">
+                <CardHeader>
+                  <CardTitle>Unified Search</CardTitle>
+                  <CardDescription>Search across all medication databases</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-gray-600">
+                    Performs cross-database searches to provide the most comprehensive medication information.
+                  </p>
+                  <Button 
+                    onClick={() => setActiveTab('search')} 
+                    className="mt-4 bg-safet-500 hover:bg-safet-600"
+                    size="sm"
+                  >
+                    <PlusCircle className="h-4 w-4 mr-2" />
+                    Search Medications
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
           </div>
         </TabsContent>
       </Tabs>

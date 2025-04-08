@@ -133,7 +133,7 @@ export const performMoDrugsSearch = async (query: string): Promise<string[]> => 
  */
 export const performUnifiedMedicationSearch = async (
   query: string, 
-  dataSources?: Array<'drugscom' | 'elsevier' | 'webcrawler' | 'modrugs'>
+  dataSources?: Array<'drugscom' | 'elsevier' | 'webcrawler' | 'modrugs' | 'drugscomScraper'>
 ): Promise<string[]> => {
   if (!query || query.length < 2) return [];
   
@@ -143,9 +143,10 @@ export const performUnifiedMedicationSearch = async (
     // Import search functions from other API modules
     const { performLiveDrugsComSearch } = await import('./drugsComApi');
     const { performWebCrawlerSearch } = await import('./webCrawlerApi');
+    const { performElsevierSearch, performDrugsComScraperSearch } = await import('./elsevierApi');
     
     // Define which sources to search (default to all)
-    const sources = dataSources || ['drugscom', 'webcrawler', 'modrugs', 'elsevier'];
+    const sources = dataSources || ['drugscom', 'webcrawler', 'modrugs', 'elsevier', 'drugscomScraper'];
     
     // Create an array to hold all search promises
     const searchPromises: Promise<string[]>[] = [];
@@ -163,25 +164,12 @@ export const performUnifiedMedicationSearch = async (
       searchPromises.push(performMoDrugsSearch(query));
     }
     
+    if (sources.includes('drugscomScraper')) {
+      searchPromises.push(performDrugsComScraperSearch(query));
+    }
+    
     if (sources.includes('elsevier')) {
-      // Import and use elsevierApi search function if it exists
-      try {
-        const { performElsevierSearch } = await import('./elsevierApi');
-        if (typeof performElsevierSearch === 'function') {
-          searchPromises.push(performElsevierSearch(query));
-        } else {
-          console.warn('Elsevier search function not available');
-        }
-      } catch (error) {
-        console.warn('Elsevier API module not available:', error);
-        // Create a simulated search result for Elsevier
-        const simulatedResults = [
-          'Lisinopril', 'Metformin', 'Amlodipine', 'Simvastatin',
-          'Omeprazole', 'Levothyroxine'
-        ].filter(med => med.toLowerCase().includes(query.toLowerCase()));
-        
-        searchPromises.push(Promise.resolve(simulatedResults));
-      }
+      searchPromises.push(performElsevierSearch(query));
     }
     
     // Wait for all search promises to resolve
@@ -197,5 +185,33 @@ export const performUnifiedMedicationSearch = async (
     console.error('Error performing unified medication search:', error);
     toast.error('Error searching medications');
     return [];
+  }
+};
+
+// Export a function to fetch medication information from any source
+export const fetchMedicationInfo = async (
+  drugName: string,
+  source: 'drugscom' | 'elsevier' | 'webcrawler' | 'modrugs' | 'drugscomScraper' = 'drugscom'
+): Promise<MedicationInfo | null> => {
+  switch (source) {
+    case 'modrugs':
+      return fetchMoDrugsInfo(drugName);
+    case 'elsevier': {
+      const { fetchElsevierDrugInfo } = await import('./elsevierApi');
+      return fetchElsevierDrugInfo(drugName);
+    }
+    case 'drugscomScraper': {
+      const { fetchDrugsComScraperInfo } = await import('./elsevierApi');
+      return fetchDrugsComScraperInfo(drugName);
+    }
+    case 'webcrawler': {
+      const { fetchWebCrawlerDrugInfo } = await import('./webCrawlerApi');
+      return fetchWebCrawlerDrugInfo(drugName);
+    }
+    case 'drugscom':
+    default: {
+      const { fetchLiveDrugsComInfo } = await import('./drugsComApi');
+      return fetchLiveDrugsComInfo(drugName);
+    }
   }
 };
