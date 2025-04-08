@@ -144,7 +144,7 @@ export const getMedicationFromDb = async (medicationName: string): Promise<Medic
     // Helper function to safely handle nested objects
     const safeGetNestedObject = <T>(obj: any, defaultValue: T): T => {
       if (typeof obj === 'object' && obj !== null && !Array.isArray(obj)) {
-        return obj as T;
+        return obj as unknown as T;
       }
       return defaultValue;
     };
@@ -157,40 +157,40 @@ export const getMedicationFromDb = async (medicationName: string): Promise<Medic
       return [];
     };
 
-    // Safely get side effects
+    // Safely get side effects with default values for each property
     const sideEffectsObj = safeGetNestedObject(data.side_effects, {});
     const sideEffects = {
-      common: safeGetArray(sideEffectsObj.common || []),
-      serious: safeGetArray(sideEffectsObj.serious || []),
-      rare: safeGetArray(sideEffectsObj.rare || [])
+      common: Array.isArray(sideEffectsObj.common) ? sideEffectsObj.common : [],
+      serious: Array.isArray(sideEffectsObj.serious) ? sideEffectsObj.serious : [],
+      rare: Array.isArray(sideEffectsObj.rare) ? sideEffectsObj.rare : []
     };
 
-    // Safely get dosage
+    // Safely get dosage with default values for each property
     const dosageObj = safeGetNestedObject(data.dosage, {});
     const dosage = {
-      adult: dosageObj.adult as string || '',
-      child: dosageObj.child as string || '',
-      elderly: dosageObj.elderly as string || '',
-      frequency: dosageObj.frequency as string || '',
-      renal: dosageObj.renal as string || '',
-      hepatic: dosageObj.hepatic as string || ''
+      adult: typeof dosageObj.adult === 'string' ? dosageObj.adult : '',
+      child: typeof dosageObj.child === 'string' ? dosageObj.child : '',
+      elderly: typeof dosageObj.elderly === 'string' ? dosageObj.elderly : '',
+      frequency: typeof dosageObj.frequency === 'string' ? dosageObj.frequency : '',
+      renal: typeof dosageObj.renal === 'string' ? dosageObj.renal : '',
+      hepatic: typeof dosageObj.hepatic === 'string' ? dosageObj.hepatic : ''
     };
 
-    // Safely get interaction classifications
+    // Safely get interaction classifications with default values for each property
     const interactionClassificationsObj = safeGetNestedObject(data.interaction_classifications, {});
     const interactionClassifications = {
-      major: safeGetArray(interactionClassificationsObj.major || []),
-      moderate: safeGetArray(interactionClassificationsObj.moderate || []),
-      minor: safeGetArray(interactionClassificationsObj.minor || []),
-      unknown: safeGetArray(interactionClassificationsObj.unknown || [])
+      major: Array.isArray(interactionClassificationsObj.major) ? interactionClassificationsObj.major : [],
+      moderate: Array.isArray(interactionClassificationsObj.moderate) ? interactionClassificationsObj.moderate : [],
+      minor: Array.isArray(interactionClassificationsObj.minor) ? interactionClassificationsObj.minor : [],
+      unknown: Array.isArray(interactionClassificationsObj.unknown) ? interactionClassificationsObj.unknown : []
     };
 
-    // Safely get interaction severity
+    // Safely get interaction severity with default values for each property
     const interactionSeverityObj = safeGetNestedObject(data.interaction_severity, {});
     const interactionSeverity = {
-      major: safeGetArray(interactionSeverityObj.major || []),
-      moderate: safeGetArray(interactionSeverityObj.moderate || []),
-      minor: safeGetArray(interactionSeverityObj.minor || [])
+      major: Array.isArray(interactionSeverityObj.major) ? interactionSeverityObj.major : [],
+      moderate: Array.isArray(interactionSeverityObj.moderate) ? interactionSeverityObj.moderate : [],
+      minor: Array.isArray(interactionSeverityObj.minor) ? interactionSeverityObj.minor : []
     };
     
     // Convert database structure back to MedicationInfo with proper type handling
