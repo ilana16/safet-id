@@ -12,7 +12,8 @@ import {
   ChevronDown, 
   ChevronUp, 
   FileText,
-  Info
+  Info,
+  Pill
 } from 'lucide-react';
 import { MedicationInfo as MedicationInfoType } from '@/utils/medicationData';
 import { ScrollArea } from '@/components/ui/scroll-area';
