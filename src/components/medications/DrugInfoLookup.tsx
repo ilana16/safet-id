@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { getDrugsComUrl } from '@/utils/drugsComApi';
 import { Button } from '@/components/ui/button';
-import { ExternalLink, Loader2, Database, Archive, BookOpen, AlertTriangle } from 'lucide-react';
+import { ExternalLink, Loader2, Database, Archive, BookOpen, AlertTriangle, Microscope } from 'lucide-react';
 import { MedicationInfo } from '@/utils/medicationData.d';
 import { toast } from 'sonner';
 import { v4 as uuidv4 } from 'uuid';
@@ -24,7 +24,7 @@ const DrugInfoLookup: React.FC<DrugInfoLookupProps> = ({ onAddMedication }) => {
   const [error, setError] = useState<string | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
   const [searchAttempted, setSearchAttempted] = useState(false);
-  const [activeDataSource, setActiveDataSource] = useState<'drugscom' | 'elsevier' | 'comprehensive' | 'webcrawler'>('drugscom');
+  const [activeDataSource, setActiveDataSource] = useState<'drugscom' | 'elsevier' | 'comprehensive' | 'webcrawler' | 'modrugs' | 'comprehensive'>('drugscom');
   const [userId, setUserId] = useState<string | null>(null);
   const [newMedication, setNewMedication] = useState<Partial<Medication>>({
     id: uuidv4(),
@@ -85,7 +85,9 @@ const DrugInfoLookup: React.FC<DrugInfoLookupProps> = ({ onAddMedication }) => {
         ? 'elsevier' 
         : activeDataSource === 'webcrawler'
           ? 'webcrawler'
-          : 'drugscom';
+          : activeDataSource === 'modrugs'
+            ? 'modrugs'
+            : 'drugscom';
       
       const medInfo = await getMedicationFromDb(medication, userId, preferredSource);
       
@@ -142,12 +144,20 @@ const DrugInfoLookup: React.FC<DrugInfoLookupProps> = ({ onAddMedication }) => {
     }
   };
 
+  const openMoDrugsPage = () => {
+    if (selectedMedication) {
+      window.open('https://github.com/Liuzhe30/modrugs', '_blank', 'noopener,noreferrer');
+    }
+  };
+
   const openExternalPage = () => {
     if (selectedMedication) {
       if (activeDataSource === 'elsevier') {
         openElsevierPage();
       } else if (activeDataSource === 'webcrawler') {
         openWebCrawlerPage();
+      } else if (activeDataSource === 'modrugs') {
+        openMoDrugsPage();
       } else {
         openDrugsComPage();
       }
@@ -163,6 +173,9 @@ const DrugInfoLookup: React.FC<DrugInfoLookupProps> = ({ onAddMedication }) => {
     } else if (activeDataSource === 'webcrawler') {
       window.open('https://github.com/shubhpawar/Web-Crawler-for-Drug-Interaction-Data', '_blank', 'noopener,noreferrer');
       toast.info(`Showing Web Crawler for Drug Interaction Data repository`);
+    } else if (activeDataSource === 'modrugs') {
+      window.open('https://github.com/Liuzhe30/modrugs', '_blank', 'noopener,noreferrer');
+      toast.info(`Showing MoDrugs GitHub repository`);
     } else {
       const searchUrl = `https://www.drugs.com/search.php?searchterm=${encodeURIComponent(query)}`;
       window.open(searchUrl, '_blank', 'noopener,noreferrer');
@@ -223,6 +236,7 @@ const DrugInfoLookup: React.FC<DrugInfoLookupProps> = ({ onAddMedication }) => {
               {activeDataSource === 'drugscom' && 'View on Drugs.com'}
               {activeDataSource === 'elsevier' && 'View on Elsevier'}
               {activeDataSource === 'webcrawler' && 'View Web Crawler Data'}
+              {activeDataSource === 'modrugs' && 'View MoDrugs Data'}
               {activeDataSource === 'comprehensive' && 'View on Database'}
             </span>
             <span className="sm:hidden">External</span>
@@ -232,7 +246,7 @@ const DrugInfoLookup: React.FC<DrugInfoLookupProps> = ({ onAddMedication }) => {
         <div className="border-b border-[#D1DEE8]">
           <Tabs 
             value={activeDataSource} 
-            onValueChange={(value) => setActiveDataSource(value as 'drugscom' | 'elsevier' | 'webcrawler' | 'comprehensive')}
+            onValueChange={(value) => setActiveDataSource(value as 'drugscom' | 'elsevier' | 'webcrawler' | 'modrugs' | 'comprehensive')}
           >
             <TabsList className="w-full">
               <TabsTrigger value="drugscom" className="flex-1">
@@ -257,8 +271,18 @@ const DrugInfoLookup: React.FC<DrugInfoLookupProps> = ({ onAddMedication }) => {
               </TabsTrigger>
               <TabsTrigger value="webcrawler" className="flex-1">
                 <AlertTriangle className="h-4 w-4 mr-1" />
-                Interaction Data
+                Interactions
                 {medicationInfo?.fromDatabase && medicationInfo?.source?.includes('Web Crawler') && (
+                  <span className="ml-2 bg-green-100 text-green-800 text-xs py-0.5 px-1.5 rounded-full flex items-center">
+                    <Archive className="h-3 w-3 mr-1" />
+                    Saved
+                  </span>
+                )}
+              </TabsTrigger>
+              <TabsTrigger value="modrugs" className="flex-1">
+                <Microscope className="h-4 w-4 mr-1" />
+                Molecular
+                {medicationInfo?.fromDatabase && medicationInfo?.source?.includes('MoDrugs') && (
                   <span className="ml-2 bg-green-100 text-green-800 text-xs py-0.5 px-1.5 rounded-full flex items-center">
                     <Archive className="h-3 w-3 mr-1" />
                     Saved
@@ -267,7 +291,7 @@ const DrugInfoLookup: React.FC<DrugInfoLookupProps> = ({ onAddMedication }) => {
               </TabsTrigger>
               <TabsTrigger value="comprehensive" className="flex-1">
                 <Database className="h-4 w-4 mr-1" />
-                Comprehensive
+                All Sources
               </TabsTrigger>
             </TabsList>
           </Tabs>
@@ -287,6 +311,14 @@ const DrugInfoLookup: React.FC<DrugInfoLookupProps> = ({ onAddMedication }) => {
                 <div className="mb-4 p-3 bg-amber-50 rounded-md border border-amber-200 text-amber-800 text-sm">
                   This database uses the Web Crawler for Drug Interaction Data to provide detailed information on drug-drug,
                   drug-food, and drug-disease interactions. Data sourced from shubhpawar's GitHub repository.
+                </div>
+              )}
+              
+              {activeDataSource === 'modrugs' && (
+                <div className="mb-4 p-3 bg-purple-50 rounded-md border border-purple-200 text-purple-800 text-sm">
+                  The MoDrugs database provides molecular-level drug information and interactions.
+                  This specialized database focuses on pharmacokinetics and receptor-level interactions.
+                  Data sourced from Liuzhe30's MoDrugs GitHub repository.
                 </div>
               )}
               
@@ -336,7 +368,9 @@ const DrugInfoLookup: React.FC<DrugInfoLookupProps> = ({ onAddMedication }) => {
                   ? 'Elsevier Drug Info Live'
                   : activeDataSource === 'webcrawler'
                     ? 'Web Crawler Interaction Data'
-                    : 'Comprehensive Database'
+                    : activeDataSource === 'modrugs'
+                      ? 'MoDrugs Molecular Database'
+                      : 'Comprehensive Database'
           }
           onOpenExternalLink={openExternalPage}
         />

@@ -103,13 +103,13 @@ export const saveMedicationToDb = async (
  * 
  * @param medicationName Name of the medication to retrieve
  * @param userId User ID of the person searching (optional)
- * @param preferredSource Preferred data source ('drugscom', 'elsevier', or 'webcrawler')
+ * @param preferredSource Preferred data source ('drugscom', 'elsevier', 'webcrawler', or 'modrugs')
  * @returns Promise resolving to medication info or null if not found
  */
 export const getMedicationFromDb = async (
   medicationName: string, 
   userId?: string,
-  preferredSource: 'drugscom' | 'elsevier' | 'webcrawler' = 'drugscom'
+  preferredSource: 'drugscom' | 'elsevier' | 'webcrawler' | 'modrugs' = 'drugscom'
 ): Promise<MedicationInfo | null> => {
   if (!medicationName) return null;
 
@@ -293,6 +293,15 @@ export const getMedicationFromDb = async (
         console.log(`Medication not found in Web Crawler: ${medicationName}. Trying drugs.com...`);
         externalMedInfo = await fetchDrugsComLiveInfo(medicationName);
       }
+    } else if (preferredSource === 'modrugs') {
+      // First try MoDrugs
+      externalMedInfo = await fetchMoDrugsInfo(medicationName);
+      
+      // If not found in MoDrugs, fallback to drugs.com
+      if (!externalMedInfo) {
+        console.log(`Medication not found in MoDrugs: ${medicationName}. Trying drugs.com...`);
+        externalMedInfo = await fetchDrugsComLiveInfo(medicationName);
+      }
     } else if (preferredSource === 'elsevier') {
       // First try Elsevier
       externalMedInfo = await fetchElsevierDrugInfo(medicationName);
@@ -325,7 +334,9 @@ export const getMedicationFromDb = async (
           ? 'Elsevier Drug Info API' 
           : preferredSource === 'webcrawler'
             ? 'Web Crawler for Drug Interaction Data'
-            : 'Drugs.com';
+            : preferredSource === 'modrugs'
+              ? 'MoDrugs Molecular Database'
+              : 'Drugs.com';
       }
       
       // Set the URL
@@ -346,3 +357,4 @@ export const getMedicationFromDb = async (
 import { getDrugsComUrl, fetchDrugsComLiveInfo } from './drugsComApi';
 import { fetchElsevierDrugInfo } from './elsevierApi';
 import { fetchWebCrawlerDrugInfo } from './webCrawlerApi';
+import { fetchMoDrugsInfo } from './modrugsApi';

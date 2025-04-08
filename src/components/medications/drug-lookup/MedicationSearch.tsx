@@ -1,11 +1,14 @@
+
 import React, { useState, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Search, Loader2, X, Globe, Brain, Database, ExternalLink, AlertTriangle } from 'lucide-react';
+import { Search, Loader2, X, Globe, Brain, Database, ExternalLink, AlertTriangle, Microscope } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { Pill, PillIcon, ArrowRight } from 'lucide-react';
 import { performLiveDrugsComSearch } from '@/utils/drugsComApi';
+import { performWebCrawlerSearch } from '@/utils/webCrawlerApi';
+import { performMoDrugsSearch } from '@/utils/modrugsApi';
 import { getMedicationFromDb } from '@/utils/medicationDbUtils';
 import { toast } from 'sonner';
 import { useDebounce } from '@/hooks/useDebounce';
@@ -13,7 +16,7 @@ import { supabase } from '@/integrations/supabase/client';
 
 interface MedicationSearchProps {
   onSelectMedication: (medication: string) => void;
-  activeDataSource?: 'drugscom' | 'elsevier' | 'comprehensive' | 'webcrawler';
+  activeDataSource?: 'drugscom' | 'elsevier' | 'comprehensive' | 'webcrawler' | 'modrugs';
   onExternalSearch?: (query: string) => void;
 }
 
@@ -60,7 +63,9 @@ const MedicationSearch: React.FC<MedicationSearchProps> = ({
           let results: string[] = [];
           
           if (activeDataSource === 'webcrawler') {
-            results = await performLiveDrugsComSearch(debouncedSearchTerm);
+            results = await performWebCrawlerSearch(debouncedSearchTerm);
+          } else if (activeDataSource === 'modrugs') {
+            results = await performMoDrugsSearch(debouncedSearchTerm);
           } else {
             results = await performLiveDrugsComSearch(debouncedSearchTerm);
           }
@@ -97,7 +102,16 @@ const MedicationSearch: React.FC<MedicationSearchProps> = ({
     setIsSearching(true);
     
     try {
-      const results = await performLiveDrugsComSearch(query);
+      let results: string[] = [];
+      
+      if (activeDataSource === 'webcrawler') {
+        results = await performWebCrawlerSearch(query);
+      } else if (activeDataSource === 'modrugs') {
+        results = await performMoDrugsSearch(query);
+      } else {
+        results = await performLiveDrugsComSearch(query);
+      }
+      
       setSearchResults(results);
       
       if (results.length === 1 && results[0].toLowerCase() === query.toLowerCase()) {
@@ -137,6 +151,11 @@ const MedicationSearch: React.FC<MedicationSearchProps> = ({
         "Common Medications": ['lisinopril', 'metformin', 'atorvastatin', 'amoxicillin'],
         "Drug Interactions": ['warfarin', 'clopidogrel', 'digoxin', 'lithium']
       };
+    } else if (activeDataSource === 'modrugs') {
+      return {
+        "Molecular Database": ['metformin', 'losartan', 'atorvastatin', 'lisinopril'],
+        "Complex Medications": ['insulin glargine', 'montelukast', 'escitalopram', 'levothyroxine']
+      };
     } else if (activeDataSource === 'comprehensive') {
       return {
         "Common Medications": ['lisinopril', 'metformin', 'atorvastatin', 'amoxicillin'],
@@ -161,6 +180,7 @@ const MedicationSearch: React.FC<MedicationSearchProps> = ({
           {activeDataSource === 'drugscom' && 'Performing live searches against Drugs.com'}
           {activeDataSource === 'elsevier' && 'Performing live searches against Elsevier medication database'}
           {activeDataSource === 'webcrawler' && 'Using Web Crawler for Drug Interaction Data'}
+          {activeDataSource === 'modrugs' && 'Using MoDrugs molecular-level drug database'}
           {activeDataSource === 'comprehensive' && 'Performing live searches against comprehensive medication database'}
         </span>
       </div>
@@ -281,6 +301,8 @@ const MedicationSearch: React.FC<MedicationSearchProps> = ({
                   <Database className="h-4 w-4 text-green-500 mr-2" />
                 ) : categoryName === "Drug Interactions" ? (
                   <AlertTriangle className="h-4 w-4 text-amber-500 mr-2" />
+                ) : categoryName === "Molecular Database" || categoryName === "Complex Medications" ? (
+                  <Microscope className="h-4 w-4 text-purple-500 mr-2" />
                 ) : (
                   <PillIcon className="h-4 w-4 text-safet-500 mr-2" />
                 )}
@@ -300,6 +322,8 @@ const MedicationSearch: React.FC<MedicationSearchProps> = ({
                         <Database className="h-4 w-4 text-green-500 mr-2" />
                       ) : categoryName === "Drug Interactions" ? (
                         <AlertTriangle className="h-4 w-4 text-amber-500 mr-2" />
+                      ) : categoryName === "Molecular Database" || categoryName === "Complex Medications" ? (
+                        <Microscope className="h-4 w-4 text-purple-500 mr-2" />
                       ) : (
                         <PillIcon className="h-4 w-4 text-safet-500 mr-2" />
                       )}
