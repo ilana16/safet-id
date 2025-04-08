@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -5,11 +6,11 @@ import { Search, Loader2, X, Database, ExternalLink, PillIcon, ArrowRight, Alert
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { Pill } from 'lucide-react';
-import { searchDrugsCom } from '@/utils/drugsComApi'; 
 import { toast } from 'sonner';
 import { useDebounce } from '@/hooks/useDebounce';
 import { supabase } from '@/integrations/supabase/client';
 import { Switch } from '@/components/ui/switch';
+import { performMedicationSearch } from '@/utils/medication-db'; 
 
 interface MedicationSearchProps {
   onSelectMedication: (medication: string) => void;
@@ -106,7 +107,7 @@ const MedicationSearch: React.FC<MedicationSearchProps> = ({
       setSearchTimeoutId(timeoutId);
       
       console.log(`${isAuto ? 'Auto' : 'Manual'} search for:`, searchTerm);
-      const results = await searchDrugsCom(searchTerm);
+      const results = await performMedicationSearch(searchTerm);
       
       clearTimeout(timeoutId);
       setSearchTimeoutId(null);

@@ -1,3 +1,4 @@
+
 import { toast } from 'sonner';
 
 /**
@@ -70,6 +71,7 @@ export const enhancedMedicationSearch = async (query: string): Promise<string[]>
     );
     
     if (exactMatch) {
+      console.log('Found exact match:', exactMatch);
       return [exactMatch]; // Return immediately on exact match
     }
     
@@ -100,6 +102,7 @@ export const enhancedMedicationSearch = async (query: string): Promise<string[]>
     
     // Combine results with priority to those that start with the query
     const results = [...startsWith, ...includes];
+    console.log(`Enhanced search found ${results.length} results`);
     
     // Return unique results limited to 15
     return results.slice(0, 15);

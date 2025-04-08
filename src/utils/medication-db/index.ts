@@ -129,13 +129,15 @@ export const getMedicationFromDb = async (
   source?: string
 ): Promise<MedicationInfo | null> => {
   try {
-    console.log(`Searching for medication: "${medicationName}"`);
+    // Normalize medication name for better matching
+    const normalizedName = medicationName.trim();
+    console.log(`Searching for medication: "${normalizedName}"`);
     
     // Try to get exact match first
     let { data: medData } = await supabase
       .from('medications')
       .select('*')
-      .ilike('name', medicationName)
+      .ilike('name', normalizedName)
       .limit(1)
       .maybeSingle();
     
@@ -145,7 +147,7 @@ export const getMedicationFromDb = async (
       const { data: partialMatches } = await supabase
         .from('medications')
         .select('*')
-        .ilike('name', `%${medicationName}%`)
+        .ilike('name', `%${normalizedName}%`)
         .limit(1)
         .maybeSingle();
       
@@ -196,22 +198,22 @@ export const getMedicationFromDb = async (
         description: typedMedData.description || undefined,
         drugClass: typedMedData.drug_class || undefined,
         prescriptionOnly: typedMedData.prescription_only ?? false,
-        usedFor: typedMedData.used_for || [],
-        warnings: typedMedData.warnings || [],
-        foodInteractions: typedMedData.food_interactions || [],
-        conditionInteractions: typedMedData.condition_interactions || [],
-        therapeuticDuplications: typedMedData.therapeutic_duplications || [],
+        usedFor: Array.isArray(typedMedData.used_for) ? typedMedData.used_for : [],
+        warnings: Array.isArray(typedMedData.warnings) ? typedMedData.warnings : [],
+        foodInteractions: Array.isArray(typedMedData.food_interactions) ? typedMedData.food_interactions : [],
+        conditionInteractions: Array.isArray(typedMedData.condition_interactions) ? typedMedData.condition_interactions : [],
+        therapeuticDuplications: Array.isArray(typedMedData.therapeutic_duplications) ? typedMedData.therapeutic_duplications : [],
         source: source || typedMedData.source || 'database',
-        forms: typedMedData.forms || [],
+        forms: Array.isArray(typedMedData.forms) ? typedMedData.forms : [],
         pregnancy: typedMedData.pregnancy || undefined,
         breastfeeding: typedMedData.breastfeeding || undefined,
         // Handle JSON data from the database
         sideEffects: typedMedData.side_effects ? typedMedData.side_effects : { common: [], serious: [], rare: [] },
-        interactions: typedMedData.interactions || [],
-        interactionClassifications: typedMedData.interaction_classifications,
-        interactionSeverity: typedMedData.interaction_severity,
-        dosage: typedMedData.dosage,
-        halfLife: typedMedData.half_life,
+        interactions: Array.isArray(typedMedData.interactions) ? typedMedData.interactions : [],
+        interactionClassifications: typedMedData.interaction_classifications || undefined,
+        interactionSeverity: typedMedData.interaction_severity || undefined,
+        dosage: typedMedData.dosage || undefined,
+        halfLife: typedMedData.half_life || undefined,
         drugsComUrl: getDrugsComUrl(typedMedData.name),
         databaseSearchCount: typedMedData.search_count || 1,
         fromDatabase: true,
@@ -244,13 +246,15 @@ export const performMedicationSearch = async (
   try {
     if (!query || query.length < 2) return [];
     
-    console.log(`Searching medications for: "${query}"`);
+    // Normalize the query for better matching
+    const normalizedQuery = query.trim();
+    console.log(`Searching medications for: "${normalizedQuery}"`);
     
     // Search for medications
     const { data: results, error } = await supabase
       .from('medications')
       .select('name')
-      .ilike('name', `%${query}%`)
+      .ilike('name', `%${normalizedQuery}%`)
       .order('search_count', { ascending: false })
       .limit(limit);
     
@@ -260,11 +264,28 @@ export const performMedicationSearch = async (
     }
     
     const medicationNames = results?.map(item => item.name) || [];
-    console.log(`Found ${medicationNames.length} results for "${query}"`);
+    console.log(`Found ${medicationNames.length} results for "${normalizedQuery}"`);
+    
+    // If no results from database, fall back to local enhanced search
+    if (medicationNames.length === 0) {
+      console.log('No database results, trying enhanced local search');
+      // Import dynamically to avoid circular dependencies
+      const { enhancedMedicationSearch } = await import('./enhancedMedicationSearch');
+      return enhancedMedicationSearch(normalizedQuery);
+    }
+    
     return medicationNames;
   } catch (error) {
     console.error('Error in medication search:', error);
-    return [];
+    // Fallback to enhanced search on error
+    try {
+      console.log('Error with database search, trying enhanced local search');
+      const { enhancedMedicationSearch } = await import('./enhancedMedicationSearch');
+      return enhancedMedicationSearch(query.trim());
+    } catch (fallbackError) {
+      console.error('Even fallback search failed:', fallbackError);
+      return [];
+    }
   }
 };
 

@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { ExternalLink, Loader2, AlertTriangle } from 'lucide-react';
@@ -99,7 +100,10 @@ const DrugInfoLookup: React.FC<DrugInfoLookupProps> = ({ onAddMedication }) => {
     try {
       console.log(`Fetching information for medication: ${medication} from database or fallback data`);
       
-      const medInfo = await getMedicationFromDb(medication, userId, 'drugscom');
+      // Normalize medication name
+      const normalizedMedicationName = medication.trim();
+      
+      const medInfo = await getMedicationFromDb(normalizedMedicationName, userId, 'drugscom');
       
       if (searchTimeoutId) {
         clearTimeout(timeoutId);
@@ -119,9 +123,9 @@ const DrugInfoLookup: React.FC<DrugInfoLookupProps> = ({ onAddMedication }) => {
           reason: '',
           startDate: new Date().toISOString().split('T')[0],
           notes: '',
-          foodInteractions: medInfo.foodInteractions || [],
-          conditionInteractions: medInfo.conditionInteractions || [],
-          therapeuticDuplications: medInfo.therapeuticDuplications || [],
+          foodInteractions: Array.isArray(medInfo.foodInteractions) ? medInfo.foodInteractions : [],
+          conditionInteractions: Array.isArray(medInfo.conditionInteractions) ? medInfo.conditionInteractions : [],
+          therapeuticDuplications: Array.isArray(medInfo.therapeuticDuplications) ? medInfo.therapeuticDuplications : [],
           pregnancy: medInfo.pregnancy || '',
           breastfeeding: medInfo.breastfeeding || '',
         }));
@@ -254,7 +258,7 @@ const DrugInfoLookup: React.FC<DrugInfoLookupProps> = ({ onAddMedication }) => {
                   <span className="text-gray-600">
                     {medicationInfo?.fromDatabase 
                       ? 'Loading saved medication information...' 
-                      : 'Running Python scraper on Drugs.com...'}
+                      : 'Searching medication database...'}
                   </span>
                 </div>
                 
@@ -315,8 +319,8 @@ const DrugInfoLookup: React.FC<DrugInfoLookupProps> = ({ onAddMedication }) => {
           error={error}
           dataSource={
             medicationInfo?.fromDatabase
-              ? `Python Drugs.com Scraper (Searched ${medicationInfo.databaseSearchCount || 1} time${medicationInfo.databaseSearchCount !== 1 ? 's' : ''})`
-              : 'Python Drugs.com Scraper'
+              ? `Medication Database (Searched ${medicationInfo.databaseSearchCount || 1} time${medicationInfo.databaseSearchCount !== 1 ? 's' : ''})`
+              : 'Medication Database'
           }
           onOpenExternalLink={openDrugsComPage}
         />
