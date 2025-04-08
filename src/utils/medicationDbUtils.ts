@@ -99,13 +99,18 @@ export const saveMedicationToDb = async (
 
 /**
  * Retrieve medication information from the database
- * If not found in database, automatically fetch from drugs.com and save to database
+ * If not found in database, automatically fetch from available sources and save to database
  * 
  * @param medicationName Name of the medication to retrieve
  * @param userId User ID of the person searching (optional)
+ * @param preferredSource Preferred data source ('drugscom' or 'elsevier')
  * @returns Promise resolving to medication info or null if not found
  */
-export const getMedicationFromDb = async (medicationName: string, userId?: string): Promise<MedicationInfo | null> => {
+export const getMedicationFromDb = async (
+  medicationName: string, 
+  userId?: string,
+  preferredSource: 'drugscom' | 'elsevier' = 'drugscom'
+): Promise<MedicationInfo | null> => {
   if (!medicationName) return null;
 
   try {
@@ -274,24 +279,49 @@ export const getMedicationFromDb = async (medicationName: string, userId?: strin
       return medicationInfo;
     }
     
-    // If not found in database, fetch from drugs.com
-    console.log(`Medication not found in database: ${medicationName}. Fetching from drugs.com...`);
-    const drugsComMedInfo = await fetchDrugsComLiveInfo(medicationName);
+    // If not found in database, fetch from the preferred source
+    console.log(`Medication not found in database: ${medicationName}. Fetching from ${preferredSource}...`);
     
-    if (drugsComMedInfo) {
-      console.log(`Retrieved information for ${medicationName} from drugs.com. Saving to database...`);
+    let externalMedInfo: MedicationInfo | null = null;
+    
+    if (preferredSource === 'elsevier') {
+      // First try Elsevier
+      externalMedInfo = await fetchElsevierDrugInfo(medicationName);
       
-      // Save the medication info to the database
-      await saveMedicationToDb(drugsComMedInfo, userId);
+      // If not found in Elsevier, fallback to drugs.com
+      if (!externalMedInfo) {
+        console.log(`Medication not found in Elsevier: ${medicationName}. Trying drugs.com...`);
+        externalMedInfo = await fetchDrugsComLiveInfo(medicationName);
+      }
+    } else {
+      // First try drugs.com
+      externalMedInfo = await fetchDrugsComLiveInfo(medicationName);
       
-      // Mark as retrieved from drugs.com
-      drugsComMedInfo.source = 'Drugs.com';
-      drugsComMedInfo.drugsComUrl = getDrugsComUrl(drugsComMedInfo.name || medicationName);
-      
-      return drugsComMedInfo;
+      // If not found on drugs.com, fallback to Elsevier
+      if (!externalMedInfo) {
+        console.log(`Medication not found on drugs.com: ${medicationName}. Trying Elsevier...`);
+        externalMedInfo = await fetchElsevierDrugInfo(medicationName);
+      }
     }
     
-    console.log(`No information found for ${medicationName} on drugs.com`);
+    if (externalMedInfo) {
+      console.log(`Retrieved information for ${medicationName}. Saving to database...`);
+      
+      // Save the medication info to the database
+      await saveMedicationToDb(externalMedInfo, userId);
+      
+      // Set the source
+      if (!externalMedInfo.source) {
+        externalMedInfo.source = preferredSource === 'elsevier' ? 'Elsevier Drug Info API' : 'Drugs.com';
+      }
+      
+      // Set the URL
+      externalMedInfo.drugsComUrl = getDrugsComUrl(externalMedInfo.name || medicationName);
+      
+      return externalMedInfo;
+    }
+    
+    console.log(`No information found for ${medicationName} from any source`);
     return null;
   } catch (error) {
     console.error(`Error retrieving medication from database:`, error);
@@ -301,3 +331,5 @@ export const getMedicationFromDb = async (medicationName: string, userId?: strin
 
 // Import from drugsComApi to get URL function and fetchDrugsComLiveInfo function
 import { getDrugsComUrl, fetchDrugsComLiveInfo } from './drugsComApi';
+import { fetchElsevierDrugInfo } from './elsevierApi';
+

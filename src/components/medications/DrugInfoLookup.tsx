@@ -1,7 +1,8 @@
+
 import React, { useState } from 'react';
 import { getDrugsComUrl } from '@/utils/drugsComApi';
 import { Button } from '@/components/ui/button';
-import { ExternalLink, Loader2, Database, Archive } from 'lucide-react';
+import { ExternalLink, Loader2, Database, Archive, BookOpen } from 'lucide-react';
 import { MedicationInfo } from '@/utils/medicationData.d';
 import { toast } from 'sonner';
 import { v4 as uuidv4 } from 'uuid';
@@ -24,7 +25,7 @@ const DrugInfoLookup: React.FC<DrugInfoLookupProps> = ({ onAddMedication }) => {
   const [error, setError] = useState<string | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
   const [searchAttempted, setSearchAttempted] = useState(false);
-  const [activeDataSource, setActiveDataSource] = useState<'drugscom' | 'comprehensive'>('drugscom');
+  const [activeDataSource, setActiveDataSource] = useState<'drugscom' | 'elsevier' | 'comprehensive'>('drugscom');
   const [userId, setUserId] = useState<string | null>(null);
   const [newMedication, setNewMedication] = useState<Partial<Medication>>({
     id: uuidv4(),
@@ -82,8 +83,13 @@ const DrugInfoLookup: React.FC<DrugInfoLookupProps> = ({ onAddMedication }) => {
     try {
       console.log(`Fetching information for medication: ${medication} from database or API`);
       
-      // Enhanced function now checks database first, then fetches from drugs.com if needed
-      const medInfo = await getMedicationFromDb(medication, userId);
+      // Determine which data source to use
+      const preferredSource = activeDataSource === 'elsevier' 
+        ? 'elsevier' 
+        : 'drugscom';
+      
+      // Enhanced function now checks database first, then fetches from the preferred source if needed
+      const medInfo = await getMedicationFromDb(medication, userId, preferredSource as 'drugscom' | 'elsevier');
       
       if (medInfo) {
         console.log('Medication info received:', medInfo.name);
@@ -126,18 +132,35 @@ const DrugInfoLookup: React.FC<DrugInfoLookupProps> = ({ onAddMedication }) => {
     }
   };
 
+  const openElsevierPage = () => {
+    if (selectedMedication) {
+      // In a real implementation, this would link to the Elsevier page for this medication
+      // For now, we'll just link to the Elsevier documentation
+      window.open('https://druginfo.elsevier.com/docs/api/docs.json', '_blank', 'noopener,noreferrer');
+    }
+  };
+
   const openComprehensiveDatabasePage = () => {
     if (selectedMedication) {
-      openDrugsComPage();
+      if (activeDataSource === 'elsevier') {
+        openElsevierPage();
+      } else {
+        openDrugsComPage();
+      }
     }
   };
 
   const handleDirectExternalSearch = (query: string) => {
     if (!query || query.trim() === '') return;
     
-    const searchUrl = `https://www.drugs.com/search.php?searchterm=${encodeURIComponent(query)}`;
-    window.open(searchUrl, '_blank', 'noopener,noreferrer');
-    toast.info(`Searching for "${query}" on Drugs.com`);
+    if (activeDataSource === 'elsevier') {
+      window.open('https://druginfo.elsevier.com', '_blank', 'noopener,noreferrer');
+      toast.info(`Searching for "${query}" on Elsevier`);
+    } else {
+      const searchUrl = `https://www.drugs.com/search.php?searchterm=${encodeURIComponent(query)}`;
+      window.open(searchUrl, '_blank', 'noopener,noreferrer');
+      toast.info(`Searching for "${query}" on Drugs.com`);
+    }
   };
 
   const handleAddToProfile = () => {
@@ -185,23 +208,44 @@ const DrugInfoLookup: React.FC<DrugInfoLookupProps> = ({ onAddMedication }) => {
             variant="outline" 
             size="sm" 
             className="bg-white/10 hover:bg-white/20 text-white border-white/20"
-            onClick={activeDataSource === 'drugscom' ? openDrugsComPage : openComprehensiveDatabasePage}
+            onClick={
+              activeDataSource === 'drugscom' 
+                ? openDrugsComPage 
+                : activeDataSource === 'elsevier'
+                  ? openElsevierPage
+                  : openComprehensiveDatabasePage
+            }
             disabled={!selectedMedication}
           >
             <ExternalLink className="h-4 w-4 mr-1" />
             {activeDataSource === 'drugscom' 
               ? 'View on Drugs.com' 
-              : 'View on Drugs.com'}
+              : activeDataSource === 'elsevier'
+                ? 'View on Elsevier'
+                : 'View on Database'}
           </Button>
         </div>
         
         <div className="border-b border-[#D1DEE8]">
-          <Tabs value={activeDataSource} onValueChange={(value) => setActiveDataSource(value as 'drugscom' | 'comprehensive')}>
+          <Tabs 
+            value={activeDataSource} 
+            onValueChange={(value) => setActiveDataSource(value as 'drugscom' | 'elsevier' | 'comprehensive')}
+          >
             <TabsList className="w-full">
               <TabsTrigger value="drugscom" className="flex-1">
                 <Database className="h-4 w-4 mr-1" />
                 Drugs.com Database
-                {medicationInfo?.fromDatabase && (
+                {medicationInfo?.fromDatabase && medicationInfo?.source?.includes('Drugs.com') && (
+                  <span className="ml-2 bg-green-100 text-green-800 text-xs py-0.5 px-1.5 rounded-full flex items-center">
+                    <Archive className="h-3 w-3 mr-1" />
+                    Saved
+                  </span>
+                )}
+              </TabsTrigger>
+              <TabsTrigger value="elsevier" className="flex-1">
+                <BookOpen className="h-4 w-4 mr-1" />
+                Elsevier Database
+                {medicationInfo?.fromDatabase && medicationInfo?.source?.includes('Elsevier') && (
                   <span className="ml-2 bg-green-100 text-green-800 text-xs py-0.5 px-1.5 rounded-full flex items-center">
                     <Archive className="h-3 w-3 mr-1" />
                     Saved
@@ -219,12 +263,20 @@ const DrugInfoLookup: React.FC<DrugInfoLookupProps> = ({ onAddMedication }) => {
         <div className="p-5">
           {(!medicationInfo && !isLoading && !error) || (!searchAttempted) ? (
             <>
+              {activeDataSource === 'elsevier' && (
+                <div className="mb-4 p-3 bg-indigo-50 rounded-md border border-indigo-200 text-indigo-800 text-sm">
+                  The Elsevier Drug Info database provides comprehensive clinical information about medications,
+                  including drug interactions, side effects, and dosing guidelines.
+                </div>
+              )}
+              
               {activeDataSource === 'comprehensive' && (
                 <div className="mb-4 p-3 bg-blue-50 rounded-md border border-blue-200 text-blue-800 text-sm">
-                  The comprehensive database includes all medications, vitamins, and supplements currently on the market. 
+                  The comprehensive database includes all medications, vitamins, and supplements from multiple sources. 
                   Search for any medication name to retrieve information.
                 </div>
               )}
+              
               <MedicationSearch 
                 onSelectMedication={selectMedication}
                 activeDataSource={activeDataSource}
@@ -257,12 +309,20 @@ const DrugInfoLookup: React.FC<DrugInfoLookupProps> = ({ onAddMedication }) => {
           error={error}
           dataSource={
             medicationInfo?.fromDatabase
-              ? `Database (Searched ${medicationInfo.databaseSearchCount || 1} time${medicationInfo.databaseSearchCount !== 1 ? 's' : ''})`
+              ? `${medicationInfo.source || 'Database'} (Searched ${medicationInfo.databaseSearchCount || 1} time${medicationInfo.databaseSearchCount !== 1 ? 's' : ''})`
               : activeDataSource === 'drugscom' 
                 ? 'Drugs.com Live' 
-                : 'Comprehensive Database (Drugs.com)'
+                : activeDataSource === 'elsevier'
+                  ? 'Elsevier Drug Info Live'
+                  : 'Comprehensive Database'
           }
-          onOpenExternalLink={openDrugsComPage}
+          onOpenExternalLink={
+            activeDataSource === 'drugscom' 
+              ? openDrugsComPage 
+              : activeDataSource === 'elsevier'
+                ? openElsevierPage
+                : openComprehensiveDatabasePage
+          }
         />
       )}
 
