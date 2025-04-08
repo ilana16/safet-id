@@ -48,7 +48,9 @@ export const saveMedicationToDb = async (
       return {
         ...medicationInfo,
         fromDatabase: true,
-        databaseSearchCount: newCount
+        databaseSearchCount: newCount,
+        imprints: med.imprints || [],
+        internationalNames: med.internationalNames || []
       };
     } else {
       // Medication doesn't exist, insert it
@@ -90,7 +92,9 @@ export const saveMedicationToDb = async (
       return {
         ...medicationInfo,
         fromDatabase: true,
-        databaseSearchCount: 1
+        databaseSearchCount: 1,
+        imprints: [],
+        internationalNames: []
       };
     }
   } catch (error) {

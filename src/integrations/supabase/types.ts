@@ -35,6 +35,38 @@ export type Database = {
           },
         ]
       }
+      drug_imprints: {
+        Row: {
+          description: string | null
+          drug_id: string | null
+          id: string
+          image_url: string | null
+          imprint_code: string | null
+        }
+        Insert: {
+          description?: string | null
+          drug_id?: string | null
+          id?: string
+          image_url?: string | null
+          imprint_code?: string | null
+        }
+        Update: {
+          description?: string | null
+          drug_id?: string | null
+          id?: string
+          image_url?: string | null
+          imprint_code?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "drug_imprints_drug_id_fkey"
+            columns: ["drug_id"]
+            isOneToOne: false
+            referencedRelation: "drugs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       drug_interactions: {
         Row: {
           created_at: string | null
@@ -134,6 +166,35 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "food_interactions_drug_id_fkey"
+            columns: ["drug_id"]
+            isOneToOne: false
+            referencedRelation: "drugs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      international_names: {
+        Row: {
+          country: string
+          drug_id: string | null
+          id: string
+          name: string
+        }
+        Insert: {
+          country: string
+          drug_id?: string | null
+          id?: string
+          name: string
+        }
+        Update: {
+          country?: string
+          drug_id?: string | null
+          id?: string
+          name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "international_names_drug_id_fkey"
             columns: ["drug_id"]
             isOneToOne: false
             referencedRelation: "drugs"

@@ -100,6 +100,26 @@ serve(async (req) => {
         console.error('Error fetching therapeutic duplications:', therapeuticDuplicationsError);
       }
       
+      // Get drug imprints from new table
+      const { data: drugImprintsData, error: drugImprintsError } = await supabaseAdmin
+        .from('drug_imprints')
+        .select('imprint_code, image_url, description')
+        .eq('drug_id', drugId);
+        
+      if (drugImprintsError) {
+        console.error('Error fetching drug imprints:', drugImprintsError);
+      }
+      
+      // Get international names from new table
+      const { data: internationalNamesData, error: internationalNamesError } = await supabaseAdmin
+        .from('international_names')
+        .select('country, name')
+        .eq('drug_id', drugId);
+        
+      if (internationalNamesError) {
+        console.error('Error fetching international names:', internationalNamesError);
+      }
+      
       // Group interactions by level
       const interactions = {
         major: [],
@@ -133,7 +153,9 @@ serve(async (req) => {
         interactions: interactions,
         foodInteractions: foodInteractions,
         conditionInteractions: conditionInteractions,
-        therapeuticDuplications: therapeuticDuplications
+        therapeuticDuplications: therapeuticDuplications,
+        imprints: drugImprintsData || [],
+        internationalNames: internationalNamesData || []
       };
       
       return new Response(
