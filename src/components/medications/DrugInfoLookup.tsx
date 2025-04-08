@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { getDrugsComInfo, getDrugsComUrl, fetchDrugsComLiveInfo } from '@/utils/drugsComApi';
 import { Button } from '@/components/ui/button';
@@ -110,7 +109,7 @@ const DrugInfoLookup: React.FC<DrugInfoLookupProps> = ({ onAddMedication }) => {
       setError('Unable to load medication information. Please try another medication or try again later.');
       toast.error('Error loading medication information');
     } finally {
-      setIsSearching(false);
+      setIsLoading(false);
     }
   };
 
