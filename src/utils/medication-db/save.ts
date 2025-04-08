@@ -68,34 +68,37 @@ export const saveMedicationToDb = async (
       };
     } else {
       // Medication doesn't exist, insert it
+      // Convert complex objects to JSON-compatible format
+      const medicationData = {
+        name: medicationInfo.name,
+        generic_name: medicationInfo.genericName,
+        description: medicationInfo.description,
+        drug_class: medicationInfo.drugClass,
+        prescription_only: medicationInfo.prescriptionOnly,
+        used_for: medicationInfo.usedFor,
+        warnings: medicationInfo.warnings,
+        side_effects: JSON.parse(JSON.stringify(medicationInfo.sideEffects || {})),
+        dosage: JSON.parse(JSON.stringify(medicationInfo.dosage || {})),
+        interaction_classifications: JSON.parse(JSON.stringify(medicationInfo.interactionClassifications || {})),
+        interaction_severity: JSON.parse(JSON.stringify(medicationInfo.interactionSeverity || {})),
+        food_interactions: medicationInfo.foodInteractions,
+        condition_interactions: medicationInfo.conditionInteractions,
+        therapeutic_duplications: medicationInfo.therapeuticDuplications,
+        interactions: medicationInfo.interactions,
+        source: medicationInfo.source,
+        forms: medicationInfo.forms,
+        pregnancy: medicationInfo.pregnancy,
+        breastfeeding: medicationInfo.breastfeeding,
+        half_life: medicationInfo.halfLife || null,
+        searched_by: userId,
+        // Add the new properties if they exist
+        imprints: medicationInfo.imprints || [],
+        international_names: medicationInfo.internationalNames || []
+      };
+
       const { data, error } = await supabase
         .from('medications')
-        .insert({
-          name: medicationInfo.name,
-          generic_name: medicationInfo.genericName,
-          description: medicationInfo.description,
-          drug_class: medicationInfo.drugClass,
-          prescription_only: medicationInfo.prescriptionOnly,
-          used_for: medicationInfo.usedFor,
-          warnings: medicationInfo.warnings,
-          side_effects: medicationInfo.sideEffects,
-          dosage: medicationInfo.dosage,
-          interaction_classifications: medicationInfo.interactionClassifications,
-          interaction_severity: medicationInfo.interactionSeverity,
-          food_interactions: medicationInfo.foodInteractions,
-          condition_interactions: medicationInfo.conditionInteractions,
-          therapeutic_duplications: medicationInfo.therapeuticDuplications,
-          interactions: medicationInfo.interactions,
-          source: medicationInfo.source,
-          forms: medicationInfo.forms,
-          pregnancy: medicationInfo.pregnancy,
-          breastfeeding: medicationInfo.breastfeeding,
-          half_life: medicationInfo.halfLife || null,
-          searched_by: userId,
-          // Add the new properties if they exist
-          imprints: medicationInfo.imprints || [],
-          international_names: medicationInfo.internationalNames || []
-        })
+        .insert(medicationData)
         .select()
         .single();
       

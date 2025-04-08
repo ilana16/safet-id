@@ -53,7 +53,7 @@ export const saveMedicationToDb = async (
   try {
     if (!medicationInfo.name) return false;
     
-    // Format medication data for database
+    // Format medication data for database - convert complex objects to JSON-compatible format
     const medicationData = {
       name: medicationInfo.name,
       generic_name: medicationInfo.genericName || null,
@@ -62,14 +62,19 @@ export const saveMedicationToDb = async (
       prescription_only: medicationInfo.prescriptionOnly || false,
       used_for: medicationInfo.usedFor || null,
       warnings: medicationInfo.warnings || null,
-      side_effects: medicationInfo.sideEffects || null,
+      side_effects: medicationInfo.sideEffects ? JSON.parse(JSON.stringify(medicationInfo.sideEffects)) : null,
       food_interactions: medicationInfo.foodInteractions || null,
       condition_interactions: medicationInfo.conditionInteractions || null,
       therapeutic_duplications: medicationInfo.therapeuticDuplications || null,
       pregnancy: medicationInfo.pregnancy || null,
       breastfeeding: medicationInfo.breastfeeding || null,
       source: medicationInfo.source || 'user',
-      forms: Array.isArray(medicationInfo.forms) ? medicationInfo.forms : null
+      forms: Array.isArray(medicationInfo.forms) ? medicationInfo.forms : null,
+      interactions: medicationInfo.interactions || null,
+      interaction_classifications: medicationInfo.interactionClassifications ? JSON.parse(JSON.stringify(medicationInfo.interactionClassifications)) : null,
+      interaction_severity: medicationInfo.interactionSeverity ? JSON.parse(JSON.stringify(medicationInfo.interactionSeverity)) : null,
+      dosage: medicationInfo.dosage ? JSON.parse(JSON.stringify(medicationInfo.dosage)) : null,
+      half_life: medicationInfo.halfLife || null
     };
     
     // Check if medication exists
@@ -97,7 +102,7 @@ export const saveMedicationToDb = async (
       // Insert new medication
       const { error } = await supabase
         .from('medications')
-        .insert(medicationData);
+        .insert([medicationData]);
       
       if (error) {
         console.error('Error inserting medication:', error);
@@ -166,7 +171,13 @@ export const getMedicationFromDb = async (
         forms: medData.forms || [],
         pregnancy: medData.pregnancy || undefined,
         breastfeeding: medData.breastfeeding || undefined,
-        sideEffects: medData.side_effects || { common: [], serious: [] },
+        // Handle JSON data from the database
+        sideEffects: medData.side_effects ? medData.side_effects as any : { common: [], serious: [], rare: [] },
+        interactions: medData.interactions || [],
+        interactionClassifications: medData.interaction_classifications as any,
+        interactionSeverity: medData.interaction_severity as any,
+        dosage: medData.dosage as any,
+        halfLife: medData.half_life,
         drugsComUrl: getDrugsComUrl(medData.name)
       };
       
