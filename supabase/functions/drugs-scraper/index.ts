@@ -68,13 +68,55 @@ const getDrugInfo = async (drugName: string) => {
     if (mainHeading) {
       // We're already on a drug page
       drugPageUrl = searchUrl;
+      console.log(`Already on drug page: ${drugPageUrl}`);
     } else {
       // Try to find the drug in search results
-      const firstResult = $('.ddc-media-list .ddc-media-content a').first();
-      if (firstResult.length > 0) {
-        const resultHref = firstResult.attr('href');
-        if (resultHref) {
-          drugPageUrl = new URL(resultHref, 'https://www.drugs.com').toString();
+      console.log('Not on drug page, looking for drug in search results');
+      
+      // Look for the first result that exactly matches or contains our drug name
+      let bestMatch = null;
+      
+      $('.ddc-media-list .ddc-media-content a').each((i, el) => {
+        const resultText = $(el).text().trim().toLowerCase();
+        const resultHref = $(el).attr('href');
+        const drugNameLower = drugName.toLowerCase();
+        
+        // Check if this result contains our drug name
+        if (resultText.includes(drugNameLower)) {
+          if (!bestMatch || resultText === drugNameLower) {
+            bestMatch = resultHref;
+            console.log(`Found match: ${resultText} -> ${resultHref}`);
+          }
+        }
+      });
+      
+      if (bestMatch) {
+        drugPageUrl = new URL(bestMatch, 'https://www.drugs.com').toString();
+        console.log(`Best match drug URL: ${drugPageUrl}`);
+      } else {
+        // If no exact match, try to find a generic "drug info" link
+        $('.ddc-search-results a').each((i, el) => {
+          const href = $(el).attr('href');
+          const text = $(el).text().toLowerCase();
+          if (href && text.includes(drugName.toLowerCase())) {
+            drugPageUrl = new URL(href, 'https://www.drugs.com').toString();
+            console.log(`Found generic info link: ${drugPageUrl}`);
+            return false; // Break the loop
+          }
+        });
+        
+        // Try to find by exact URL pattern for known drugs
+        if (!drugPageUrl) {
+          const directUrl = `https://www.drugs.com/${encodeURIComponent(drugName.toLowerCase())}.html`;
+          try {
+            const directResponse = await fetch(directUrl);
+            if (directResponse.ok) {
+              drugPageUrl = directUrl;
+              console.log(`Found by direct URL pattern: ${drugPageUrl}`);
+            }
+          } catch (e) {
+            console.log(`Direct URL not found: ${directUrl}`);
+          }
         }
       }
     }
@@ -295,7 +337,7 @@ const getDrugInfo = async (drugName: string) => {
       source: 'Drugs.com Scraper'
     };
     
-    console.log(`Successfully extracted drug information for: ${name}`);
+    console.log(`Successfully extracted drug information for: ${name || drugName}`);
     return result;
     
   } catch (error) {
@@ -348,7 +390,7 @@ serve(async (req) => {
       result = await getDrugInfo(drugName);
       if (!result) {
         return new Response(
-          JSON.stringify({ error: `No information found for ${drugName}` }),
+          JSON.stringify({ error: `No information found for ${drugName}. Please check the spelling or try another medication.` }),
           { 
             status: 404, 
             headers: { 
