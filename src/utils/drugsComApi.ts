@@ -214,7 +214,6 @@ export const getDrugDetails = async (drugId: string): Promise<MedicationInfo | n
     
     // Try to store in database when possible
     try {
-      // Fix the column names to match the database schema
       await supabase
         .from('medications')
         .upsert({
