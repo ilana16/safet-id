@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { MedicationInfo } from './medicationData.d';
 import { toast } from 'sonner';
@@ -103,13 +102,13 @@ export const saveMedicationToDb = async (
  * 
  * @param medicationName Name of the medication to retrieve
  * @param userId User ID of the person searching (optional)
- * @param preferredSource Preferred data source ('drugscom', 'elsevier', 'webcrawler', or 'modrugs')
+ * @param preferredSource Preferred data source ('drugscom', 'elsevier', 'webcrawler')
  * @returns Promise resolving to medication info or null if not found
  */
 export const getMedicationFromDb = async (
   medicationName: string, 
   userId?: string,
-  preferredSource: 'drugscom' | 'elsevier' | 'webcrawler' | 'modrugs' = 'drugscom'
+  preferredSource: 'drugscom' | 'elsevier' | 'webcrawler' = 'drugscom'
 ): Promise<MedicationInfo | null> => {
   if (!medicationName) return null;
 
@@ -293,15 +292,6 @@ export const getMedicationFromDb = async (
         console.log(`Medication not found in Web Crawler: ${medicationName}. Trying drugs.com...`);
         externalMedInfo = await fetchDrugsComLiveInfo(medicationName);
       }
-    } else if (preferredSource === 'modrugs') {
-      // First try MoDrugs
-      externalMedInfo = await fetchMoDrugsInfo(medicationName);
-      
-      // If not found in MoDrugs, fallback to drugs.com
-      if (!externalMedInfo) {
-        console.log(`Medication not found in MoDrugs: ${medicationName}. Trying drugs.com...`);
-        externalMedInfo = await fetchDrugsComLiveInfo(medicationName);
-      }
     } else if (preferredSource === 'elsevier') {
       // First try Elsevier
       externalMedInfo = await fetchElsevierDrugInfo(medicationName);
@@ -312,14 +302,8 @@ export const getMedicationFromDb = async (
         externalMedInfo = await fetchDrugsComLiveInfo(medicationName);
       }
     } else {
-      // First try drugs.com
+      // Default to drugs.com
       externalMedInfo = await fetchDrugsComLiveInfo(medicationName);
-      
-      // If not found on drugs.com, fallback to Elsevier
-      if (!externalMedInfo) {
-        console.log(`Medication not found on drugs.com: ${medicationName}. Trying Elsevier...`);
-        externalMedInfo = await fetchElsevierDrugInfo(medicationName);
-      }
     }
     
     if (externalMedInfo) {
@@ -334,9 +318,7 @@ export const getMedicationFromDb = async (
           ? 'Elsevier Drug Info API' 
           : preferredSource === 'webcrawler'
             ? 'Web Crawler for Drug Interaction Data'
-            : preferredSource === 'modrugs'
-              ? 'MoDrugs Molecular Database'
-              : 'Drugs.com';
+            : 'Drugs.com';
       }
       
       // Set the URL
@@ -357,4 +339,3 @@ export const getMedicationFromDb = async (
 import { getDrugsComUrl, fetchDrugsComLiveInfo } from './drugsComApi';
 import { fetchElsevierDrugInfo } from './elsevierApi';
 import { fetchWebCrawlerDrugInfo } from './webCrawlerApi';
-import { fetchMoDrugsInfo } from './modrugsApi';

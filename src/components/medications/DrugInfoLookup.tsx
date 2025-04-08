@@ -79,7 +79,8 @@ const DrugInfoLookup: React.FC<DrugInfoLookupProps> = ({ onAddMedication }) => {
     try {
       console.log(`Fetching information for medication: ${medication} from database or API`);
       
-      const medInfo = await getMedicationFromDb(medication, userId, 'drugscomScraper');
+      // Updated to use 'drugscom' instead of 'drugscomScraper'
+      const medInfo = await getMedicationFromDb(medication, userId, 'drugscom');
       
       if (medInfo) {
         console.log('Medication info received:', medInfo.name);
