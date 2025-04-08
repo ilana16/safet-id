@@ -78,6 +78,50 @@ class MedicationDetail(Resource):
                 return {"error": "Failed to delete medication or medication not found"}, 404
         except Exception as e:
             return {"error": str(e)}, 500
+            
+    def put(self, medication_id):
+        try:
+            # Parse request data
+            parser = reqparse.RequestParser()
+            parser.add_argument('name')
+            parser.add_argument('generic_name')
+            parser.add_argument('drug_class')
+            parser.add_argument('description')
+            parser.add_argument('prescription_only', type=bool)
+            args = parser.parse_args()
+            
+            # Create update data (only include provided fields)
+            update_data = {}
+            
+            if args['name']:
+                update_data["name"] = args['name']
+                update_data["slug"] = args['name'].lower().replace(" ", "-")
+                
+            if args['generic_name'] is not None:
+                update_data["generic_name"] = args['generic_name']
+                
+            if args['drug_class'] is not None:
+                update_data["drug_class"] = args['drug_class']
+                
+            if args['description'] is not None:
+                update_data["description"] = args['description']
+                
+            if args['prescription_only'] is not None:
+                update_data["prescription_only"] = args['prescription_only']
+            
+            # Don't proceed if no fields to update
+            if not update_data:
+                return {"error": "No fields provided for update"}, 400
+                
+            # Update medication in database
+            response = supabase.table("medications").update(update_data).eq("id", medication_id).execute()
+            
+            if response.data and len(response.data) > 0:
+                return {"message": "Medication updated successfully", "medication": response.data[0]}, 200
+            else:
+                return {"error": "Failed to update medication or medication not found"}, 404
+        except Exception as e:
+            return {"error": str(e)}, 500
 
 # Add API routes
 api.add_resource(MedicationList, '/medications')

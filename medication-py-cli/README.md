@@ -83,6 +83,20 @@ Content-Type: application/json
 }
 ```
 
+### Update medication
+```
+PUT /medications/{medication_id}
+Content-Type: application/json
+
+{
+  "name": "Aspirin",
+  "generic_name": "Acetylsalicylic Acid",
+  "drug_class": "NSAID",
+  "description": "Updated description",
+  "prescription_only": false
+}
+```
+
 ### Delete medication
 ```
 DELETE /medications/{medication_id}
