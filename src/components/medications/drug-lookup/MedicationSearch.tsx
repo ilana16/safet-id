@@ -1,4 +1,4 @@
-// Update the imports to remove the non-existent pill component
+
 import React, { useState, useEffect } from 'react';
 import { Loader2, Search, CheckCircle, X, ExternalLink } from 'lucide-react';
 import { Input } from '@/components/ui/input';
@@ -6,14 +6,13 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { searchDrugsCom, getDrugsComUrl } from '@/utils/drugsComApi';
 import { toast } from '@/lib/toast';
-// Remove the import for @/components/ui/pill which doesn't exist
 
 interface MedicationSearchProps {
-  onSelect: (drugName: string) => void;
-  onClose: () => void;
+  onSelectMedication: (drugName: string) => void;
+  onExternalSearch: (query: string) => void;
 }
 
-const MedicationSearch: React.FC<MedicationSearchProps> = ({ onSelect, onClose }) => {
+const MedicationSearch: React.FC<MedicationSearchProps> = ({ onSelectMedication, onExternalSearch }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [searchResults, setSearchResults] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -78,7 +77,7 @@ const MedicationSearch: React.FC<MedicationSearchProps> = ({ onSelect, onClose }
               <li key={result} className="p-2 hover:bg-gray-100 cursor-pointer flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <CheckCircle className="h-5 w-5 text-green-500" />
-                  <button onClick={() => onSelect(result)} className="hover:underline text-left">
+                  <button onClick={() => onSelectMedication(result)} className="hover:underline text-left">
                     {result}
                   </button>
                 </div>
