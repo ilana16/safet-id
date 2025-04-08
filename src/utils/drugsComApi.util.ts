@@ -1,8 +1,7 @@
-
 /**
  * Helper functions for drugs.com API integration
  */
-import { MedicationInfo } from './medicationData';
+import { MedicationInfo } from './medicationData.d';
 
 export const getDrugClassificationUrl = (drugName: string): string => {
   if (!drugName) return '';

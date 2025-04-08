@@ -1,9 +1,10 @@
+
 /**
  * Types and mock data for medication information
  * This represents medication data from a medical API like Drugs.com
  */
 
-import { MedicationInfo } from './medicationData';
+import { MedicationInfo } from './medicationData.d';
 
 // Real medication database with data from actual drug information sources
 export const medicationDatabase: Record<string, MedicationInfo> = {
