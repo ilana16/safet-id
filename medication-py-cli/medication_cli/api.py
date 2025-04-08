@@ -2,26 +2,44 @@
 from flask import Flask, request
 from flask_restful import Resource, Api, reqparse
 import json
+import time
 from .supabase_client import supabase
 
 app = Flask(__name__)
 api = Api(app)
 
+# Define timeouts for database operations
+DB_QUERY_TIMEOUT = 10  # seconds
+
 class MedicationList(Resource):
     def get(self):
         try:
+            start_time = time.time()
+            
             # Get query parameter for search
             query = request.args.get('query', '')
             limit = request.args.get('limit', 10, type=int)
             
-            if query:
-                # Perform search
-                response = supabase.table("medications").select("*").ilike("name", f"%{query}%").limit(limit).execute()
-            else:
-                # Get all medications (with limit)
-                response = supabase.table("medications").select("*").limit(limit).execute()
-                
-            return response.data, 200
+            # Add timeout check for long-running queries
+            while time.time() - start_time < DB_QUERY_TIMEOUT:
+                try:
+                    if query:
+                        # Optimize search query by using ilike with indexed column
+                        response = supabase.table("medications").select("*").ilike("name", f"%{query}%").limit(limit).execute()
+                    else:
+                        # Get all medications (with limit)
+                        response = supabase.table("medications").select("*").limit(limit).execute()
+                    
+                    return response.data, 200
+                except Exception as e:
+                    if "timeout" in str(e).lower():
+                        # Small pause before retry
+                        time.sleep(0.5)
+                        continue
+                    raise e
+                    
+            # If we get here, we've timed out
+            return {"error": "Database query timed out. Please try again."}, 504
         except Exception as e:
             return {"error": str(e)}, 500
     
@@ -46,36 +64,66 @@ class MedicationList(Resource):
                 "prescription_only": args.get('prescription_only', True)
             }
             
-            # Insert into medications table
-            response = supabase.table("medications").insert(drug_data).execute()
-            
-            if response.data and len(response.data) > 0:
-                return {"id": response.data[0]["id"], "message": f"Successfully added {args['name']}"}, 201
-            else:
-                return {"error": f"Failed to add {args['name']}"}, 400
+            # Insert into medications table with timeout handling
+            start_time = time.time()
+            while time.time() - start_time < DB_QUERY_TIMEOUT:
+                try:
+                    response = supabase.table("medications").insert(drug_data).execute()
+                    
+                    if response.data and len(response.data) > 0:
+                        return {"id": response.data[0]["id"], "message": f"Successfully added {args['name']}"}, 201
+                    else:
+                        return {"error": f"Failed to add {args['name']}"}, 400
+                except Exception as e:
+                    if "timeout" in str(e).lower():
+                        time.sleep(0.5)
+                        continue
+                    raise e
+                    
+            return {"error": "Operation timed out. Please try again."}, 504
         except Exception as e:
             return {"error": str(e)}, 500
 
 class MedicationDetail(Resource):
     def get(self, medication_id):
         try:
-            response = supabase.table("medications").select("*").eq("id", medication_id).limit(1).execute()
-            
-            if response.data and len(response.data) > 0:
-                return response.data[0], 200
-            else:
-                return {"error": "Medication not found"}, 404
+            start_time = time.time()
+            while time.time() - start_time < DB_QUERY_TIMEOUT:
+                try:
+                    response = supabase.table("medications").select("*").eq("id", medication_id).limit(1).execute()
+                    
+                    if response.data and len(response.data) > 0:
+                        return response.data[0], 200
+                    else:
+                        return {"error": "Medication not found"}, 404
+                except Exception as e:
+                    if "timeout" in str(e).lower():
+                        time.sleep(0.5)
+                        continue
+                    raise e
+                    
+            return {"error": "Operation timed out. Please try again."}, 504
         except Exception as e:
             return {"error": str(e)}, 500
     
     def delete(self, medication_id):
         try:
-            response = supabase.table("medications").delete().eq("id", medication_id).execute()
-            
-            if response.data and len(response.data) > 0:
-                return {"message": "Medication deleted successfully"}, 200
-            else:
-                return {"error": "Failed to delete medication or medication not found"}, 404
+            start_time = time.time()
+            while time.time() - start_time < DB_QUERY_TIMEOUT:
+                try:
+                    response = supabase.table("medications").delete().eq("id", medication_id).execute()
+                    
+                    if response.data and len(response.data) > 0:
+                        return {"message": "Medication deleted successfully"}, 200
+                    else:
+                        return {"error": "Failed to delete medication or medication not found"}, 404
+                except Exception as e:
+                    if "timeout" in str(e).lower():
+                        time.sleep(0.5)
+                        continue
+                    raise e
+                    
+            return {"error": "Operation timed out. Please try again."}, 504
         except Exception as e:
             return {"error": str(e)}, 500
             
@@ -113,13 +161,23 @@ class MedicationDetail(Resource):
             if not update_data:
                 return {"error": "No fields provided for update"}, 400
                 
-            # Update medication in database
-            response = supabase.table("medications").update(update_data).eq("id", medication_id).execute()
-            
-            if response.data and len(response.data) > 0:
-                return {"message": "Medication updated successfully", "medication": response.data[0]}, 200
-            else:
-                return {"error": "Failed to update medication or medication not found"}, 404
+            # Update medication in database with timeout handling
+            start_time = time.time()
+            while time.time() - start_time < DB_QUERY_TIMEOUT:
+                try:
+                    response = supabase.table("medications").update(update_data).eq("id", medication_id).execute()
+                    
+                    if response.data and len(response.data) > 0:
+                        return {"message": "Medication updated successfully", "medication": response.data[0]}, 200
+                    else:
+                        return {"error": "Failed to update medication or medication not found"}, 404
+                except Exception as e:
+                    if "timeout" in str(e).lower():
+                        time.sleep(0.5)
+                        continue
+                    raise e
+                    
+            return {"error": "Operation timed out. Please try again."}, 504
         except Exception as e:
             return {"error": str(e)}, 500
 
