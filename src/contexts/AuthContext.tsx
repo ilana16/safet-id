@@ -1,13 +1,31 @@
 
 import React, { createContext, useState, useEffect, useContext, ReactNode } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { User, Session } from '@supabase/supabase-js';
+import { initializeApp } from 'firebase/app';
+import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut as firebaseSignOut, User, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 import { loadAllSectionData, saveSectionData } from '@/utils/medicalProfileService';
 
+// Your web app's Firebase configuration
+const firebaseConfig = {
+  apiKey: "AIzaSyDsKjI3BadRGYaQ1GcFmgZEOuUWrL_3kWs",
+  authDomain: "safet-id-7b807.firebaseapp.com",
+  projectId: "safet-id-7b807",
+  storageBucket: "safet-id-7b807.firebasestorage.app",
+  messagingSenderId: "367148685926",
+  appId: "1:367148685926:web:31e50a8c05adefdc796ba7",
+  measurementId: "G-DJJFCXB486"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const googleProvider = new GoogleAuthProvider();
+
 interface AuthContextType {
-  session: Session | null;
   user: User | null;
   isLoading: boolean;
+  signIn: (email: string, password: string) => Promise<void>;
+  signUp: (email: string, password: string) => Promise<void>;
+  signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
   syncProfileData: () => Promise<boolean>;
 }
@@ -15,28 +33,17 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Sync profile data with Supabase
+  // Sync profile data with Firebase (Firestore will be handled in next phase)
   const syncProfileData = async (): Promise<boolean> => {
-    if (!user?.id) return false;
+    if (!user?.uid) return false;
     
     try {
-      // Save all sections one by one
-      const sections = ['personal', 'history', 'medications', 'allergies', 
-                        'immunizations', 'social', 'reproductive', 'mental', 
-                        'functional', 'cultural'];
-      
-      // Save each section individually
-      for (const section of sections) {
-        await saveSectionData(section);
-      }
-      
-      // Load latest data from Supabase
-      await loadAllSectionData();
-      
+      // For now, we'll just log that data would be synced.
+      // Actual data migration to Firestore will happen in the next phase.
+      console.log('Syncing profile data for user:', user.uid);
       return true;
     } catch (error) {
       console.error('Error syncing profile data:', error);
@@ -45,47 +52,59 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
   
   useEffect(() => {
-    // Set up auth state listener FIRST
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-        localStorage.setItem('isLoggedIn', session ? 'true' : 'false');
-        
-        // When user logs in, load their data
-        if (event === 'SIGNED_IN' && session?.user) {
-          try {
-            await loadAllSectionData();
-          } catch (err) {
-            console.error('Error loading profile data on sign in:', err);
-          }
-        }
-      }
-    );
-
-    // THEN check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      localStorage.setItem('isLoggedIn', session ? 'true' : 'false');
-      
-      // If session exists, load user data
-      if (session?.user) {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+      setIsLoading(false);
+      localStorage.setItem('isLoggedIn', currentUser ? 'true' : 'false');
+      if (currentUser) {
+        // Load data if user is signed in (Firestore will be handled in next phase)
         loadAllSectionData().catch(err => {
           console.error('Error loading initial profile data:', err);
-        }).finally(() => {
-          setIsLoading(false);
         });
-      } else {
-        setIsLoading(false);
       }
     });
 
-    return () => subscription.unsubscribe();
+    return () => unsubscribe();
   }, []);
 
+  const signIn = async (email: string, password: string) => {
+    setIsLoading(true);
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+    } catch (error: any) {
+      console.error('Error signing in:', error.message);
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const signUp = async (email: string, password: string) => {
+    setIsLoading(true);
+    try {
+      await createUserWithEmailAndPassword(auth, email, password);
+    } catch (error: any) {
+      console.error('Error signing up:', error.message);
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const signInWithGoogle = async () => {
+    setIsLoading(true);
+    try {
+      await signInWithPopup(auth, googleProvider);
+    } catch (error: any) {
+      console.error('Error signing in with Google:', error.message);
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const signOut = async () => {
-    // Save data before signing out - each section individually
+    // Save data before signing out (Firestore will be handled in next phase)
     const sections = ['personal', 'history', 'medications', 'allergies', 
                       'immunizations', 'social', 'reproductive', 'mental', 
                       'functional', 'cultural'];
@@ -94,12 +113,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await saveSectionData(section);
     }
     
-    await supabase.auth.signOut();
+    await firebaseSignOut(auth);
     localStorage.setItem('isLoggedIn', 'false');
   };
 
   return (
-    <AuthContext.Provider value={{ session, user, isLoading, signOut, syncProfileData }}>
+    <AuthContext.Provider value={{ user, isLoading, signIn, signUp, signInWithGoogle, signOut, syncProfileData }}>
       {children}
     </AuthContext.Provider>
   );
@@ -112,3 +131,7 @@ export function useAuth() {
   }
   return context;
 }
+
+
+
+

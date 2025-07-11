@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import PageLayout from '@/components/layout/PageLayout';
@@ -7,10 +6,9 @@ import UserProfileCard from '@/components/dashboard/UserProfileCard';
 import QRCodeCard from '@/components/dashboard/QRCodeCard';
 import DashboardTabs from '@/components/dashboard/DashboardTabs';
 import { toast } from '@/lib/toast';
-import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { generateAccessCode } from '@/utils/accessCode';
 import { loadAllSectionData } from '@/utils/medicalProfileService';
-import { loadProfileFromSupabase } from '@/utils/supabaseSync';
 
 interface UserData {
   id: string;
@@ -23,6 +21,7 @@ interface UserData {
 
 const Dashboard = () => {
   const navigate = useNavigate();
+  const { user: firebaseUser } = useAuth();
   const [user, setUser] = useState<UserData | null>(null);
   const [qrCodeUrl, setQrCodeUrl] = useState<string>('');
   const [completionPercentage, setCompletionPercentage] = useState<number>(0);
@@ -32,137 +31,125 @@ const Dashboard = () => {
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        // Get current session
-        const { data: { session } } = await supabase.auth.getSession();
-        
-        if (!session) {
+        if (!firebaseUser) {
           toast.error('Please login to access the dashboard');
           navigate('/login');
           return;
         }
         
-        // Get user metadata and email
-        const { email, id } = session.user;
-        const firstName = session.user.user_metadata.firstName || '';
-        const lastName = session.user.user_metadata.lastName || '';
+        // Get user data from Firebase user
+        const { email, uid } = firebaseUser;
+        const firstName = firebaseUser.displayName?.split(' ')[0] || '';
+        const lastName = firebaseUser.displayName?.split(' ')[1] || '';
         
         // Generate or retrieve access code
-        let accessCode = localStorage.getItem(`accessCode_${id}`);
+        let accessCode = localStorage.getItem(`accessCode_${uid}`);
         if (!accessCode) {
-          // Use the utility function to generate code
           accessCode = generateAccessCode();
-          localStorage.setItem(`accessCode_${id}`, accessCode);
+          localStorage.setItem(`accessCode_${uid}`, accessCode);
         }
         
         const userData: UserData = {
-          id,
+          id: uid,
           firstName,
           lastName,
           email: email || '',
           accessCode,
-          createdAt: session.user.created_at || new Date().toISOString(),
+          createdAt: firebaseUser.metadata.creationTime || new Date().toISOString()
         };
         
         setUser(userData);
         
-        // Generate QR code
-        if (userData.id && userData.accessCode) {
-          const qrUrl = generateQRCodeUrl(userData.id, userData.accessCode);
-          setQrCodeUrl(qrUrl);
-        }
+        // Generate QR code URL
+        const baseUrl = window.location.origin;
+        const qrUrl = generateQRCodeUrl(`${baseUrl}/view/${uid}/${accessCode}`);
+        setQrCodeUrl(qrUrl);
         
-        // Load user profile data from Supabase
+        // Load profile data and calculate completion
         setIsLoadingProfile(true);
         try {
-          // First, load data from local storage
-          await loadAllSectionData();
-          
-          // Then try to load from Supabase and update if there's newer data
-          const supabaseProfile = await loadProfileFromSupabase(id);
-          
-          // Calculate completion percentage based on sections
-          const hasProfile = Boolean(
-            Object.keys(supabaseProfile).length > 0 || 
-            localStorage.getItem('medicalProfile')
-          );
-          setCompletionPercentage(hasProfile ? 85 : 15);
-          
-          if (Object.keys(supabaseProfile).length > 0) {
-            toast.success('Successfully loaded your profile data');
-          }
+          const profileData = await loadAllSectionData();
+          const completion = calculateCompletionPercentage(profileData);
+          setCompletionPercentage(completion);
         } catch (error) {
           console.error('Error loading profile data:', error);
-          toast.error('Could not load your profile data from the cloud');
         } finally {
           setIsLoadingProfile(false);
         }
+        
       } catch (error) {
-        console.error('Error fetching user data:', error);
-        toast.error('Error loading user information');
+        console.error('Error in dashboard:', error);
+        toast.error('Error loading dashboard');
+        navigate('/login');
       } finally {
         setIsLoading(false);
       }
     };
     
     checkAuth();
-  }, [navigate]);
+  }, [firebaseUser, navigate]);
+
+  const calculateCompletionPercentage = (profileData: Record<string, any>): number => {
+    const sections = ['personal', 'history', 'medications', 'allergies', 'immunizations', 'social', 'reproductive', 'mental', 'functional', 'cultural'];
+    let completedSections = 0;
+    
+    sections.forEach(section => {
+      if (profileData[section] && Object.keys(profileData[section]).length > 1) { // More than just lastUpdated
+        completedSections++;
+      }
+    });
+    
+    return Math.round((completedSections / sections.length) * 100);
+  };
 
   if (isLoading) {
     return (
-      <PageLayout className="bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 py-12">
-          <div className="flex justify-center items-center h-64">
-            <div className="animate-pulse text-gray-400">Loading...</div>
-          </div>
+      <PageLayout>
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-safet-500"></div>
         </div>
       </PageLayout>
     );
   }
 
   if (!user) {
-    return (
-      <PageLayout className="bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 py-12">
-          <div className="flex justify-center items-center h-64">
-            <div className="text-gray-400">User not found</div>
-          </div>
-        </div>
-      </PageLayout>
-    );
+    return null;
   }
 
   return (
-    <PageLayout className="bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 py-8">
+    <PageLayout>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900">
-            Welcome, {user.firstName}!
+            Welcome back, {user.firstName || 'User'}!
           </h1>
-          <p className="text-gray-600 mt-1">
-            Manage your medical information and access settings
+          <p className="text-gray-600 mt-2">
+            Manage your medical profile and access your secure information
           </p>
-          {isLoadingProfile && (
-            <p className="text-sm text-blue-600 mt-2">
-              Syncing your profile data from the cloud...
-            </p>
-          )}
         </div>
         
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Left Column - User Info & QR Code */}
-          <div className="lg:col-span-1 space-y-6">
-            <UserProfileCard user={user} completionPercentage={completionPercentage} />
-            <QRCodeCard userId={user.id} accessCode={user.accessCode} />
-          </div>
-          
-          {/* Right Column - Main Dashboard Content */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
           <div className="lg:col-span-2">
-            <DashboardTabs completionPercentage={completionPercentage} />
+            <UserProfileCard 
+              user={user} 
+              completionPercentage={completionPercentage}
+              isLoadingProfile={isLoadingProfile}
+            />
+          </div>
+          <div>
+            <QRCodeCard 
+              qrCodeUrl={qrCodeUrl} 
+              accessCode={user.accessCode}
+              userId={user.id}
+            />
           </div>
         </div>
+        
+        <DashboardTabs />
       </div>
     </PageLayout>
   );
 };
 
 export default Dashboard;
+

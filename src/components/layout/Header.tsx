@@ -1,58 +1,24 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { User, LogIn, LogOut } from 'lucide-react';
 import Logo from '@/components/ui/Logo';
 import { toast } from '@/lib/toast';
-import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 
 const Header = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    // Set up auth state listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        const isAuthed = !!session;
-        setIsAuthenticated(isAuthed);
-        localStorage.setItem('isLoggedIn', isAuthed ? 'true' : 'false');
-        setIsLoading(false);
-      }
-    );
-    
-    // Check for existing session
-    const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      const isAuthed = !!session;
-      setIsAuthenticated(isAuthed);
-      localStorage.setItem('isLoggedIn', isAuthed ? 'true' : 'false');
-      setIsLoading(false);
-    };
-    
-    checkSession();
-
-    return () => subscription.unsubscribe();
-  }, []);
+  const { user, signOut, isLoading } = useAuth();
 
   const handleLogout = async () => {
-    setIsLoading(true);
     try {
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
-      
-      localStorage.setItem('isLoggedIn', 'false');
-      setIsAuthenticated(false);
+      await signOut();
       toast.success('Successfully logged out');
       navigate('/');
     } catch (error) {
       console.error('Logout error:', error);
       toast.error('Failed to log out. Please try again.');
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -98,7 +64,7 @@ const Header = () => {
           <div className="flex items-center space-x-4">
             {isLoading ? (
               <div className="h-10 w-20 bg-gray-100 animate-pulse rounded"></div>
-            ) : isAuthenticated ? (
+            ) : user ? (
               <>
                 <Link to="/dashboard">
                   <Button 
@@ -146,3 +112,4 @@ const Header = () => {
 };
 
 export default Header;
+

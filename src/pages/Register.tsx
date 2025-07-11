@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import PageLayout from '@/components/layout/PageLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,10 +8,11 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from '@/lib/toast';
 import { Mail, Lock, User, ShieldCheck } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 
 const Register = () => {
   const navigate = useNavigate();
+  const { signUp, signInWithGoogle, isLoading: authLoading } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     firstName: '',
@@ -30,7 +31,6 @@ const Register = () => {
       [name]: type === 'checkbox' ? checked : value
     });
     
-    // Clear error when field is edited
     if (errors[name]) {
       setErrors({
         ...errors,
@@ -77,45 +77,43 @@ const Register = () => {
     setIsLoading(true);
     
     try {
-      // Register with Supabase
-      const { data, error } = await supabase.auth.signUp({
-        email: formData.email,
-        password: formData.password,
-        options: {
-          data: {
-            firstName: formData.firstName,
-            lastName: formData.lastName
-          }
-        }
-      });
+      await signUp(formData.email, formData.password);
       
-      if (error) {
-        throw error;
-      }
-      
-      // Update the local storage isLoggedIn flag
       localStorage.setItem('isLoggedIn', 'true');
       
-      setIsLoading(false);
       toast.success('Account created successfully!');
       navigate('/dashboard');
     } catch (error: any) {
-      setIsLoading(false);
       console.error('Registration error:', error);
       toast.error(error.message || 'Registration failed. Please try again.');
       
-      // Handle specific errors
-      if (error.message?.includes('email')) {
+      if (error.code === 'auth/email-already-in-use') {
         setErrors(prev => ({
           ...prev,
-          email: 'Email already in use or invalid'
+          email: 'Email already in use'
         }));
-      } else if (error.message?.includes('password')) {
+      } else if (error.code === 'auth/weak-password') {
         setErrors(prev => ({
           ...prev,
           password: 'Password is too weak'
         }));
       }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    setIsLoading(true);
+    try {
+      await signInWithGoogle();
+      toast.success('Google login successful!');
+      navigate('/dashboard');
+    } catch (error: any) {
+      console.error('Google login error:', error);
+      toast.error(error.message || 'Failed to sign in with Google');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -252,11 +250,31 @@ const Register = () => {
               <Button 
                 type="submit" 
                 className="w-full bg-safet-500 hover:bg-safet-600" 
-                disabled={isLoading}
+                disabled={isLoading || authLoading}
               >
-                {isLoading ? 'Creating Account...' : 'Create Account'}
+                {isLoading || authLoading ? 'Creating Account...' : 'Create Account'}
               </Button>
             </form>
+
+            <div className="relative my-6">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-card px-2 text-muted-foreground">Or continue with</span>
+              </div>
+            </div>
+
+            <Button 
+              variant="outline" 
+              className="w-full flex items-center gap-2" 
+              onClick={handleGoogleSignIn}
+              disabled={isLoading || authLoading}
+            >
+              <img src="/google-icon.svg" alt="Google" className="h-5 w-5" />
+              Google
+            </Button>
+
           </CardContent>
           <CardFooter className="flex justify-center border-t bg-gray-50/50 rounded-b-xl">
             <p className="text-sm text-gray-600">
@@ -273,3 +291,5 @@ const Register = () => {
 };
 
 export default Register;
+
+

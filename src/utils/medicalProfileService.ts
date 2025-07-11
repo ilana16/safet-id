@@ -1,8 +1,26 @@
 
 import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
+import { initializeApp } from 'firebase/app';
+import { getFirestore, doc, setDoc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
+import { getAuth } from 'firebase/auth';
 
-// Save section data to local storage and if available, to Supabase
+// Your web app's Firebase configuration
+const firebaseConfig = {
+  apiKey: "AIzaSyDsKjI3BadRGYaQ1GcFmgZEOuUWrL_3kWs",
+  authDomain: "safet-id-7b807.firebaseapp.com",
+  projectId: "safet-id-7b807",
+  storageBucket: "safet-id-7b807.firebasestorage.app",
+  messagingSenderId: "367148685926",
+  appId: "1:367148685926:web:31e50a8c05adefdc796ba7",
+  measurementId: "G-DJJFCXB486"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const auth = getAuth(app);
+
+// Save section data to local storage and if available, to Firestore
 export const saveSectionData = async (section: string, data?: any): Promise<boolean> => {
   try {
     if (!section) {
@@ -41,13 +59,13 @@ export const saveSectionData = async (section: string, data?: any): Promise<bool
     
     console.log(`${section} data saved successfully`);
 
-    // If logged in, save to Supabase
-    const { data: { session } } = await supabase.auth.getSession();
-    if (session?.user) {
+    // If logged in, save to Firestore
+    const user = auth.currentUser;
+    if (user) {
       try {
-        await saveToSupabase(section, profile[section], session.user.id);
+        await saveToFirestore(section, profile[section], user.uid);
       } catch (error) {
-        console.error(`Failed to sync ${section} with Supabase:`, error);
+        console.error(`Failed to sync ${section} with Firestore:`, error);
         // We still return true because local saving was successful
       }
     }
@@ -60,7 +78,7 @@ export const saveSectionData = async (section: string, data?: any): Promise<bool
   }
 };
 
-// Load section data from local storage or Supabase
+// Load section data from local storage or Firestore
 export const loadSectionData = (section: string): any => {
   try {
     if (!section) {
@@ -137,15 +155,15 @@ export const loadAllSectionData = async (): Promise<Record<string, any>> => {
       }
     });
     
-    // Try to load from Supabase if user is logged in
-    const { data: { session } } = await supabase.auth.getSession();
-    if (session?.user) {
+    // Try to load from Firestore if user is logged in
+    const user = auth.currentUser;
+    if (user) {
       try {
-        const supabaseData = await loadAllFromSupabase(session.user.id);
+        const firestoreData = await loadAllFromFirestore(user.uid);
         
         // Merge with local data
-        if (supabaseData) {
-          profile = { ...profile, ...supabaseData };
+        if (firestoreData) {
+          profile = { ...profile, ...firestoreData };
           
           // Update windows global objects with merged data
           Object.keys(profile).forEach(section => {
@@ -159,7 +177,7 @@ export const loadAllSectionData = async (): Promise<Record<string, any>> => {
           localStorage.setItem('medicalProfile', JSON.stringify(profile));
         }
       } catch (error) {
-        console.error('Error loading data from Supabase:', error);
+        console.error('Error loading data from Firestore:', error);
         // Continue with local data
       }
     }
@@ -171,88 +189,41 @@ export const loadAllSectionData = async (): Promise<Record<string, any>> => {
   }
 };
 
-// Helper functions for Supabase integration
-const saveToSupabase = async (section: string, data: any, userId: string): Promise<boolean> => {
+// Helper functions for Firestore integration
+const saveToFirestore = async (section: string, data: any, userId: string): Promise<boolean> => {
   try {
-    // Create a database-friendly section name
-    const dbSection = section.toLowerCase().replace(/[^a-z0-9_]/g, '_');
-    
-    console.log(`Saving ${section} to Supabase for user ${userId}`);
-    
-    const { error } = await supabase
-      .from('medical_profiles')
-      .upsert({
-        user_id: userId,
-        section: dbSection,
-        data: data,
-        updated_at: new Date().toISOString()
-      }, {
-        onConflict: 'user_id,section'
-      });
+    const docRef = doc(db, 'medical_profiles', userId, 'sections', section);
+    await setDoc(docRef, {
+      data: data,
+      updated_at: new Date().toISOString()
+    }, { merge: true });
       
-    if (error) {
-      throw error;
-    }
-    
-    console.log(`Successfully saved ${section} to Supabase`);
+    console.log(`Successfully saved ${section} to Firestore`);
     return true;
   } catch (error) {
-    console.error(`Error saving ${section} to Supabase:`, error);
+    console.error(`Error saving ${section} to Firestore:`, error);
     return false;
   }
 };
 
-const loadAllFromSupabase = async (userId: string): Promise<Record<string, any>> => {
+const loadAllFromFirestore = async (userId: string): Promise<Record<string, any>> => {
   try {
-    console.log(`Loading all sections from Supabase for user ${userId}`);
+    console.log(`Loading all sections from Firestore for user ${userId}`);
     
-    const { data, error } = await supabase
-      .from('medical_profiles')
-      .select('section, data, updated_at')
-      .eq('user_id', userId);
-      
-    if (error) {
-      throw error;
-    }
-    
-    if (!data || data.length === 0) {
-      console.log('No data found in Supabase');
-      return {};
-    }
+    const q = query(collection(db, 'medical_profiles', userId, 'sections'));
+    const querySnapshot = await getDocs(q);
     
     const result: Record<string, any> = {};
-    
-    data.forEach(item => {
-      // Convert database section name back to application format
-      const appSection = convertDbSectionToAppSection(item.section);
-      result[appSection] = item.data;
+    querySnapshot.forEach((doc) => {
+      result[doc.id] = doc.data().data;
     });
     
-    console.log('Successfully loaded data from Supabase:', Object.keys(result));
+    console.log('Successfully loaded data from Firestore:', Object.keys(result));
     return result;
   } catch (error) {
-    console.error('Error loading data from Supabase:', error);
+    console.error('Error loading data from Firestore:', error);
     return {};
   }
-};
-
-// Helper function to convert database section names to application section names
-const convertDbSectionToAppSection = (dbSection: string): string => {
-  // Map of database section names to application section names
-  const sectionMap: Record<string, string> = {
-    personal: 'personal',
-    medical_history: 'history',
-    medications: 'medications',
-    allergies: 'allergies',
-    immunizations: 'immunizations',
-    social_history: 'social',
-    reproductive_history: 'reproductive',
-    mental_health: 'mental',
-    functional_status: 'functional',
-    cultural_preferences: 'cultural'
-  };
-  
-  return sectionMap[dbSection] || dbSection;
 };
 
 // Helper function to get window key for a section
@@ -271,3 +242,5 @@ export const getWindowKeyForSection = (section: string): string => {
     default: return '';
   }
 };
+
+

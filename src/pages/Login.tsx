@@ -7,10 +7,11 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from '@/lib/toast';
 import { Mail, Lock, ShieldCheck } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 
 const Login = () => {
   const navigate = useNavigate();
+  const { signIn, signInWithGoogle, isLoading: authLoading } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
@@ -25,7 +26,6 @@ const Login = () => {
       [name]: value
     });
     
-    // Clear error when field is edited
     if (errors[name]) {
       setErrors({
         ...errors,
@@ -59,34 +59,35 @@ const Login = () => {
     setIsLoading(true);
     
     try {
-      // Sign in with Supabase
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: formData.email,
-        password: formData.password,
-      });
-      
-      if (error) {
-        throw error;
-      }
-      
-      // Update local storage isLoggedIn flag to maintain compatibility with existing code
-      localStorage.setItem('isLoggedIn', 'true');
-      
-      setIsLoading(false);
+      await signIn(formData.email, formData.password);
       toast.success('Login successful!');
       navigate('/dashboard');
     } catch (error: any) {
-      setIsLoading(false);
       console.error('Login error:', error);
-      toast.error('Invalid email or password');
+      toast.error(error.message || 'Invalid email or password');
       
-      // Update error states based on the error
-      if (error.message?.includes('credentials')) {
+      if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
         setErrors({
           email: 'Invalid email or password',
           password: 'Invalid email or password'
         });
       }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    setIsLoading(true);
+    try {
+      await signInWithGoogle();
+      toast.success('Google login successful!');
+      navigate('/dashboard');
+    } catch (error: any) {
+      console.error('Google login error:', error);
+      toast.error(error.message || 'Failed to sign in with Google');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -157,11 +158,31 @@ const Login = () => {
               <Button 
                 type="submit" 
                 className="w-full bg-safet-500 hover:bg-safet-600" 
-                disabled={isLoading}
+                disabled={isLoading || authLoading}
               >
-                {isLoading ? 'Logging in...' : 'Login'}
+                {isLoading || authLoading ? 'Logging in...' : 'Login'}
               </Button>
             </form>
+            
+            <div className="relative my-6">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-card px-2 text-muted-foreground">Or continue with</span>
+              </div>
+            </div>
+
+            <Button 
+              variant="outline" 
+              className="w-full flex items-center gap-2" 
+              onClick={handleGoogleSignIn}
+              disabled={isLoading || authLoading}
+            >
+              <img src="/google-icon.svg" alt="Google" className="h-5 w-5" />
+              Google
+            </Button>
+
           </CardContent>
           <CardFooter className="flex justify-center border-t bg-gray-50/50 rounded-b-xl">
             <p className="text-sm text-gray-600">
@@ -178,3 +199,5 @@ const Login = () => {
 };
 
 export default Login;
+
+
