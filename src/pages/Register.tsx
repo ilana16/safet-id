@@ -4,7 +4,6 @@ import PageLayout from '@/components/layout/PageLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from '@/lib/toast';
 import { Mail, Lock, User, ShieldCheck } from 'lucide-react';
@@ -20,15 +19,14 @@ const Register = () => {
     email: '',
     password: '',
     confirmPassword: '',
-    agreedToTerms: false
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value, type, checked } = e.target;
+    const { name, value } = e.target;
     setFormData({
       ...formData,
-      [name]: type === 'checkbox' ? checked : value
+      [name]: value
     });
     
     if (errors[name]) {
@@ -42,9 +40,14 @@ const Register = () => {
   const validate = () => {
     const newErrors: Record<string, string> = {};
     
-    if (!formData.firstName.trim()) newErrors.firstName = 'First name is required';
-    if (!formData.lastName.trim()) newErrors.lastName = 'Last name is required';
-    
+    if (!formData.firstName.trim()) {
+      newErrors.firstName = 'First name is required';
+    }
+
+    if (!formData.lastName.trim()) {
+      newErrors.lastName = 'Last name is required';
+    }
+
     if (!formData.email.trim()) {
       newErrors.email = 'Email is required';
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
@@ -53,16 +56,14 @@ const Register = () => {
     
     if (!formData.password) {
       newErrors.password = 'Password is required';
-    } else if (formData.password.length < 8) {
-      newErrors.password = 'Password must be at least 8 characters';
+    } else if (formData.password.length < 6) {
+      newErrors.password = 'Password must be at least 6 characters';
     }
-    
-    if (formData.password !== formData.confirmPassword) {
+
+    if (!formData.confirmPassword) {
+      newErrors.confirmPassword = 'Confirm password is required';
+    } else if (formData.confirmPassword !== formData.password) {
       newErrors.confirmPassword = 'Passwords do not match';
-    }
-    
-    if (!formData.agreedToTerms) {
-      newErrors.agreedToTerms = 'You must agree to the terms and privacy policy';
     }
     
     setErrors(newErrors);
@@ -78,26 +79,11 @@ const Register = () => {
     
     try {
       await signUp(formData.email, formData.password);
-      
-      localStorage.setItem('isLoggedIn', 'true');
-      
       toast.success('Account created successfully!');
       navigate('/dashboard');
     } catch (error: any) {
       console.error('Registration error:', error);
-      toast.error(error.message || 'Registration failed. Please try again.');
-      
-      if (error.code === 'auth/email-already-in-use') {
-        setErrors(prev => ({
-          ...prev,
-          email: 'Email already in use'
-        }));
-      } else if (error.code === 'auth/weak-password') {
-        setErrors(prev => ({
-          ...prev,
-          password: 'Password is too weak'
-        }));
-      }
+      toast.error(error.message || 'Failed to create account');
     } finally {
       setIsLoading(false);
     }
@@ -124,49 +110,55 @@ const Register = () => {
           <div className="inline-flex items-center justify-center w-16 h-16 bg-safet-100 rounded-full mb-4">
             <ShieldCheck className="h-8 w-8 text-safet-500" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">Create Your SafeT-iD Account</h1>
-          <p className="text-gray-600 mt-2">Secure your medical information in minutes</p>
+          <h1 className="text-2xl font-bold text-gray-900">Create Account</h1>
+          <p className="text-gray-600 mt-2">Sign up to manage your medical information</p>
         </div>
         
         <Card className="border-gray-200 shadow-sm animate-scale-in">
           <CardHeader>
             <CardTitle>Register</CardTitle>
             <CardDescription>
-              Enter your information to create an account
+              Enter your details to create an account
             </CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="firstName">First Name</Label>
+              <div className="space-y-2">
+                <Label htmlFor="firstName">First Name</Label>
+                <div className="relative">
+                  <User className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                   <Input
                     id="firstName"
                     name="firstName"
-                    placeholder="First Name"
+                    type="text"
+                    placeholder="John"
                     value={formData.firstName}
                     onChange={handleChange}
-                    className={errors.firstName ? 'border-red-300' : ''}
+                    className={`pl-10 ${errors.firstName ? 'border-red-300' : ''}`}
                   />
-                  {errors.firstName && (
-                    <p className="text-xs text-red-500">{errors.firstName}</p>
-                  )}
                 </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="lastName">Last Name</Label>
+                {errors.firstName && (
+                  <p className="text-xs text-red-500">{errors.firstName}</p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="lastName">Last Name</Label>
+                <div className="relative">
+                  <User className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                   <Input
                     id="lastName"
                     name="lastName"
-                    placeholder="Last Name"
+                    type="text"
+                    placeholder="Doe"
                     value={formData.lastName}
                     onChange={handleChange}
-                    className={errors.lastName ? 'border-red-300' : ''}
+                    className={`pl-10 ${errors.lastName ? 'border-red-300' : ''}`}
                   />
-                  {errors.lastName && (
-                    <p className="text-xs text-red-500">{errors.lastName}</p>
-                  )}
                 </div>
+                {errors.lastName && (
+                  <p className="text-xs text-red-500">{errors.lastName}</p>
+                )}
               </div>
               
               <div className="space-y-2">
@@ -202,12 +194,8 @@ const Register = () => {
                     className={`pl-10 ${errors.password ? 'border-red-300' : ''}`}
                   />
                 </div>
-                {errors.password ? (
+                {errors.password && (
                   <p className="text-xs text-red-500">{errors.password}</p>
-                ) : (
-                  <p className="text-xs text-gray-500">
-                    Password must be at least 8 characters
-                  </p>
                 )}
               </div>
               
@@ -229,23 +217,6 @@ const Register = () => {
                   <p className="text-xs text-red-500">{errors.confirmPassword}</p>
                 )}
               </div>
-              
-              <div className="flex items-start">
-                <Checkbox 
-                  id="agreedToTerms"
-                  name="agreedToTerms"
-                  checked={formData.agreedToTerms}
-                  onCheckedChange={(checked) => 
-                    setFormData({ ...formData, agreedToTerms: checked as boolean })}
-                  className="mr-2 mt-1"
-                />
-                <Label htmlFor="agreedToTerms" className="text-sm leading-tight">
-                  I agree to the <a href="/terms" className="text-safet-600 hover:underline">Terms of Service</a> and <a href="/privacy" className="text-safet-600 hover:underline">Privacy Policy</a>
-                </Label>
-              </div>
-              {errors.agreedToTerms && (
-                <p className="text-xs text-red-500 -mt-4">{errors.agreedToTerms}</p>
-              )}
               
               <Button 
                 type="submit" 
@@ -279,9 +250,9 @@ const Register = () => {
           <CardFooter className="flex justify-center border-t bg-gray-50/50 rounded-b-xl">
             <p className="text-sm text-gray-600">
               Already have an account?{' '}
-              <a href="/login" className="text-safet-600 hover:underline font-medium">
+              <Link to="/login" className="text-safet-600 hover:underline font-medium">
                 Sign in
-              </a>
+              </Link>
             </p>
           </CardFooter>
         </Card>

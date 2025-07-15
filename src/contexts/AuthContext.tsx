@@ -36,36 +36,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Sync profile data with Firebase (Firestore will be handled in next phase)
-  const syncProfileData = async (): Promise<boolean> => {
-    if (!user?.uid) return false;
-    
-    try {
-      // For now, we'll just log that data would be synced.
-      // Actual data migration to Firestore will happen in the next phase.
-      console.log('Syncing profile data for user:', user.uid);
-      return true;
-    } catch (error) {
-      console.error('Error syncing profile data:', error);
-      return false;
-    }
-  };
-  
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
       setIsLoading(false);
-      localStorage.setItem('isLoggedIn', currentUser ? 'true' : 'false');
-      if (currentUser) {
-        // Load data if user is signed in (Firestore will be handled in next phase)
-        loadAllSectionData().catch(err => {
-          console.error('Error loading initial profile data:', err);
-        });
-      }
     });
-
     return () => unsubscribe();
   }, []);
+
+  const syncProfileData = async (): Promise<boolean> => {
+    if (!user) return false;
+
+    const sections = ['personal', 'history', 'medications', 'allergies', 
+                      'immunizations', 'social', 'reproductive', 'mental', 
+                      'functional', 'cultural'];
+    
+    let allSaved = true;
+    for (const section of sections) {
+      const saved = await saveSectionData(section);
+      if (!saved) allSaved = false;
+    }
+    return allSaved;
+  };
 
   const signIn = async (email: string, password: string) => {
     setIsLoading(true);
@@ -104,7 +96,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signOut = async () => {
-    // Save data before signing out (Firestore will be handled in next phase)
     const sections = ['personal', 'history', 'medications', 'allergies', 
                       'immunizations', 'social', 'reproductive', 'mental', 
                       'functional', 'cultural'];
@@ -131,7 +122,5 @@ export function useAuth() {
   }
   return context;
 }
-
-
 
 
